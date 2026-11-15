@@ -34,6 +34,7 @@ Options in the URL, before the `#`:
 | `?demo-wireless` | The demo keyboard is reached through the 2.4 GHz receiver, reports a battery level (76 %) and has the K15 Max's wireless timers and debounce, for screenshots of the wireless parts |
 | `?restore-sample` | The Device page opens a made-up backup of the connected keyboard (a few keys, a knob turn, a macro and the colour changed) once it is read, for screenshots of the restore review |
 | `?demo-press=2,2;2,3;0,1+3,14` | The demo presses keys (row,col) by itself from a second after connecting: each step in turn, keys joined by `+` together, the last step stays held |
+| `?demo-turn=1;0` | Turns the demo's knob by itself from a second after connecting (1 clockwise, 0 counter-clockwise): the page gets what the knob sends on the base layer as a browser event, as a real turn would |
 | `?unlock`, `?unlock=start` | Opens the unlock dialog once the lock state is read; `start` starts unlocking straight away (with `?demo-press=0,1+3,14` the demo holds Esc and Enter) |
 
 Example: `http://localhost:5199/?demo&theme=light#/keys`.
@@ -171,8 +172,12 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
   behind a `Disclosure`. With no keyboard it shows the connect prompt and three lines on what the app is for.
 - **Keys** (`Keys.tsx`, `keys/`): click a key or one side of the knob on the stage; with nothing selected the
   page says so. The inspector (`keys/Inspector.tsx`) is two columns from 42rem (a container query), so in a small
-  window the palette starts at the top of the card; one column when narrower. It asks "What should this key
-  do?", says which layer it is on and, above the base layer, whether
+  window the palette starts at the top of the card; one column when narrower. With two columns the card fills
+  exactly the space under the stage (placed absolutely in a wrapper, at least 15rem tall), so nothing in it makes
+  the page taller: the palette scrolls in its box, and the left column (question, choice, More options) and a
+  tall choice scroll on their own. With one column the card is as tall as its contents and the page scrolls,
+  More options last. It asks "What should this key do?", says which layer it is on and, above the base layer,
+  whether
   the key has its own assignment or falls through, and to what (`keys/describe.ts`, `fallThrough`: from a layer
   above the keyboard's base layer to the base layer, then layer 0; from any other layer straight to layer 0;
   worded "normally", since other layers held at the same time aren't counted). "Now" shows the current assignment as a keycap,
@@ -200,12 +205,15 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
 - **Lighting** (`Lighting.tsx`, `lighting/`): full height, no stage (the picture can't show the lighting yet).
   Left, the effects the keyboard lists (`capabilities.lighting.effects`) as tiles in groups (Steady, Moving, Rain
   and sparkles, Reacts to typing, Set per key or zone), each with a small moving preview in the chosen colour
-  and speed (`EffectPreview.tsx`, `lighting.css`); Off and VialRGB Direct are not tiles. Right, staying in view:
+  and speed (`EffectPreview.tsx`, `lighting.css`), moving the way the effect moves on the keyboard (worked out
+  from the firmware's effect code; the reasoning is beside each preview); Off and VialRGB Direct are not tiles.
+  Right, staying in view:
   a "Lights on" switch, the current effect in words with its QMK name, and sliders for brightness (percent of
   the keyboard's maximum), speed, colour (rainbow track, swatch and colour name) and vividness. Turning the
   lights off sends effect 0; on again sends the effect remembered for this keyboard (`usePref`), and picking a
   tile while off turns them on. Plugin panels for `'lighting'` follow, one `Card` each. Without usable lighting
-  the page shows the capability's reason instead.
+  the page shows the capability's reason instead. The page reads the lighting again on opening, on window focus
+  and when Fn is let go (`refreshLighting`), to catch the keyboard's own lighting keys.
   - `lighting/effects.ts` holds each effect's friendly name, description, group, preview, and whether it uses
     colour, vividness and speed, or the reason it doesn't, read from the firmware's effect code (sources in the
     file). A slider the current effect ignores is disabled with that reason under it; when colour and
@@ -219,13 +227,23 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
   layer). "37 of 90 keys seen" with a bar and "Start again"; a key is lit while down and stays marked once seen
   (`KeyboardPicture`'s `seen`, in `--key-bg-seen`; a held key is `--key-bg-pressed`, light in the light theme so the
   widget's dark label reads on it). Total: the picture's physical keys (`matrixKeys`; the K15 Max
-  has 90, plus two knob turns that no reading can see). Two sources, combined:
-  - the browser's key events (`usePressedKeys`), always: only keys that type something, only while the window is
-    in front (the page says so when it isn't). While the page is open it keeps keys without Ctrl or Win from
-    doing their browser job (scrolling, Tab, F5 ...), outside dialogs and text fields;
+  has 90), and beside it "1 of 2 knob turns"; "Every key works" needs both. Two sources, combined:
+  - the browser's key events (`usePressedKeys`), always: only keys that type something (letters, media and
+    browser keys such as Volume Up: `keycodeOfEvent` in `shell/pressed-keys.ts`), only while the window is in
+    front (the page says so when it isn't). While the page is open it keeps keys without Ctrl or Win from doing
+    their browser job (scrolling, Tab, F5 ...), outside dialogs and text fields; it can't stop media keys
+    changing the volume, and doesn't try;
   - the keyboard's switch matrix (`test/useMatrix.ts` → `deviceStore.watchMatrix`) while unlocked: every key,
     Fn included. It reads only while the page is shown and the tab is visible; through the receiver it pauses
     after 2 minutes without a change (each read keeps the keyboard awake) until a key or click.
+
+  The matrix can't see knob turns (they aren't switches), so a knob direction counts as seen when the browser
+  gets what it sends on the active layer (`useKnobTurns`): a key event (volume, media, a plain key, or a key
+  with modifiers, by its key) or a mouse wheel movement for the wheel keycodes (`howHeard`). It is lit for 250 ms,
+  then marked seen; ordinary mouse scrolling counts too where the knob scrolls. The widget has no state for knob
+  directions, so `KeyboardPicture`'s `knobsTurned` / `knobsSeen` recolour them with a CSS rule scoped to the
+  picture (`[data-encoder-pos]` circles). A note says so, and names any direction the active layer sends
+  something the page can't see (lighting keys, layer keys ...).
 
   A note under the picture says which source is in use; locked, it names what can't be seen and offers "Unlock to
   see every key…". Seen keys survive a visit to another page (`test/seen.ts`), not another keyboard.
@@ -316,7 +334,13 @@ one shot (theme, "More options" open) shows in another. `EDGE=<path>` points it 
   `redo()` write the previous or next value back. `DeviceState.writing` counts changes on their way;
   `writeError` holds the last failure.
 - `deviceStore.setLighting(change)` sends the effect and its values at once and saves them to the keyboard 1.5 s
-  after the last change.
+  after the last change. vial-qmk reloads speed and colour from what was last saved on the first frame of a
+  different effect (`rgb_matrix.c`), over what was just sent, so a change of effect (on and off included) is sent,
+  saved and sent again; restore writes its lighting the same way. Without that, the keyboard would run a new
+  effect with the old saved speed or colour while the page showed the new ones.
+- `deviceStore.refreshLighting()` reads the effect and its values again (one request). The keyboard's own lighting
+  keys change them without telling anyone; the Lighting page calls it when it opens, when the window gets the focus
+  back and when a held layer is let go (the lighting keys sit on the Fn layers).
 - `deviceStore.lock()` locks the keyboard (see "Unlocking").
 - `deviceStore.restore(plan, onProgress)` writes a restore plan (see "Backups") as one change in the queue.
 - `deviceStore.setWirelessTimers({ backlitTime, idleTime })` sets Keychron's wireless timers (`0xA7 0x0C`); the

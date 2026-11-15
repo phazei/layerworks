@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
-import { KC_SAME_AS_BELOW, type KeyboardData } from '../../device'
-import { positionsSending, usageOf } from '../pressed-keys'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { KC_SAME_AS_BELOW, parseKeycode, type KeyboardData } from '../../device'
+import { howHeard, keycodeOfEvent, knobDirections, knobKeycode, positionsSending, usageOf } from '../pressed-keys'
+import { connectDemo, disconnect } from '../session'
 
 const KC_A = 0x04
 const KC_B = 0x05
@@ -48,5 +49,39 @@ describe('usageOf', () => {
     expect(usageOf('Numpad0')).toBe(0x62)
     expect(usageOf('ShiftRight')).toBe(0xe5)
     expect(usageOf('Fn')).toBeUndefined()
+  })
+})
+
+describe('media keys and how keycodes are heard', () => {
+  // The keycode tables describe a keyboard only once one is loaded.
+  beforeAll(async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    await connectDemo()
+  })
+  afterAll(() => disconnect())
+
+  it('maps media and browser keys to their keycodes', () => {
+    expect(keycodeOfEvent('AudioVolumeUp')).toBe(parseKeycode('KC_VOLU'))
+    expect(keycodeOfEvent('VolumeDown')).toBe(parseKeycode('KC_VOLD'))
+    expect(keycodeOfEvent('MediaPlayPause')).toBe(parseKeycode('KC_MPLY'))
+    expect(keycodeOfEvent('BrowserBack')).toBe(parseKeycode('KC_WBAK'))
+    expect(keycodeOfEvent('KeyA')).toBe(KC_A)
+    expect(keycodeOfEvent('Fn')).toBeUndefined()
+  })
+
+  it('says how the page hears a keycode: as a key, as the wheel, or not at all', () => {
+    expect(howHeard(parseKeycode('KC_VOLU')!)).toEqual({ key: parseKeycode('KC_VOLU') })
+    expect(howHeard(parseKeycode('LCTL(KC_C)')!)).toEqual({ key: parseKeycode('KC_C') })
+    expect(howHeard(parseKeycode('KC_WH_U')!)).toEqual({ wheel: 'up' })
+    expect(howHeard(parseKeycode('KC_WH_R')!)).toEqual({ wheel: 'right' })
+    expect(howHeard(parseKeycode('MO(1)')!)).toBeNull()
+    expect(howHeard(parseKeycode('RGB_TOG')!)).toBeNull()
+  })
+
+  it('finds what a knob direction sends, falling through to the base layer', () => {
+    const kb = { knobCount: 1, knobs: { '0,0,0': KC_A, '0,0,1': KC_B, '1,0,0': KC_SAME_AS_BELOW, '1,0,1': KC_ESC } } as unknown as KeyboardData
+    expect(knobDirections(kb)).toEqual(['0,0', '0,1'])
+    expect(knobKeycode(kb, layer(0, 1), '0,0')).toBe(KC_A)
+    expect(knobKeycode(kb, layer(0, 1), '0,1')).toBe(KC_ESC)
   })
 })

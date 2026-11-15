@@ -4,10 +4,11 @@
 // draws its own picture: it needs the seen marking, and no layer stack.
 
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, Lock, LockOpen, MousePointerClick, Pause, RotateCcw } from 'lucide-react'
-import { matrixKeys, useDevice, type KeyboardData, type LayerState } from '../device'
+import { Activity, Lock, LockOpen, MousePointerClick, Pause, RotateCcw, RotateCw } from 'lucide-react'
+import { keycodeTitle, matrixKeys, useDevice, type KeyboardData, type LayerState } from '../device'
 import type { PageDef } from '../plugins/api'
-import { usePressedKeys } from '../shell/pressed-keys'
+import { useConnectedLayerNames } from '../shell/layer-names'
+import { howHeard, knobDirections, knobKeycode, useKnobTurns, usePressedKeys } from '../shell/pressed-keys'
 import { openUnlock } from '../shell/unlock-dialog'
 import { Button } from '../ui/controls'
 import { KeyboardPicture } from '../ui/KeyboardPicture'
@@ -17,6 +18,7 @@ import { useSeenKeys } from './test/seen'
 import { useMatrix, type MatrixMode } from './test/useMatrix'
 
 const NO_LAYER: LayerState = { base: 0, held: 0, active: 0 }
+const KNOB = 'knob:'
 
 /** Keys the browser would act on (scroll, focus, menus, reload), kept for the test while this page is open. */
 function useKeepKeysOnPage(): void {
@@ -58,7 +60,7 @@ function ModeNote({ mode, wireless, canUnlock, resume }: { mode: MatrixMode; wir
         <p className="flex min-w-0 flex-1 gap-2.5">
           <Lock size={16} aria-hidden className="mt-0.5 shrink-0" />
           <span>
-            Seeing keys through the browser, as any web page can. Fn, Fn2 and other layer keys and the knob send
+            Seeing keys through the browser, as any web page can. Fn, Fn2 and other layer keys send
             nothing the browser sees, so they can’t be tested while the keyboard is locked.
           </span>
         </p>
@@ -90,20 +92,52 @@ function ModeNote({ mode, wireless, canUnlock, resume }: { mode: MatrixMode; wir
       <LockOpen size={16} aria-hidden className="mt-0.5 shrink-0" />
       <span>
         Reading every key straight from the keyboard, Fn and layer keys included, while this page is open.
-        {wireless && ' Through the receiver it is asked about ten times a second, so hold each key a moment.'}{' '}
-        Turning the knob doesn’t show; pressing it does.
+        {wireless && ' Through the receiver it is asked about ten times a second, so hold each key a moment.'}
       </span>
     </p>
   )
 }
 
-const TEST_REASON = 'The key test needs it to see Fn, the layer keys and the knob, which never reach the browser.'
+const TEST_REASON = 'The key test needs it to see Fn and the layer keys, which never reach the browser.'
+
+/** "left", "right", or "knob 2 left" where there is more than one knob. */
+function turnName(position: string, knobCount: number): string {
+  const [knob, direction] = position.split(',')
+  const way = direction === '1' ? 'right' : 'left'
+  return knobCount > 1 ? `knob ${Number(knob) + 1} ${way}` : way
+}
+
+/** How turning the knob is seen, and which directions can't be on the active layer. */
+function KnobNote({ keyboard, layer }: { keyboard: KeyboardData; layer: LayerState }) {
+  const names = useConnectedLayerNames()
+  const directions = knobDirections(keyboard)
+  if (directions.length === 0) return null
+  const unseen = directions.filter((position) => howHeard(knobKeycode(keyboard, layer, position)) === null)
+  const layerName = names[layer.active] ?? `layer ${layer.active}`
+  return (
+    <p className="flex gap-2.5">
+      <RotateCw size={16} aria-hidden className="mt-0.5 shrink-0" />
+      <span>
+        Turning the knob shows when it sends something this page can see, like volume or scrolling, while this window
+        is in front.
+        {unseen.map((position) => (
+          <span key={position}>
+            {' '}
+            On {layerName}, turning it {turnName(position, keyboard.knobCount)} sends{' '}
+            {keycodeTitle(knobKeycode(keyboard, layer, position))}, which this page can’t see.
+          </span>
+        ))}
+      </span>
+    </p>
+  )
+}
 
 function KeyTest({ keyboard }: { keyboard: KeyboardData }) {
   const layer = useDevice((s) => s.layer)
   const wireless = useDevice((s) => s.link?.kind === 'receiver')
   const capabilities = useDevice((s) => s.capabilities)
   const browser = usePressedKeys(keyboard, layer ?? NO_LAYER)
+  const turned = useKnobTurns(keyboard, layer ?? NO_LAYER)
   const matrix = useMatrix()
   const focused = useWindowFocus()
   const { seen, add, reset } = useSeenKeys(keyboard.uid)
@@ -112,8 +146,13 @@ function KeyTest({ keyboard }: { keyboard: KeyboardData }) {
   const all = useMemo(() => matrixKeys(keyboard), [keyboard])
   const pressed = useMemo(() => new Set([...browser, ...matrix.down]), [browser, matrix.down])
   useEffect(() => add(pressed), [pressed, add])
+  // Knob directions share the seen list, as "knob:0,1", so they can't be mistaken for the key at row 0, column 1.
+  useEffect(() => add([...turned].map((position) => KNOB + position)), [turned, add])
 
   const seenHere = useMemo(() => new Set(all.filter((key) => seen.has(key))), [all, seen])
+  const knobs = useMemo(() => knobDirections(keyboard), [keyboard])
+  const knobsSeen = useMemo(() => new Set(knobs.filter((position) => seen.has(KNOB + position))), [knobs, seen])
+  const everything = all.length > 0 && seenHere.size === all.length && knobsSeen.size === knobs.length
   const check = capabilities?.check('keyMatrix')
   const canUnlock = check !== undefined && !check.available && check.needsUnlock === true
 
@@ -123,11 +162,16 @@ function KeyTest({ keyboard }: { keyboard: KeyboardData }) {
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div className="flex min-w-56 flex-1 flex-col gap-1.5">
-              <div className="flex items-baseline gap-2">
-                <span className="text-lg font-semibold tabular-nums" aria-live="polite">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1" aria-live="polite">
+                <span className="text-lg font-semibold tabular-nums">
                   {seenHere.size} of {all.length} keys seen
                 </span>
-                {seenHere.size === all.length && all.length > 0 && <span className="text-[13px] text-success">Every key works</span>}
+                {knobs.length > 0 && (
+                  <span className="text-[13px] text-muted tabular-nums">
+                    {knobsSeen.size} of {knobs.length} knob turns
+                  </span>
+                )}
+                {everything && <span className="text-[13px] text-success">Every key works</span>}
               </div>
               <ProgressBar label="Keys seen" value={seenHere.size} max={all.length} className="max-w-md" />
             </div>
@@ -136,20 +180,30 @@ function KeyTest({ keyboard }: { keyboard: KeyboardData }) {
             </Button>
           </div>
           <div className="rounded-control bg-surface p-3">
-            <KeyboardPicture keyboard={keyboard} layer={layer?.active ?? 0} pressed={pressed} seen={seenHere} />
+            <KeyboardPicture
+              keyboard={keyboard}
+              layer={layer?.active ?? 0}
+              pressed={pressed}
+              seen={seenHere}
+              knobsTurned={turned}
+              knobsSeen={knobsSeen}
+            />
           </div>
           <p className="text-[13px] text-muted">
-            Press each key once. A key lights up while it is down and stays marked once seen; any key still plain at
-            the end didn’t reach the app.
+            Press each key once{knobs.length > 0 && ' and turn the knob both ways'}. A key lights up while it is down
+            and stays marked once seen; any key still plain at the end didn’t reach the app.
           </p>
         </div>
       </Card>
       <div className="flex flex-col gap-2 rounded-card bg-card px-5 py-4 text-[13px] text-muted shadow-card">
         <ModeNote mode={matrix.mode === 'hidden' ? 'watching' : matrix.mode} wireless={wireless} canUnlock={canUnlock} resume={matrix.resume} />
-        {matrix.mode === 'off' && !focused && (
+        <KnobNote keyboard={keyboard} layer={layer ?? NO_LAYER} />
+        {!focused && (matrix.mode === 'off' || knobs.length > 0) && (
           <p className="flex gap-2.5 text-content">
             <MousePointerClick size={16} aria-hidden className="mt-0.5 shrink-0" />
-            Click anywhere in this window first: the browser only passes keys to the window in front.
+            {matrix.mode === 'off'
+              ? 'Click anywhere in this window first: the browser only passes keys to the window in front.'
+              : 'Click anywhere in this window to see the knob: the browser only passes it to the window in front.'}
           </p>
         )}
         <div className="-mb-1 flex items-center gap-1">

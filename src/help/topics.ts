@@ -159,7 +159,8 @@ const topics = {
     qmkName: 'Matrix tester',
     body: [
       'Press every key once: each lights up while it is down and stays marked afterwards, so a key that never lights is one that doesn’t work.',
-      'While the keyboard is locked, the app sees keys the way any web page does, through the browser: only the keys that type something, and only while this window is in front. Fn and other layer keys, and the knob, send nothing the browser can see. Unlocked, the app reads every switch straight from the keyboard, Fn included.',
+      'While the keyboard is locked, the app sees keys the way any web page does, through the browser: only the keys that type something, and only while this window is in front. Fn and other layer keys send nothing the browser can see. Unlocked, the app reads every switch straight from the keyboard, Fn included.',
+      'Turning the knob is not a switch, so it shows only when what it sends reaches the browser, locked or not: volume, media keys, ordinary keys or scrolling. On a layer where it changes the lighting, say, turning it can’t be seen; the page tells you which.',
     ],
     example: 'Unlock, then hold Fn: its key lights up although your computer never hears about it.',
     docs: QMK + 'faq_debug',

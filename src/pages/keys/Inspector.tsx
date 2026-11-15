@@ -86,48 +86,66 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
   const unusual = opening.more && current !== KC_NOTHING && current !== KC_SAME_AS_BELOW
 
   // Wide: the question, what it does now, the choice and More options on the left, the choice's body filling
-  // the right. Narrow: one column, More options last.
+  // the right. The card fits the space under the stage: the palette scrolls in its box, and the left column (with
+  // More options open) or a tall choice scroll on their own rather than making the page taller. Narrow: one
+  // column, More options last, and the page scrolls to reach it.
   return (
-    <Card className="@container flex flex-1 flex-col">
+    <Card className="@container flex flex-1 flex-col @2xl/keys:absolute @2xl/keys:inset-0">
       <div
         className={cx(
-          'grid flex-1 grid-cols-1 grid-rows-[auto_auto_1fr_auto] gap-x-6',
+          'grid flex-1 grid-cols-1 grid-rows-[auto_auto_1fr_auto] gap-x-6 @2xl:min-h-0',
           "[grid-template-areas:'head'_'choose'_'body'_'more']",
           // Two columns from 42rem, so in a small window the palette starts at the top of the card.
-          "@2xl:grid-cols-[18rem_1fr] @2xl:grid-rows-[auto_auto_1fr] @2xl:[grid-template-areas:'head_body'_'choose_body'_'more_body']",
+          "@2xl:grid-cols-[18rem_1fr] @2xl:grid-rows-[minmax(0,1fr)] @2xl:[grid-template-areas:'left_body']",
           '@3xl:grid-cols-[18.5rem_1fr]',
         )}
       >
-        <header className="mb-4 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 [grid-area:head]">
-          <div className="min-w-0 flex-1 basis-64">
-            <h2 className="text-[15px] font-semibold">
-              {question}
-              {slot.kind === 'knob' && (
-                <span className="ml-1 inline-flex align-middle">
-                  <HelpButton topic="knob" />
-                </span>
-              )}
-            </h2>
-            <p className="mt-0.5 text-[13px] text-muted">
-              <Whereabouts keyboard={keyboard} slot={slot} names={names} base={base} />
-            </p>
-          </div>
-          <div aria-label="What it does now" role="group" className="flex min-w-0 items-center gap-2.5">
-            <span className="text-[13px] text-muted">Now</span>
-            <KeyCap label={keycodeName(current)} />
-            <span className="flex min-w-0 flex-col leading-tight">
-              <span className="font-medium">{describeKeycode(current, names)}</span>
-              <span className="font-mono text-xs break-all text-muted">{keycodeId(current)}</span>
-            </span>
-          </div>
-        </header>
+        {/* Wide: one column that scrolls by itself. Narrow: not a box at all, so its parts take their own rows. */}
+        <div className="contents @2xl:-m-1 @2xl:flex @2xl:min-h-0 @2xl:flex-col @2xl:overflow-y-auto @2xl:p-1 @2xl:[grid-area:left]">
+          <header className="mb-4 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 [grid-area:head]">
+            <div className="min-w-0 flex-1 basis-64">
+              <h2 className="text-[15px] font-semibold">
+                {question}
+                {slot.kind === 'knob' && (
+                  <span className="ml-1 inline-flex align-middle">
+                    <HelpButton topic="knob" />
+                  </span>
+                )}
+              </h2>
+              <p className="mt-0.5 text-[13px] text-muted">
+                <Whereabouts keyboard={keyboard} slot={slot} names={names} base={base} />
+              </p>
+            </div>
+            <div aria-label="What it does now" role="group" className="flex min-w-0 items-center gap-2.5">
+              <span className="text-[13px] text-muted">Now</span>
+              <KeyCap label={keycodeName(current)} />
+              <span className="flex min-w-0 flex-col leading-tight">
+                <span className="font-medium">{describeKeycode(current, names)}</span>
+                <span className="font-mono text-xs break-all text-muted">{keycodeId(current)}</span>
+              </span>
+            </div>
+          </header>
 
-        <div className="mb-4 flex items-center gap-1 whitespace-nowrap [grid-area:choose]">
-          <Segmented label="What it should do" value={choice} options={CHOICES} onChange={setChoice} />
-          <HelpButton topic={CHOICES.find((c) => c.value === choice)!.help} />
+          <div className="mb-4 flex items-center gap-1 whitespace-nowrap [grid-area:choose]">
+            <Segmented label="What it should do" value={choice} options={CHOICES} onChange={setChoice} />
+            <HelpButton topic={CHOICES.find((c) => c.value === choice)!.help} />
+          </div>
+
+          <div className="[grid-area:more] @2xl:[&>div]:mt-0">
+            <Disclosure id={MORE_OPTIONS} forceOpen={opening.more}>
+              <MoreOptions
+                current={current}
+                names={names}
+                layer={slot.layer}
+                initialCode={unusual ? keycodeId(current) : ''}
+                onAssign={assign}
+              />
+            </Disclosure>
+          </div>
         </div>
 
-        <div className="flex min-w-0 flex-col [grid-area:body]">
+        {/* -m-1 p-1: room for focus rings inside the scrolling columns. */}
+        <div className="flex min-w-0 flex-col [grid-area:body] @2xl:-m-1 @2xl:min-h-0 @2xl:overflow-y-auto @2xl:p-1">
           {choice === 'key' && (
             <KeyPalette
               groups={palette}
@@ -139,18 +157,6 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
           )}
           {choice === 'shortcut' && <ShortcutChoice current={current} groups={shortcutKeys} onAssign={assign} />}
           {choice === 'layer' && <LayerChoice current={current} names={names} ownLayer={slot.layer} onAssign={assign} />}
-        </div>
-
-        <div className="[grid-area:more] @2xl:[&>div]:mt-0">
-          <Disclosure id={MORE_OPTIONS} forceOpen={opening.more}>
-            <MoreOptions
-              current={current}
-              names={names}
-              layer={slot.layer}
-              initialCode={unusual ? keycodeId(current) : ''}
-              onAssign={assign}
-            />
-          </Disclosure>
         </div>
       </div>
     </Card>

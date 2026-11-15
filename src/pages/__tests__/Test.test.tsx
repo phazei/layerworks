@@ -76,6 +76,58 @@ describe('the Test page', () => {
     expect(screen.getByText('1 of 90 keys seen')).toBeInTheDocument()
   })
 
+  describe('the knob', () => {
+    // The demo's knob: Volume Down / Up on Windows (2), lighting on Windows Fn (3), the mouse wheel on Fn2 (4).
+    const knobRule = (position: string) =>
+      [...document.querySelectorAll('style')].map((style) => style.textContent).join('\n').split('\n').find((rule) => rule.includes(`"${position}"`)) ?? ''
+
+    it('is seen, and lit for a moment, when the browser gets the volume key it sends', async () => {
+      await openTest()
+      expect(screen.getByText('0 of 2 knob turns')).toBeInTheDocument()
+
+      fireEvent.keyDown(window, { code: 'AudioVolumeUp', key: 'AudioVolumeUp' })
+      fireEvent.keyUp(window, { code: 'AudioVolumeUp', key: 'AudioVolumeUp' })
+
+      expect(screen.getByText('1 of 2 knob turns')).toBeInTheDocument()
+      expect(knobRule('0,1')).toContain('--key-bg-pressed')
+      await waitFor(() => expect(knobRule('0,1')).toContain('--key-bg-seen'))
+      expect(knobRule('0,0')).toBe('')
+      // Seen, not counted as a key.
+      expect(screen.getByText('0 of 90 keys seen')).toBeInTheDocument()
+    })
+
+    it('is seen from the mouse wheel where it scrolls, and not from a volume key there', async () => {
+      await openTest()
+      await act(async () => demoKeyboard()!.holdLayer(4))
+      await waitFor(() => expect(deviceStore.getState().layer?.active).toBe(4))
+
+      fireEvent.keyDown(window, { code: 'AudioVolumeUp', key: 'AudioVolumeUp' })
+      expect(screen.getByText('0 of 2 knob turns')).toBeInTheDocument()
+
+      fireEvent.wheel(window, { deltaY: -100 })
+      fireEvent.wheel(window, { deltaY: 100 })
+      expect(screen.getByText('2 of 2 knob turns')).toBeInTheDocument()
+    })
+
+    it('says which directions this page can’t see on the active layer', async () => {
+      await openTest()
+      expect(screen.getByText(/Turning the knob shows when it sends something this page can see/)).not.toHaveTextContent('can’t see')
+
+      await act(async () => demoKeyboard()!.holdLayer(3))
+      await waitFor(() => expect(screen.getByText(/Turning the knob shows/)).toHaveTextContent(/On Windows Fn, turning it left sends .+, which this page can’t see\./))
+    })
+
+    it('adds to what the unlocked keyboard reports', async () => {
+      await openTest('?demo-unlocked')
+      act(() => demoKeyboard()!.setKey(FN2, true))
+      await waitFor(() => expect(screen.getByText('1 of 90 keys seen')).toBeInTheDocument())
+
+      fireEvent.keyDown(window, { code: 'AudioVolumeDown', key: 'AudioVolumeDown' })
+      expect(screen.getByText('1 of 2 knob turns')).toBeInTheDocument()
+      expect(knobRule('0,0')).toContain('--key-bg-pressed')
+    })
+  })
+
   it('stops reading the keyboard when leaving the page', async () => {
     await openTest('?demo-unlocked')
     const link = demoKeyboard()!

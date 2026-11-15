@@ -38,14 +38,19 @@ function KeysPage() {
   const layer = shownLayer(stage, live, keyboard.layers)
   const where = selection.kind === 'key' ? `key ${selection.row},${selection.col}` : `knob ${selection.knob},${selection.direction}`
   return (
-    <Inspector
-      // A new key or layer starts the inspector afresh, on the choice that matches it.
-      key={`${layer} ${where}`}
-      keyboard={keyboard}
-      slot={toSlot(selection, layer)}
-      names={names}
-      base={live?.base ?? 0}
-    />
+    // Wide enough for the inspector's two columns, it fills exactly the space under the stage (placed absolutely,
+    // so what is inside can't make the page taller), but not below 15rem in a short window. Narrower, it is as
+    // tall as its contents and the page scrolls.
+    <div className="@container/keys relative flex min-h-60 flex-1 flex-col">
+      <Inspector
+        // A new key or layer starts the inspector afresh, on the choice that matches it.
+        key={`${layer} ${where}`}
+        keyboard={keyboard}
+        slot={toSlot(selection, layer)}
+        names={names}
+        base={live?.base ?? 0}
+      />
+    </div>
   )
 }
 

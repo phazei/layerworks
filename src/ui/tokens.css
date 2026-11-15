@@ -43,6 +43,7 @@
   --key-bg-seen: #cdebd9; /* a key the Test page has seen; the default label must stay readable on it */
   /* A key held down. The widget keeps the default (dark) label on it in this theme, so it must be light. */
   --key-bg-pressed: #6fcf97;
+  --key-label-pressed: #171a1f; /* a label on it, where the app draws one (knob directions) */
   --wire-row: #2f6fe4;
   --wire-col: #c0379a;
 
@@ -97,6 +98,7 @@
   --key-bg-seen: #1d4a32;
   /* The widget flips the label to --content-inverse (near black) on it in this theme. */
   --key-bg-pressed: #4cc37f;
+  --key-label-pressed: #0d0e10;
   --wire-row: #6aa3ff;
   --wire-col: #ff7ad1;
 

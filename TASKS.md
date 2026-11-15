@@ -11,22 +11,17 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
   1 stray report).
 - **The shell is in place** (`src/shell/`, `src/pages/`): sidebar, keyboard stage with the layer stack, status
   line with undo / redo, help panel, connect prompt, themes.
-- **Built pages, on the demo keyboard:** Home (at a glance, what the keyboard can do, shortcuts), Keys (click a
-  key or knob direction; a key, a shortcut, a layer key, More options), Lighting (effect grid, lights on/off,
-  brightness, speed, colour, plugin panel slot; no keyboard picture until there is a live preview), Settings
-  (theme, layer names, about), Help (topic list), Test (keys seen from browser key events, and from the key
-  matrix once unlocked), Device (backup and restore to one file, Vial `.vil` import and export, sleep timers,
-  keyboard information). Shortcuts & macros and Typing feel are placeholders.
-- **Restore and the sleep timers write to the keyboard**; like all writes they have run on the fake and demo
-  keyboards only.
-- **Unlock flow** (`src/device/unlock.ts`, `src/shell/UnlockDialog.tsx`): built and tested on the fake keyboard;
-  tryable on the demo keyboard by holding Esc and Enter. **Never run against the real keyboard yet.**
-- **Device layer for changes:** `assign` / `undo` / `redo` for keys and knob, `setLighting` with delayed save,
-  keycode names, palette groups, shortcut and layer-key builders. Unit-tested on the fake keyboard.
-  **Never run against the real keyboard yet.**
-- Not shown anywhere yet: the capabilities list and request counters of the old proof page (candidates for the
-  Device page), battery and 2.4 GHz outside the sidebar's device card. The battery line has only been seen in
-  code: the demo keyboard is on the cable.
+- **Built pages:** Home (at a glance, what the keyboard can do, shortcuts), Keys (click a key or knob direction;
+  a key, a shortcut, a layer key, More options), Lighting (effect grid with previews, lights on/off, brightness,
+  speed, colour, plugin panel slot; no keyboard picture until there is a live preview), Settings (theme, layer
+  names, about), Help (topic list), Test (keys seen from browser key events and, once unlocked, from the key
+  matrix; knob turns from what they send to the browser), Device (backup and restore to one file, Vial `.vil`
+  import and export, sleep timers, keyboard information). Shortcuts & macros and Typing feel are placeholders.
+- **Checked by the user on the real keyboard:** assigning keys, undo / redo, lighting, unlock and lock, the Test
+  page unlocked (M1-M5, Mute, Fn and Fn2 register), backup, restore and `.vil` restore. The user likes the look,
+  the wording and the help as they are.
+- Not yet confirmed on the real keyboard: knob turns on the Test page, the lighting values after a restore
+  followed by an effect change, restoring macros while locked (should be skipped), the sleep timers.
 - The user has given permission to stage and commit in this repo, section by section. No remote; no pushing.
 
 ## Standing instruction from the user
@@ -38,32 +33,25 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
 ## Waiting on the user
 
 - Whether to create a GitHub repo for Layerworks, and whether it is private.
-- First real-keyboard check of writing (assign a key, undo, change lighting). Needs the user present and a fresh
-  keymap backup first: `..\tools\keyboard\.venv\Scripts\python ..\tools\keyboard\keymap.py backup`
-  (the bare `.py` path opens the file in an editor instead of running it). Until then writes are tested on the
-  fake keyboard only.
-- First real unlock, after that backup, on the cable: device card → **Unlock…** → **Start unlocking**, hold Esc
-  and Enter. The bar should move steadily for about 6 s. If it keeps falling back to 0, the 120 ms pause between
-  polls (`UNLOCK_POLL_MS` in `src/device/unlock.ts`) is too short; try 150. Then check **Lock** works, that the
-  Test page sees Fn2 (right B) while unlocked, and repeat over 2.4 GHz. Replugging the keyboard ends a stuck unlock.
-- First real backup and restore, on the cable, after the checks above: Device → **Save a backup**; change one
-  key; **Choose a backup file…** and check the summary lists only that key; restore. Then restore a file with a
-  changed macro while locked (it should be skipped and say so), unlock, and restore again. Watch the status line
-  for write errors. Changing a sleep timer over 2.4 GHz nudges the mouse pointer; the firmware does that itself.
-- Reactions to the look (tokens, accent colour, density), and to the wording: effect names and groups on
-  Lighting ("Vividness" for saturation), the layer line in the Keys inspector, Home's welcome lines.
+- **"Put back the firmware's key":** the keyboard keeps only what is saved; no VIA or Vial command reads the
+  keymap compiled into the firmware. Our firmware can answer that with one small command
+  (`keycode_at_keymap_location_raw`, and the encoder equivalent), which would give the Keys inspector "The
+  firmware's own key here is Page Up" and a button to put it back, on any keyboard whose firmware has the
+  command. Proposed as part of the firmware extensions (`../TASKS.md`); needs a build and a flash.
+- **`backups/keymap.json`** (from `..\tools\keyboard\keymap.py`: keys and knob only) is not accepted by the
+  Device page's restore. Either teach restore to read it, or leave `keymap.py` as the command-line tool for
+  before a flash and use `.layerworks.json` everywhere else.
+- To try on the real keyboard: the Test page with the knob (Windows layer: both directions mark while the volume
+  changes; holding Fn2: scrolling marks them; holding Fn: the note names what can't be seen), and the lighting
+  after a restore (the effect, speed and colour shown match the keyboard after picking another effect).
+- Running `keymap.py`: `..\tools\keyboard\.venv\Scripts\python ..\tools\keyboard\keymap.py backup` (the bare
+  `.py` path opens the file in an editor instead of running it).
 
 ## Next
 
-The six first work packages (shell, Keys, Home and Settings, Lighting, Test and unlock, Device) are built. What
-follows needs the user's reactions first, then continues with the spec's later phases. Each item below is sized
-for one delegated agent; two at most run at a time (`AGENTS.md`).
-
-### After the user's first look
-
-- Apply the reactions (look, wording, layout).
-- With the user present: the real-keyboard checks listed under "Waiting on the user". Fix what they show.
-
+The first six work packages (shell, Keys, Home and Settings, Lighting, Test and unlock, Device) are built and the
+user's first reactions are applied. Each item below is sized for one delegated agent; two at most run at a time
+(`AGENTS.md`).
 ### Phase 6 packages (spec section 7)
 
 - **Shortcuts & macros**: macro list and editor (the restore path already writes the macro buffer; needs
@@ -76,6 +64,9 @@ for one delegated agent; two at most run at a time (`AGENTS.md`).
 
 ### Small things from review
 
+- Test: where the knob scrolls, ordinary mouse scrolling marks it as seen too; the browser can't tell them apart.
+- Lighting: read back while the lights are off, the keyboard can report the saved colour rather than the last
+  one sent. Turning the lights on sends the values the page shows.
 - Device card: the quiet "Unlock…" and "Lock" buttons read as plain text; give them a slightly stronger style.
 - Keys in a short window: the palette shows five columns and feels crowded.
 - Restore doesn't write per-key RGB or Snap Click yet (they are in the backup file).

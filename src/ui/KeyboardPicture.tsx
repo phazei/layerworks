@@ -2,7 +2,7 @@
 // The picture of the keyboard for one layer. Wraps Pipette's keyboard widget so the rest of the app doesn't
 // depend on its props.
 
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import { KeyboardWidget } from '../vendor/pipette/renderer/components/keyboard'
 import { keycodeId, posKey, type KeyboardData, type KleKey } from '../device/api'
 
@@ -22,13 +22,31 @@ interface Props {
   seen?: Set<string>
   /** "row,col" of keys to point out, e.g. the keys to hold for unlocking. */
   highlighted?: Set<string>
+  /** Knob directions ("knob,direction") to show turned just now, and ones to mark as seen. Turned wins. */
+  knobsTurned?: ReadonlySet<string>
+  knobsSeen?: ReadonlySet<string>
 }
 
 // The widget's own "ever pressed" colour is a fixed light green; seen keys use its per-key fill instead, which
 // takes a token.
 const SEEN_FILL = 'var(--key-bg-seen)'
 
-export function KeyboardPicture({ keyboard, layer, pressed, selection, onSelect, seen, highlighted }: Props) {
+/**
+ * The widget has no pressed or seen state for knob directions; it draws each as a <g data-encoder-pos="knob,dir">
+ * with a circle and a label. CSS beats SVG presentation attributes, so a rule scoped to this picture recolours them.
+ */
+function knobRules(scope: string, turned: ReadonlySet<string> = new Set(), seen: ReadonlySet<string> = new Set()): string {
+  const at = (pos: string) => `[data-picture="${scope}"] [data-encoder-pos="${pos}"]`
+  const seenOnly = [...seen].filter((pos) => !turned.has(pos))
+  return [
+    ...seenOnly.map((pos) => `${at(pos)} > circle { fill: var(--key-bg-seen) }`),
+    ...[...turned].map((pos) => `${at(pos)} > circle { fill: var(--key-bg-pressed) } ${at(pos)} > text { fill: var(--key-label-pressed) }`),
+  ].join('\n')
+}
+
+export function KeyboardPicture({ keyboard, layer, pressed, selection, onSelect, seen, highlighted, knobsTurned, knobsSeen }: Props) {
+  const scope = useId()
+  const knobStyle = knobRules(scope, knobsTurned, knobsSeen)
   const seenFills = useMemo(() => (seen ? new Map([...seen].map((pos) => [pos, SEEN_FILL])) : undefined), [seen])
 
   const keycodes = useMemo(() => {
@@ -57,7 +75,8 @@ export function KeyboardPicture({ keyboard, layer, pressed, selection, onSelect,
     // The widget draws at a fixed size; let it shrink to the space there is. It fills a held key with
     // var(--success) and picks the label colour for that per theme; inside the picture --success is the pressed
     // key token, light enough in the light theme for the dark label the widget keeps there.
-    <div className="flex justify-center [--success:var(--key-bg-pressed)] [&>svg]:h-auto [&>svg]:max-w-full">
+    <div data-picture={scope} className="flex justify-center [--success:var(--key-bg-pressed)] [&>svg]:h-auto [&>svg]:max-w-full">
+      {knobStyle && <style>{knobStyle}</style>}
       <KeyboardWidget
         keys={keyboard.layout.keys}
         keycodes={keycodes}

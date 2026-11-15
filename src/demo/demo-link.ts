@@ -5,7 +5,7 @@
 
 import { FakeLink, fakeKeyboard, fakeKeyboardConfig, report } from '../device/fake-keyboard'
 import type { HidLink } from '../device/link'
-import { usageOf } from '../shell/pressed-keys'
+import { browserEventFor, usageOf } from '../shell/pressed-keys'
 import data from './k15-max.json'
 
 const WINDOWS_LAYER = 2
@@ -150,6 +150,18 @@ export function createDemoLink(): DemoLink {
       window.removeEventListener('keydown', down, true)
       window.removeEventListener('keyup', up, true)
       window.removeEventListener('blur', releaseAll)
+    })
+
+    // `?demo-turn=1;0` turns the demo's knob by itself (1 clockwise, 0 counter-clockwise), one step at a time
+    // after the presses' start: the page gets what the knob sends on the base layer, as the browser would deliver
+    // it (a volume key or the mouse wheel). For screenshots of the Test page.
+    const turns = (params().get('demo-turn') ?? '').split(';').filter((step) => step === '0' || step === '1')
+    turns.forEach((direction, i) => {
+      const turn = setTimeout(() => {
+        const event = browserEventFor(config.knob[config.layer.base][Number(direction)])
+        if (event) window.dispatchEvent(event)
+      }, PRESS_START_MS + i * PRESS_STEP_MS)
+      cleanups.push(() => clearTimeout(turn))
     })
 
     const script = parsePressScript(params().get('demo-press') ?? '')

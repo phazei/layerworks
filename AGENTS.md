@@ -79,6 +79,12 @@ If the script leaves a server behind (it was killed half-way):
 - Lighting effects have two numberings. The app uses VialRGB ids; the keyboard's own list (QMK's `RGB_MATRIX_*`
   order, what Keychron Launcher shows) is different. The K15 Max's ripple replaces Solid Splash: number 22 in
   the keyboard's list, **VialRGB id 41** in the app.
+- On the first frame of a different lighting effect, this firmware reloads speed and colour from what was last
+  saved (`../vial_qmk/quantum/rgb_matrix/rgb_matrix.c`, `rgb_task_render`), over values just sent. The store
+  therefore sends, saves and sends again when the effect changes. The keyboard's own lighting keys change the
+  lighting without telling the app: call `deviceStore.refreshLighting()` before trusting `state.lighting`.
+- Knob turns are not in the key matrix. The Test page sees a turn only through what it sends to the browser
+  (volume and media keys, ordinary keys, the mouse wheel).
 - Knob directions: 0 is counter-clockwise (left), 1 is clockwise (right), in Vial's commands and in the store.
 - Changes (`assign`, `undo`, `redo`, `setLighting`) run one at a time inside the store, in the order asked for.
 - WebHID has no serial numbers. The receiver is recognised by its product ID (`0xD000`-`0xDFFF`).
