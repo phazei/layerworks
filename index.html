@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Layerworks</title>
+    <script>
+      // The theme before the app starts, so the page doesn't flash; src/ui/theme.ts keeps it up to date after.
+      try {
+        const forced = new URLSearchParams(location.search).get('theme')
+        const choice = forced || JSON.parse(localStorage.getItem('layerworks:theme') || '"dark"')
+        const dark = choice === 'system' ? matchMedia('(prefers-color-scheme: dark)').matches : choice !== 'light'
+        document.documentElement.classList.toggle('dark', dark)
+      } catch {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

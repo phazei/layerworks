@@ -5,6 +5,7 @@
 import type { ComponentType } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import type { Capabilities, DeviceState, KeyboardData, LinkInfo, PushShape } from '../device/api'
+import type { HelpTopicId } from '../help/topics'
 
 /** Where a page appears in the sidebar. */
 export type PageGroup = 'main' | 'plugins' | 'app'
@@ -12,16 +13,25 @@ export type PageGroup = 'main' | 'plugins' | 'app'
 /** Sections of built-in pages that accept plugin panels. */
 export type PanelSection = 'lighting' | 'typing' | 'device'
 
+/**
+ * How a page uses the keyboard stage (layer stack and picture) above it:
+ * - 'view': shown, for looking at the keyboard and its layers;
+ * - 'select': shown, and clicking a key or knob direction selects it (`useStage().selection`).
+ */
+export type StageUse = 'view' | 'select'
+
 export interface PageDef {
   /** The page's address: "keys" is shown at #/keys. */
   path: string
   title: string
   icon: LucideIcon
   group?: PageGroup
-  /** Show the keyboard stage (layer stack and picture) above the page. */
-  stage?: boolean
-  /** The page works without a keyboard connected. */
+  /** Show the keyboard stage above the page. Omit for pages that use the full height. */
+  stage?: StageUse
+  /** The page works without a keyboard connected; otherwise the shell asks to connect one first. */
   offline?: boolean
+  /** The help topic behind the "?" beside the page title. */
+  help?: HelpTopicId
   component: ComponentType
 }
 

@@ -30,19 +30,14 @@ a delegated agent (`general_opus`), and reviews what comes back. It does not bui
 
 ## Seeing the result without a keyboard
 
-`?demo` in the URL connects the built-in demo keyboard (`src/demo/`), a K15 Max that lives in the page. For
-screenshots, build and serve, then use headless Edge:
+`?demo` in the URL connects the built-in demo keyboard (`src/demo/`), a K15 Max that lives in the page.
+`pnpm shots /keys /lighting` builds, serves on port 5198, saves each page dark and light with headless Edge into
+`%TEMP%\opencode\layerworks-shots\`, and stops the server; `--offline`, `--size=`, `--theme=`, `--query=` and
+`--no-build` are in README "Screenshots". Read the PNGs to look at them. Screenshots go in the temp folder, not
+the repo.
 
-```powershell
-pnpm build; pnpm vite preview --port 5198 --strictPort          # second command in the background
-& "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe" --headless=new --disable-gpu `
-  --window-size=1280,800 --virtual-time-budget=4000 `
-  "--screenshot=$env:TEMP\opencode\keys.png" "http://localhost:5198/?demo#/keys"
-Get-NetTCPConnection -LocalPort 5198 -State Listen | % { Stop-Process -Id $_.OwningProcess -Force }
-```
-
-`scripts/screenshot.mjs` wraps this once it exists (work package 1). Read the PNG to look at it. Screenshots go in
-the temp folder, not the repo.
+If the script leaves a server behind (it was killed half-way):
+`Get-NetTCPConnection -LocalPort 5198 -State Listen | % { Stop-Process -Id $_.OwningProcess -Force }`.
 
 ## Rules
 

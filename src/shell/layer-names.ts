@@ -2,7 +2,7 @@
 // Names for the layers. The keyboard has nowhere to store them, so they live in this browser, per keyboard.
 
 import { useMemo } from 'react'
-import type { KeyboardData } from '../device'
+import { useDevice, type KeyboardData, type LinkInfo } from '../device'
 import { getPref, setPref, usePref } from '../ui/prefs'
 
 const NONE: string[] = []
@@ -10,6 +10,10 @@ const key = (uid: string) => `layer-names:${uid}`
 
 /** Keychron's convention: the Mac/Windows switch picks a pair of layers, the second of each pair being Fn. */
 const KEYCHRON_PAIRS = ['Mac', 'Mac Fn', 'Windows', 'Windows Fn']
+const KEYCHRON_VENDOR = 0x3434
+
+/** Whether the keyboard follows Keychron's layer convention. Known from the link, before anything else loads. */
+export const isKeychron = (link: LinkInfo | null): boolean => link?.vendorId === KEYCHRON_VENDOR
 
 export function defaultLayerName(index: number, keychron: boolean, layerCount: number): string {
   if (keychron && layerCount >= KEYCHRON_PAIRS.length && index < KEYCHRON_PAIRS.length) return KEYCHRON_PAIRS[index]
@@ -24,6 +28,13 @@ export function useLayerNames(keyboard: KeyboardData | null, keychron: boolean):
     () => Array.from({ length: count }, (_, i) => stored[i]?.trim() || defaultLayerName(i, keychron, count)),
     [stored, count, keychron],
   )
+}
+
+/** The layer names of the connected keyboard; empty when none is connected. */
+export function useConnectedLayerNames(): string[] {
+  const keyboard = useDevice((s) => s.keyboard)
+  const link = useDevice((s) => s.link)
+  return useLayerNames(keyboard, isKeychron(link))
 }
 
 /** Names a layer; an empty name goes back to the default. */

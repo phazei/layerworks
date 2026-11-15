@@ -95,6 +95,14 @@ const topics = {
     ],
     docs: QMK + 'features/rgb_matrix',
   },
+  unlock: {
+    title: 'Locked and unlocked',
+    qmkName: 'Vial unlock',
+    body: [
+      'The keyboard keeps a few powerful changes locked, so a web page can’t make them behind your back: editing macros, watching every key for the key test, and restarting into firmware update mode.',
+      'Everyday changes such as keys, layers and lighting work while it is locked. When something needs unlocking, the app says so and shows you how: you hold two keys on the keyboard for a few seconds.',
+    ],
+  },
   saving: {
     title: 'Where changes are kept',
     body: [

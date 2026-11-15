@@ -4,8 +4,9 @@ A configurator for Keychron keyboards running Vial firmware
 ([tymon3310/vial-qmk](https://github.com/tymon3310/vial-qmk)), built to be usable without knowing QMK. It runs in
 the browser (Chrome or Edge, over WebHID), on the cable or through the 2.4 GHz receiver.
 
-The design is in the Alice-Keyboard project: `../docs/spec/layerworks.md`. What exists so far is the foundation:
-the connection layer and a bare page that shows the keyboard and follows its active layer.
+The design is in the Alice-Keyboard project: `../docs/spec/layerworks.md`. What exists so far: the connection
+layer, the shell (sidebar, keyboard stage, status line, help panel, themes) and a page for every section, most of
+them still placeholders.
 
 ## Run it
 
@@ -15,7 +16,18 @@ pnpm dev          # http://localhost:5199
 ```
 
 Click **Connect a keyboard…** and pick the keyboard (cable) or the Keychron Link receiver (2.4 GHz). Only one
-program can hold the keyboard at a time, so close Vial, Pipette or Launcher tabs first.
+program can hold the keyboard at a time, so close Vial, Pipette or Launcher tabs first. **Try the demo keyboard**
+works without one.
+
+Options in the URL, before the `#`:
+
+| | |
+|---|---|
+| `?demo` | Connects the demo keyboard at start |
+| `?theme=dark`, `?theme=light` | Forces a theme for this visit without remembering it (for screenshots) |
+| `?help=<topic>` | Opens the help panel at a topic from `src/help/topics.ts` |
+
+Example: `http://localhost:5199/?demo&theme=light#/keys`.
 
 | Command | |
 |---|---|
@@ -23,6 +35,7 @@ program can hold the keyboard at a time, so close Vial, Pipette or Launcher tabs
 | `pnpm build` | Production build into `dist/` |
 | `pnpm hardware` | Loads the real keyboard through the device layer, without a browser, and prints what it read. Reads only. Set `LINK=receiver` to go through the 2.4 GHz receiver (`$env:LINK='receiver'; pnpm hardware`). |
 | `pnpm vendor check` | Vendored files still match the recorded Pipette commit (see `VENDOR.md`) |
+| `pnpm shots /keys /home` | Screenshots on the demo keyboard, dark and light (see "Screenshots") |
 
 ## Layout
 
@@ -43,24 +56,114 @@ src/
   demo/              the demo keyboard: a K15 Max inside the page (k15-max.json, demo-link.ts)
   ui/                design tokens and shared components
     tokens.css         every colour, radius and shadow, dark and light
-    controls.tsx       Button, IconButton, Toggle, Slider, Segmented, Badge
+    controls.tsx       Button, IconButton, Toggle, Slider, Segmented, TextInput, Spinner, Badge
     layout.tsx         Card, Disclosure ("More options"), Dialog, Notice, HelpButton
     prefs.ts           what the app remembers in the browser (usePref)
+    theme.ts           dark / light / system, applied as the `dark` class on <html>
     KeyboardPicture.tsx  the keyboard for one layer; wraps the vendored keyboard widget
   shell/             the frame around the pages
+    Shell.tsx          the frame: sidebar, page title, stage, page, status line, help panel; picks the page
+    Sidebar.tsx        app name, device card, pages grouped main / plugins ("Extras") / app
+    DeviceCard.tsx     the connected keyboard: name, cable or 2.4 GHz, battery, locked, disconnect
+    Stage.tsx          the keyboard stage: layer stack beside the picture, pressed keys, selection
+    LayerStack.tsx     the layers: pick, rename in place, active one marked, "Follow the keyboard"
+    StatusLine.tsx     saved / saving / write error, parts still loading or not readable, undo / redo
+    HelpPanel.tsx      the help topic, sliding in from the right
+    ConnectPrompt.tsx  connect a keyboard / try the demo, and "reading the keyboard"
     router.ts          pages by URL (#/keys)
     session.ts         connect, connect the demo, disconnect
     stage-store.ts     which layer and key the keyboard stage shows
     layer-names.ts     layer names, kept in the browser per keyboard
     pressed-keys.ts    held keys, from the browser's key events
+  pages/             the built-in sections, one file each, registered as the "core" plugin (index.ts)
   plugins/api.ts     definePlugin: pages and panels, for built-in sections and plugins alike
   help/              help topics (topics.ts) and which one the help panel shows
   vendor/pipette/    code copied from Pipette, unmodified (VENDOR.md)
-  App.tsx            the foundation's proof page (to be replaced by the shell)
+  main.tsx           registers the pages, reads the URL options, renders the shell
 hardware/            checks against the real keyboard (pnpm hardware)
-scripts/vendor.mjs     keeps src/vendor in step with the Pipette clone
-scripts/demo-data.mjs  rebuilds the demo keyboard from ../keyboards/.../vial.json and ../backups/keymap.json
+scripts/vendor.mjs      keeps src/vendor in step with the Pipette clone
+scripts/demo-data.mjs   rebuilds the demo keyboard from ../keyboards/.../vial.json and ../backups/keymap.json
+scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
 ```
+
+## The screen
+
+```
++------------+-----------------------------------------------+
+| Layerworks |  Page title (?)                               |
+| device card|  +-----------------------------------------+  |
+|            |  | layer stack | keyboard picture          |  |  ← stage, on pages that ask for it
+| Home       |  +-----------------------------------------+  |
+| Keys       |  page (scrolls)                         help  |
+| ...        |                                         panel |
+| Help       |-----------------------------------------------|
+| Settings   |  Saved on the keyboard (?)        Undo  Redo  |  ← status line, while connected
++------------+-----------------------------------------------+
+```
+
+- **Pages that need a keyboard** show the connect prompt instead while none is connected, and "Reading the
+  keyboard…" while one connects. Pages with `offline: true` (Help, Settings) always show.
+- **The status line** says "Saved on the keyboard", "Saving…" while `DeviceState.writing` is above 0, or the
+  `writeError`. Beside it: the parts still being read in the background, or the ones that could not be read.
+  Undo and redo call `deviceStore.undo` / `redo`.
+- **The help panel** slides in over the right edge of the page (not over the status line) when anything calls
+  `openHelp(topic)`, usually a `HelpButton`. Esc or the close button hides it; the page stays usable.
+- **Theme**: dark by default; Settings offers dark, light and "Like the system". Stored with `prefs.ts`
+  (`theme`); a small script in `index.html` applies it before the app loads, so nothing flashes.
+- Sized for 1280 × 800 and usable down to about 1000 px wide. When the stage itself is narrower than 768 px (a
+  container query; a window of about 1050 px), the layer stack becomes a row of chips above the picture.
+
+## Pages and plugins
+
+A page is a `PageDef` (`src/plugins/api.ts`), registered through `definePlugin`. The built-in sections are the
+`core` plugin in `src/pages/index.ts`, which lists one export per page file in sidebar order:
+
+```ts
+export const keysPage: PageDef = {
+  path: 'keys',            // shown at #/keys; "#/" is home
+  title: 'Keys',
+  icon: Keyboard,          // lucide-react
+  group: 'main',           // 'main' (default), 'plugins' (shown as "Extras") or 'app' (bottom of the sidebar)
+  stage: 'select',         // 'view', 'select', or leave out for a full-height page
+  offline: false,          // true: works without a keyboard
+  help: 'assign-key',      // the "?" beside the page title
+  component: KeysPage,
+}
+```
+
+The shell picks the page from the first segment of the path (`#/keys/anything` is still Keys), so a page can use
+the rest for its own addresses. To build out a section, replace its file in `src/pages/`; nothing else changes.
+A plugin with `matches` or `requires` only appears while a matching keyboard is connected.
+
+## The keyboard stage and selection
+
+Pages with `stage` get the stage above them: the layer stack and the keyboard picture, with the keys held down
+shown pressed (`usePressedKeys`). Its state lives in `src/shell/stage-store.ts`, outside React, so moving between
+stage pages keeps the layer and selection:
+
+- `useStage()` → `{ follow, layer, selection }`. `shownLayer(state, liveLayer, layerCount)` is the layer the
+  picture shows: the keyboard's active layer while following, otherwise the one picked.
+- Clicking a layer shows it and turns following off; the toggle turns it back on. A double click or the pencil
+  renames a layer (`renameLayer`); the names live in the browser per keyboard (`layer-names.ts`).
+- `stage: 'select'` makes keys and knob directions clickable. A click sets `selection` (a key's row and column,
+  or a knob and direction, without the layer); Esc clears it. A page reads `useStage().selection` and turns it
+  into a slot with `toSlot(selection, shownLayer(...))` for `deviceStore.assign`. On `stage: 'view'` pages the
+  picture is not clickable and no selection is drawn, but the selection is kept for when the user comes back.
+- A different keyboard connecting (or none) resets the stage.
+
+## Screenshots
+
+```
+pnpm shots /keys /lighting                   # dark and light, 1280 × 800, on the demo keyboard
+pnpm shots --offline /home                   # no keyboard connected
+pnpm shots --size=1000x700 --theme=dark /keys
+pnpm shots --query=help=layer-key /keys      # with the help panel open
+pnpm shots --no-build /keys                  # reuse dist/
+```
+
+`scripts/screenshot.mjs` builds, serves the build on port 5198, takes each page with headless Edge into
+`%TEMP%\opencode\layerworks-shots\` (`keys-dark.png`, `keys-offline-light.png`, ...) and stops the server.
+`EDGE=<path>` points it at another `msedge.exe`.
 
 ## Changing things on the keyboard
 

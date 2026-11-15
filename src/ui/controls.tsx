@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The small controls every page is built from. All colours and radii come from tokens.css.
 
-import { useId, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { useId, type ButtonHTMLAttributes, type ComponentPropsWithRef, type InputHTMLAttributes, type ReactNode } from 'react'
+import { LoaderCircle } from 'lucide-react'
 
 export function cx(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(' ')
@@ -41,7 +42,7 @@ export function Button({ variant = 'secondary', size = 'md', icon, className, ch
   )
 }
 
-interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface IconButtonProps extends ComponentPropsWithRef<'button'> {
   /** What the button does, for screen readers and as its hover text. */
   label: string
 }
@@ -171,6 +172,26 @@ export function Segmented<T extends string>({ label, value, options, onChange }:
       ))}
     </div>
   )
+}
+
+/** A one-line text field. Give it an `aria-label` when there is no visible label. */
+export function TextInput({ className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      type="text"
+      className={cx(
+        'h-8 min-w-0 rounded-control border border-edge-strong bg-raised px-2.5 text-content placeholder:text-muted',
+        'focus:border-accent focus:outline-none',
+        className,
+      )}
+      {...rest}
+    />
+  )
+}
+
+/** Something is on its way. Decorative: say what is happening in text beside it. */
+export function Spinner({ size = 15, className }: { size?: number; className?: string }) {
+  return <LoaderCircle size={size} aria-hidden className={cx('shrink-0 animate-spin', className)} />
 }
 
 export function Badge({ tone = 'neutral', children }: { tone?: 'neutral' | 'accent' | 'success' | 'warning'; children: ReactNode }) {
