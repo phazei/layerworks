@@ -2,14 +2,16 @@
 // The keys the Test page has seen, kept outside the page so a look at Help and back doesn't lose the count.
 // Starts afresh for another keyboard and on Reset.
 
-import { useCallback, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useSyncExternalStore } from 'react'
 
-let owner: string | null = null
-let seen: ReadonlySet<string> = new Set()
+const NONE: ReadonlySet<string> = new Set()
+
+/** The keys seen, and the keyboard they were seen on. */
+let state: { owner: string | null; keys: ReadonlySet<string> } = { owner: null, keys: NONE }
 const listeners = new Set<() => void>()
 
-function publish(next: ReadonlySet<string>): void {
-  seen = next
+function publish(owner: string, keys: ReadonlySet<string>): void {
+  state = { owner, keys }
   for (const listener of [...listeners]) listener()
 }
 
@@ -20,21 +22,24 @@ function subscribe(listener: () => void): () => void {
 
 /** Keys ("row,col") seen so far on keyboard `uid`, a way to add more, and reset. */
 export function useSeenKeys(uid: string): { seen: ReadonlySet<string>; add: (keys: Iterable<string>) => void; reset: () => void } {
-  if (owner !== uid) {
-    owner = uid
-    seen = new Set()
-  }
-  const current = useSyncExternalStore(subscribe, () => seen)
-  const add = useCallback((keys: Iterable<string>) => {
-    const fresh = [...keys].filter((key) => !seen.has(key))
-    if (fresh.length > 0) publish(new Set([...seen, ...fresh]))
-  }, [])
-  const reset = useCallback(() => publish(new Set()), [])
-  return { seen: current, add, reset }
+  // Another keyboard's keys never show: they read as none until this keyboard takes the list over.
+  const seen = useSyncExternalStore(subscribe, () => (state.owner === uid ? state.keys : NONE))
+  useEffect(() => {
+    if (state.owner !== uid) publish(uid, NONE)
+  }, [uid])
+  const add = useCallback(
+    (keys: Iterable<string>) => {
+      const known = state.owner === uid ? state.keys : NONE
+      const fresh = [...keys].filter((key) => !known.has(key))
+      if (fresh.length > 0) publish(uid, new Set([...known, ...fresh]))
+    },
+    [uid],
+  )
+  const reset = useCallback(() => publish(uid, NONE), [uid])
+  return { seen, add, reset }
 }
 
 /** For tests. */
 export function forgetSeenKeys(): void {
-  owner = null
-  seen = new Set()
+  state = { owner: null, keys: NONE }
 }

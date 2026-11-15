@@ -105,7 +105,7 @@ export function Toggle({ checked, onChange, label, hint, disabled, help }: Toggl
       >
         <span
           className={cx(
-            'absolute top-0.5 left-0.5 size-4.5 rounded-pill bg-white shadow transition-transform duration-(--motion)',
+            'absolute top-0.5 left-0.5 size-4.5 rounded-pill bg-knob shadow-knob transition-transform duration-(--motion)',
             checked && 'translate-x-4.5',
           )}
         />

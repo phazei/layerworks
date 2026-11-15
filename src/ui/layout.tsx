@@ -36,7 +36,12 @@ export function Card({ title, description, help, actions, className, children }:
           <div>
             <h2 className="flex items-center gap-1 text-[15px] font-semibold">
               {title}
-              {help && <HelpButton topic={help} />}
+              {/* No taller than the title, so cards with and without a "?" start their text at the same height. */}
+              {help && (
+                <span className="flex h-5 items-center">
+                  <HelpButton topic={help} />
+                </span>
+              )}
             </h2>
             {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}
           </div>
@@ -114,7 +119,7 @@ export function Dialog({ open, title, children, confirmLabel, danger, onConfirm,
         e.preventDefault()
         onCancel()
       }}
-      className="m-auto w-[min(440px,90vw)] rounded-card border border-edge bg-card p-6 text-content shadow-pop backdrop:bg-black/50"
+      className="m-auto w-[min(440px,90vw)] rounded-card border border-edge bg-card p-6 text-content shadow-pop backdrop:bg-backdrop"
     >
       <h2 className="text-base font-semibold">{title}</h2>
       <div className="mt-2 text-muted">{children}</div>

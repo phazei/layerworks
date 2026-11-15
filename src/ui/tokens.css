@@ -41,11 +41,17 @@
   --key-label-remap: #a8660a;
   --key-mask-bg: #eef0f3;
   --key-bg-seen: #cdebd9; /* a key the Test page has seen; the default label must stay readable on it */
+  /* A key held down. The widget keeps the default (dark) label on it in this theme, so it must be light. */
+  --key-bg-pressed: #6fcf97;
   --wire-row: #2f6fe4;
   --wire-col: #c0379a;
 
+  --knob: #ffffff; /* the moving part of a switch or slider */
+  --backdrop: rgb(16 24 40 / 45%); /* behind a dialog */
+
   --shadow-card: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 8%);
   --shadow-pop: 0 10px 30px rgb(16 24 40 / 18%);
+  --shadow-knob: 0 1px 3px rgb(16 24 40 / 30%);
 
   --radius-control: 8px;
   --radius-card: 14px;
@@ -89,11 +95,17 @@
   --key-label-remap: #e0a345;
   --key-mask-bg: #17191c;
   --key-bg-seen: #1d4a32;
+  /* The widget flips the label to --content-inverse (near black) on it in this theme. */
+  --key-bg-pressed: #4cc37f;
   --wire-row: #6aa3ff;
   --wire-col: #ff7ad1;
 
+  --knob: #ffffff;
+  --backdrop: rgb(0 0 0 / 60%);
+
   --shadow-card: none;
   --shadow-pop: 0 12px 36px rgb(0 0 0 / 55%);
+  --shadow-knob: 0 1px 3px rgb(0 0 0 / 50%);
 }
 
 @theme inline {
@@ -113,9 +125,12 @@
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-knob: var(--knob);
+  --color-backdrop: var(--backdrop);
   --radius-control: var(--radius-control);
   --radius-card: var(--radius-card);
   --radius-pill: var(--radius-pill);
   --shadow-card: var(--shadow-card);
   --shadow-pop: var(--shadow-pop);
+  --shadow-knob: var(--shadow-knob);
 }

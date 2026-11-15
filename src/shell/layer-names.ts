@@ -37,6 +37,16 @@ export function useConnectedLayerNames(): string[] {
   return useLayerNames(keyboard, isKeychron(link))
 }
 
+/** The names as stored for a keyboard: what the user typed, empty where the default applies. For backups. */
+export function storedLayerNames(uid: string): string[] {
+  return getPref<string[]>(key(uid), NONE)
+}
+
+/** Replaces every stored name for a keyboard at once (a restore); empty names mean the default. */
+export function setLayerNames(uid: string, names: string[]): void {
+  setPref(key(uid), names.map((name) => name.trim()))
+}
+
 /** Names a layer; an empty name goes back to the default. */
 export function renameLayer(uid: string, index: number, name: string): void {
   const names = [...getPref<string[]>(key(uid), NONE)]

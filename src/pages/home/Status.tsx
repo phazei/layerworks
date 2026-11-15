@@ -4,6 +4,8 @@
 import { BatteryFull, BatteryLow, BatteryMedium, Cable, Cpu, Layers, Lock, LockOpen, Radio } from 'lucide-react'
 import { useDevice, type LoadPart } from '../../device'
 import { useConnectedLayerNames } from '../../shell/layer-names'
+import { openUnlock } from '../../shell/unlock-dialog'
+import { Button } from '../../ui/controls'
 import { Fact, Facts } from '../../ui/display'
 import { Card, HelpButton } from '../../ui/layout'
 
@@ -19,6 +21,7 @@ export function Status() {
   const keyboard = useDevice((s) => s.keyboard)
   const layer = useDevice((s) => s.layer)
   const unlock = useDevice((s) => s.unlock)
+  const unlocking = useDevice((s) => s.unlocking)
   const keychron = useDevice((s) => s.keychron)
   const loading = useDevice((s) => s.loading)
   const names = useConnectedLayerNames()
@@ -46,6 +49,7 @@ export function Status() {
         <Fact
           label="Active layer"
           icon={<Layers size={ICON} aria-hidden />}
+          help={<HelpButton topic="layers" />}
           hint={
             layer === null
               ? 'This keyboard doesn’t say which layer is on.'
@@ -55,7 +59,6 @@ export function Status() {
           }
         >
           {layer === null ? 'Not reported' : layerName(layer.active)}
-          <HelpButton topic="layers" />
         </Fact>
         <Fact
           label="Firmware"
@@ -66,6 +69,7 @@ export function Status() {
         </Fact>
         <Fact
           label="Protection"
+          help={<HelpButton topic="unlock" />}
           icon={unlock?.unlocked ? <LockOpen size={ICON} aria-hidden /> : <Lock size={ICON} aria-hidden />}
           hint={
             unlock === null
@@ -76,7 +80,12 @@ export function Status() {
           }
         >
           {unlock === null ? pending('unlock', loading, 'Unknown') : unlock.unlocked ? 'Unlocked' : 'Locked'}
-          <HelpButton topic="unlock" />
+          {unlock?.unlocked === false && !unlocking && (
+            // The device card has Lock; unlocking is offered here too, as it is the one thing to do about it.
+            <Button size="sm" variant="quiet" className="-my-0.5 ml-1" icon={<LockOpen size={14} aria-hidden />} onClick={() => openUnlock()}>
+              Unlock…
+            </Button>
+          )}
         </Fact>
       </Facts>
     </Card>

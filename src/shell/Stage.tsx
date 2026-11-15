@@ -39,7 +39,8 @@ export function Stage({ keyboard, selectable }: Props) {
     <section aria-label="Keyboard and layers" className="@container shrink-0 rounded-card bg-card p-4 shadow-card">
       <div className="flex flex-col gap-4 @3xl:flex-row @3xl:items-center @3xl:gap-6">
         <LayerStack keyboard={keyboard} names={names} live={live} state={state} shown={shown} />
-        <div className="min-w-0 flex-1">
+        {/* In a short window the picture gives up height (down to 10rem) so the page under it still shows. */}
+        <div className="min-w-0 flex-1 [&_svg]:max-h-[max(10rem,calc(100vh-30rem))]">
           <KeyboardPicture
             keyboard={keyboard}
             layer={shown}

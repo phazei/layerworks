@@ -54,8 +54,10 @@ export function KeyboardPicture({ keyboard, layer, pressed, selection, onSelect,
 
   if (!keyboard.layout) return null
   return (
-    // The widget draws at a fixed size; let it shrink to the space there is.
-    <div className="flex justify-center [&>svg]:h-auto [&>svg]:max-w-full">
+    // The widget draws at a fixed size; let it shrink to the space there is. It fills a held key with
+    // var(--success) and picks the label colour for that per theme; inside the picture --success is the pressed
+    // key token, light enough in the light theme for the dark label the widget keeps there.
+    <div className="flex justify-center [--success:var(--key-bg-pressed)] [&>svg]:h-auto [&>svg]:max-w-full">
       <KeyboardWidget
         keys={keyboard.layout.keys}
         keycodes={keycodes}

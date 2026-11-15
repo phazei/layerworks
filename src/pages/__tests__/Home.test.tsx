@@ -7,6 +7,7 @@ import '..'
 import { deviceStore } from '../../device'
 import { connectDemo, demoKeyboard, disconnect } from '../../shell/session'
 import { Shell } from '../../shell/Shell'
+import { closeUnlock } from '../../shell/unlock-dialog'
 import { describeCapabilities } from '../home/features'
 
 async function go(path: string): Promise<void> {
@@ -43,6 +44,14 @@ describe('Home on the demo keyboard', () => {
     expect(glance).toHaveTextContent('ProtectionLocked')
     // The demo keyboard is on the cable, so there's no battery to show.
     expect(glance).not.toHaveTextContent('Battery')
+  })
+
+  it('offers unlocking from the Protection fact while locked', () => {
+    render(<Shell />)
+    const glance = screen.getByLabelText('At a glance')
+    act(() => within(glance).getByRole('button', { name: 'Unlock…' }).click())
+    expect(screen.getByRole('dialog', { name: /Unlock the keyboard/ })).toBeInTheDocument()
+    act(() => closeUnlock())
   })
 
   it('follows the layer the keyboard reports', async () => {

@@ -19,15 +19,20 @@ const THEMES: { value: ThemeChoice; label: ReactNode }[] = [
 function SettingsPage() {
   const [theme, setTheme] = useThemeChoice()
   return (
-    <div className="flex max-w-2xl flex-col gap-4">
-      <Card title="Appearance" description="How Layerworks looks in this browser.">
-        <div className="flex items-center justify-between gap-4">
-          <span>Theme</span>
-          <Segmented label="Theme" value={theme} options={THEMES} onChange={setTheme} />
+    // One column of readable width; side by side once there is room for two, About on the right.
+    <div className="@container max-w-6xl">
+      <div className="grid items-start gap-4 @4xl:grid-cols-2">
+        <div className="flex flex-col gap-4">
+          <Card title="Appearance" description="How Layerworks looks in this browser.">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <span>Theme</span>
+              <Segmented label="Theme" value={theme} options={THEMES} onChange={setTheme} />
+            </div>
+          </Card>
+          <LayerNames />
         </div>
-      </Card>
-      <LayerNames />
-      <About />
+        <About />
+      </div>
     </div>
   )
 }

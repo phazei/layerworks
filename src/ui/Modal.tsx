@@ -43,7 +43,7 @@ export function Modal({ open, title, children, footer, dismissible = true, onDis
         if (dismissible) onDismiss?.()
       }}
       className={cx(
-        'm-auto w-[min(560px,92vw)] rounded-card outline-none border border-edge bg-card p-6 text-content shadow-pop backdrop:bg-black/50',
+        'm-auto w-[min(560px,92vw)] rounded-card outline-none border border-edge bg-card p-6 text-content shadow-pop backdrop:bg-backdrop',
         className,
       )}
     >

@@ -11,13 +11,14 @@ const TOPIC_IDS = Object.keys(HELP_TOPICS) as HelpTopicId[]
 
 function HelpPage() {
   return (
-    <div className="flex max-w-2xl flex-col gap-4">
+    <div className="@container flex max-w-5xl flex-col gap-4">
       <Card title="Explanations" description="The same texts the “?” buttons show. Click one to open it beside the page.">
-        <ul className="-mx-2 flex flex-col">
+        {/* Two columns, read downwards, where there is room. */}
+        <ul className="-mx-2 flex flex-col @3xl:block @3xl:columns-2 @3xl:gap-x-6">
           {TOPIC_IDS.map((id) => {
             const topic = HELP_TOPICS[id]
             return (
-              <li key={id}>
+              <li key={id} className="break-inside-avoid">
                 <button
                   type="button"
                   onClick={() => openHelp(id)}

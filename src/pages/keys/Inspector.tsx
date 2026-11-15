@@ -93,7 +93,9 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
         className={cx(
           'grid flex-1 grid-cols-1 grid-rows-[auto_auto_1fr_auto] gap-x-6',
           "[grid-template-areas:'head'_'choose'_'body'_'more']",
-          "@3xl:grid-cols-[18.5rem_1fr] @3xl:grid-rows-[auto_auto_1fr] @3xl:[grid-template-areas:'head_body'_'choose_body'_'more_body']",
+          // Two columns from 42rem, so in a small window the palette starts at the top of the card.
+          "@2xl:grid-cols-[18rem_1fr] @2xl:grid-rows-[auto_auto_1fr] @2xl:[grid-template-areas:'head_body'_'choose_body'_'more_body']",
+          '@3xl:grid-cols-[18.5rem_1fr]',
         )}
       >
         <header className="mb-4 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 [grid-area:head]">
@@ -139,7 +141,7 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
           {choice === 'layer' && <LayerChoice current={current} names={names} ownLayer={slot.layer} onAssign={assign} />}
         </div>
 
-        <div className="[grid-area:more] @3xl:[&>div]:mt-0">
+        <div className="[grid-area:more] @2xl:[&>div]:mt-0">
           <Disclosure id={MORE_OPTIONS} forceOpen={opening.more}>
             <MoreOptions
               current={current}

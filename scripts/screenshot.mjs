@@ -15,7 +15,7 @@
 // EDGE=<path> overrides where msedge.exe is looked for.
 
 import { spawn, spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -26,7 +26,7 @@ const DEFAULT_PORT = 5198
 const args = process.argv.slice(2)
 const option = (name) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3)
 const PORT = Number(option('port') ?? DEFAULT_PORT)
-// Another port gets its own build folder and browser profile, so two runs can go side by side.
+// Another port gets its own build folder, so two runs can go side by side.
 const buildDir = PORT === DEFAULT_PORT ? 'dist' : join('.vite', `shots-${PORT}`)
 const flag = (name) => args.includes(`--${name}`)
 const paths = args.filter((a) => !a.startsWith('--'))
@@ -68,8 +68,15 @@ async function waitForServer(server) {
   throw new Error(`the preview server didn't answer on port ${PORT}`)
 }
 
+// A fresh browser profile for every picture, in a temporary folder removed at the end, so nothing one page or an
+// earlier run remembered (theme, "More options" open) can show in another shot.
+const profiles = mkdtempSync(join(tmpdir(), 'layerworks-shots-'))
+// A profile left beside the pictures by an earlier version of this script is removed.
+rmSync(join(outDir, `.edge-profile-${PORT}`), { recursive: true, force: true })
+let shots = 0
+
 function shoot(edge, url, file) {
-  const profile = join(outDir, `.edge-profile-${PORT}`)
+  const profile = join(profiles, String(shots++))
   const result = spawnSync(
     edge,
     [
@@ -112,4 +119,6 @@ try {
   }
 } finally {
   server.kill()
+  // Edge can hold its files for a moment after it exits.
+  rmSync(profiles, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
 }

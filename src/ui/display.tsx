@@ -23,15 +23,19 @@ interface FactProps {
   icon?: ReactNode
   /** One short line under the value. */
   hint?: ReactNode
+  /** A help button, shown beside the label. */
+  help?: ReactNode
   children: ReactNode
 }
 
-export function Fact({ label, icon, hint, children }: FactProps) {
+export function Fact({ label, icon, hint, help, children }: FactProps) {
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <dt className="flex items-center gap-1.5 text-[13px] text-muted">
         {icon && <span className="flex w-4 justify-center">{icon}</span>}
         {label}
+        {/* Without taking more height than the label, so facts with and without one line up. */}
+        {help && <span className="-ml-1 flex h-4 items-center">{help}</span>}
       </dt>
       <dd className="flex h-6 items-center gap-1 text-[15px] font-medium">{children}</dd>
       {hint && <dd className="text-[13px] leading-snug text-muted">{hint}</dd>}
