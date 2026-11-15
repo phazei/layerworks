@@ -1,0 +1,155 @@
+/*
+ * Motion for the effect previews (EffectPreview.tsx). Their colours are the data being previewed and are set
+ * inline; this file only moves them. The previews are 32 px squares; the slides move by one 64 px tile of a
+ * repeating background, so they loop without a seam. prefers-reduced-motion stops all of it (styles.css), which
+ * leaves each preview in its resting state, so that state must show something.
+ */
+
+.lw-fx {
+  --lw-dur: 3s;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.lw-fx-breathe {
+  animation: lw-breathe var(--lw-dur) ease-in-out infinite;
+}
+
+.lw-fx-slide-h {
+  background-size: 64px 100%;
+  animation: lw-slide-h var(--lw-dur) linear infinite;
+}
+
+.lw-fx-slide-v {
+  background-size: 100% 64px;
+  animation: lw-slide-v var(--lw-dur) linear infinite;
+}
+
+.lw-fx-spin {
+  position: absolute;
+  inset: -50%;
+  animation: lw-spin var(--lw-dur) linear infinite;
+}
+
+.lw-fx-hue {
+  animation: lw-hue var(--lw-dur) linear infinite;
+}
+
+.lw-fx-slow {
+  animation-duration: calc(var(--lw-dur) * 4);
+}
+
+.lw-fx-shimmer {
+  animation: lw-shimmer var(--lw-dur) ease-in-out infinite;
+}
+
+.lw-fx-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  animation: lw-twinkle var(--lw-dur) ease-in-out infinite;
+}
+
+.lw-fx-drop {
+  position: absolute;
+  top: 0;
+  width: 5px;
+  height: 100%;
+  animation: lw-drop var(--lw-dur) linear infinite;
+}
+
+.lw-fx-ring {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 3px solid;
+  transform: scale(0.8);
+  animation: lw-ring var(--lw-dur) ease-out infinite;
+}
+
+.lw-fx-pop {
+  position: absolute;
+  inset: 9px;
+  border-radius: 3px;
+  animation: lw-pop var(--lw-dur) ease-out infinite;
+}
+
+@keyframes lw-breathe {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes lw-slide-h {
+  to {
+    background-position-x: 64px;
+  }
+}
+
+@keyframes lw-slide-v {
+  to {
+    background-position-y: -64px;
+  }
+}
+
+@keyframes lw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lw-hue {
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+
+@keyframes lw-shimmer {
+  50% {
+    filter: hue-rotate(30deg);
+  }
+}
+
+@keyframes lw-twinkle {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0;
+  }
+}
+
+@keyframes lw-drop {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes lw-ring {
+  from {
+    transform: scale(0.15);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes lw-pop {
+  0% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    opacity: 0.08;
+  }
+}
