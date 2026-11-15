@@ -26,7 +26,11 @@ a delegated agent (`general_opus`), and reviews what comes back. It does not bui
 - **Commit.** After review, the orchestrator commits that package (the user has allowed staging and committing
   in this repo, section by section; never push, never rewrite history), then updates `TASKS.md`: the finished
   package is deleted, anything learned goes to its durable home.
-- Packages that touch the same files run one after another; independent ones can run side by side.
+- Packages that touch the same files run one after another; independent ones can run side by side, **two
+  delegated agents at most at a time** (the user's limit). Agents working side by side each get: the list of files
+  that are theirs, the files they must leave alone, "targeted edits only" for shared files (`README.md`,
+  `src/ui/*`, `src/help/topics.ts`, `src/main.tsx`), "a failure in someone else's file is probably mid-edit: wait
+  and re-run", and their own `pnpm shots --port=`.
 
 ## Seeing the result without a keyboard
 
@@ -71,5 +75,10 @@ If the script leaves a server behind (it was killed half-way):
 - Vial replies don't echo the request. Don't match replies by their first byte; see `src/device/pushes.ts`.
 - Vial unlock: the keyboard ignores keys and most commands until it finishes, with no cancel. One poll loop only,
   at least 110 ms between polls (`../docs/research/spike-results.md`).
+- Lighting effects have two numberings. The app uses VialRGB ids; the keyboard's own list (QMK's `RGB_MATRIX_*`
+  order, what Keychron Launcher shows) is different. The K15 Max's ripple replaces Solid Splash: number 22 in
+  the keyboard's list, **VialRGB id 41** in the app.
+- Knob directions: 0 is counter-clockwise (left), 1 is clockwise (right), in Vial's commands and in the store.
+- Changes (`assign`, `undo`, `redo`, `setLighting`) run one at a time inside the store, in the order asked for.
 - WebHID has no serial numbers. The receiver is recognised by its product ID (`0xD000`-`0xDFFF`).
 - `keychron-protocol.ts` logs to the console (`[KC] ...`) on every load. That's upstream's; leave it.

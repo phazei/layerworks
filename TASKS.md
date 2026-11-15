@@ -10,8 +10,12 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
   receiver (picture loads, active layer follows Fn and Fn2; over 2.4 GHz: 259 requests, 2 sent again, 0 failed,
   1 stray report).
 - **The shell is in place** (`src/shell/`, `src/pages/`): sidebar, keyboard stage with the layer stack, status
-  line with undo / redo, help panel, connect prompt, themes. Every section has a page; Help lists the topics and
-  Settings has the theme switch, the rest are placeholders until their package below is done.
+  line with undo / redo, help panel, connect prompt, themes.
+- **Built pages, on the demo keyboard:** Home (at a glance, what the keyboard can do, shortcuts), Keys (click a
+  key or knob direction; a key, a shortcut, a layer key, More options), Lighting (effect grid, lights on/off,
+  brightness, speed, colour, plugin panel slot; no keyboard picture until there is a live preview), Settings
+  (theme, layer names, about), Help (topic list). Shortcuts & macros, Typing feel, Test and Device are
+  placeholders.
 - **Device layer for changes:** `assign` / `undo` / `redo` for keys and knob, `setLighting` with delayed save,
   keycode names, palette groups, shortcut and layer-key builders. Unit-tested on the fake keyboard.
   **Never run against the real keyboard yet.**
@@ -31,43 +35,13 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
 - Whether to create a GitHub repo for Layerworks, and whether it is private.
 - First real-keyboard check of writing (assign a key, undo, change lighting). Needs the user present and a fresh
   `..\tools\keyboard\keymap.py backup` first. Until then writes are tested on the fake keyboard only.
-- Reactions to the look (tokens, accent colour, density) once the shell and Keys page exist.
+- Reactions to the look (tokens, accent colour, density), and to the wording: effect names and groups on
+  Lighting ("Vividness" for saturation), the layer line in the Keys inspector, Home's welcome lines.
 
 ## Next: work packages
 
-Each is sized for one delegated agent. 2, 3 and 4 touch different pages and can run side by side (give each its
-own `pnpm shots --port=`); 5 and 6 follow. Every package: follow `AGENTS.md`, keep `README.md` current, add
+Each is sized for one delegated agent; two at most run at a time (`AGENTS.md`). Every package: follow `AGENTS.md`, keep `README.md` current, add
 tests, and finish with `pnpm typecheck && pnpm lint && pnpm test` passing and screenshots of the demo keyboard.
-
-### 2. Keys page (spec section 7 "Keys")
-
-- Click a key or a knob direction on the stage → inspector under it: "What should this key do?"
-- Choices (segmented): **A key** (searchable palette from `keyPalette()`, grouped, friendly group titles; search
-  matches label, description and QMK name), **A shortcut** (modifier checkboxes + a basic key), **Switch layer**
-  (the sentences in `LAYER_ACTIONS` with the layer's name).
-- *More options* (`Disclosure`): "Nothing", "Same as the layer below", and a key-code field (`parseKeycode`) that
-  shows what the typed code means before applying.
-- The inspector opens on the choice that matches the key's current assignment, and shows the current assignment
-  in words plus its QMK name. Each key not on the base layer says whether it is its own or falls through.
-- Assigning calls `deviceStore.assign`; errors show in the status line. Help buttons on each choice.
-- Tests against the demo/fake keyboard: pick a key, a shortcut, a layer key, transparent; undo.
-
-### 3. Home and Settings (spec section 7)
-
-- Home: connection, battery, active layer, firmware version, lock state at a glance; shortcuts to "Change a key",
-  "Pick a lighting effect", "Back up". Works as the landing page when nothing is connected (connect prompt).
-- Settings: theme, layer names (all layers of the connected keyboard), about and licences (GPL-3.0-or-later,
-  Pipette credit from `VENDOR.md`).
-
-### 4. Lighting, everyday (spec section 7 "Lighting")
-
-- Effect grid from `capabilities.lighting.effects` with names from `VIALRGB_EFFECTS` made friendly; brightness,
-  speed, colour (hue and saturation) sliders; "off". Uses `deviceStore.setLighting`. Controls an effect ignores
-  are disabled with the reason.
-- A slot for plugin panels (`activePanels(state, 'lighting')`).
-- Which effects use colour and speed is firmware knowledge: check `../vial_qmk` (read-only) rather than guessing.
-- Note: effect 22 on this keyboard is the ripple (`../AGENTS.md` "Effect slots"); name it from the plugin side
-  later, not in core.
 
 ### 5. Test page and the unlock flow (spec sections 6 "Unlock", 7 "Test", 8)
 
@@ -83,6 +57,18 @@ tests, and finish with `pnpm typecheck && pnpm lint && pnpm test` passing and sc
   `.vil` import / export, firmware information, wireless and sleep timers.
 - Restore writes a lot: fake keyboard only until the user has tested it.
 
+### Small things from review
+
+- Keys: what a "same as the layer below" key falls through to is worked out as held layer → base layer → layer 0;
+  with Fn2 held it can name the Windows Fn key where the keyboard would use the Windows one. Follow QMK's real
+  rule (the highest active layer below with an assignment) once the store knows the full layer state.
+- Keys: "More options" stays open for later keys once opened (it is remembered); decide whether the inspector
+  should only auto-open it for the key in hand. The demo keymap has no shortcut key, so that choice has no
+  screenshot.
+- Lighting: a disabled Vividness slider gives no reason of its own (the reason is on Colour above it).
+- Home: the battery line (2.4 GHz only) has never been seen rendered; the demo keyboard is on the cable. A demo
+  option for a wireless link would cover it. The firmware line shows whatever the keyboard reports; check it
+  reads well on the real one (`v1.1.2 1970-01-01-00:00:00`).
 ## Later
 
 - Phase 6 (advanced: tap/hold, shortcuts & macros, typing feel, per-key lighting), 7 (help content, first-run
