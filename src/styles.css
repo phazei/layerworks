@@ -1,0 +1,47 @@
+@import 'tailwindcss';
+
+/*
+ * Placeholder colours until the design pass defines the real tokens in src/ui. The --key-* and --wire-*
+ * variables are the ones Pipette's keyboard widget reads.
+ */
+:root {
+  --surface: #111;
+  --card: #1f1f1f;
+  --content: #eee;
+  --content-secondary: #999;
+  --content-inverse: #111;
+  --accent: #e55f2e;
+  --accent-alt: #7c6cf0;
+  --success: #3fb950;
+  --danger: #ff5555;
+  --edge: #333;
+  --key-bg: #2b2b2b;
+  --key-bg-hover: #3a3a3a;
+  --key-bg-active: #e55f2e;
+  --key-bg-duplicate: #444;
+  --key-bg-multi-selected: #4b3a8a;
+  --key-border: #444;
+  --key-label: #eee;
+  --key-label-remap: #f0b070;
+  --key-mask-bg: #1a1a1a;
+  --wire-row: #4aa3ff;
+  --wire-col: #ff6ad5;
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-content: var(--content);
+  --color-muted: var(--content-secondary);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-edge: var(--edge);
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--content);
+  font: 14px/1.4 system-ui, sans-serif;
+}

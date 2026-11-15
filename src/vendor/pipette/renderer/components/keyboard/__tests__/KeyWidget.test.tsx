@@ -1,0 +1,708 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// @vitest-environment jsdom
+
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, fireEvent } from '@testing-library/react'
+import { KeyWidget } from '../KeyWidget'
+import {
+  KEY_BG_COLOR,
+  KEY_SELECTED_COLOR,
+  KEY_MULTI_SELECTED_COLOR,
+  KEY_PRESSED_COLOR,
+  KEY_EVER_PRESSED_COLOR,
+  KEY_HIGHLIGHT_COLOR,
+  KEY_BORDER_COLOR,
+  KEY_MASK_RECT_COLOR,
+  KEY_TEXT_COLOR,
+  KEY_DUPLICATE_COLOR,
+  KEY_REMAP_COLOR,
+} from '../constants'
+import type { KleKey } from '../../../../shared/kle/types'
+import { attrs, FILL_STYLE, BORDER_STYLE } from './flash-overlay-test-utils'
+
+let mockIsMask = false
+let mockInnerKeycode: { qmkId: string } = { qmkId: 'KC_A' }
+
+vi.mock('../../../../shared/keycodes/keycodes', () => ({
+  keycodeLabel: (kc: string) => kc,
+  isMask: () => mockIsMask,
+  findOuterKeycode: () => ({ qmkId: 'LT0' }),
+  findInnerKeycode: () => mockInnerKeycode,
+}))
+
+function makeKey(overrides: Partial<KleKey> = {}): KleKey {
+  return {
+    x: 0,
+    y: 0,
+    width: 1,
+    height: 1,
+    x2: 0,
+    y2: 0,
+    width2: 1,
+    height2: 1,
+    rotation: 0,
+    rotationX: 0,
+    rotationY: 0,
+    color: '',
+    labels: [],
+    textColor: [],
+    textSize: [],
+    row: 0,
+    col: 0,
+    encoderIdx: -1,
+    encoderDir: -1,
+    layoutIndex: -1,
+    layoutOption: -1,
+    decal: false,
+    nub: false,
+    stepped: false,
+    ghost: false,
+    ...overrides,
+  }
+}
+
+describe('KeyWidget', () => {
+  beforeEach(() => {
+    mockIsMask = false
+    mockInnerKeycode = { qmkId: 'KC_A' }
+  })
+
+  it('renders default fill when no state props set', () => {
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="KC_A" />
+      </svg>,
+    )
+    const rect = container.querySelector('rect')!
+    expect(rect.getAttribute('fill')).toBe(KEY_BG_COLOR)
+  })
+
+  it('renders highlighted fill when highlighted=true', () => {
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="KC_A" highlighted />
+      </svg>,
+    )
+    const rect = container.querySelector('rect')!
+    expect(rect.getAttribute('fill')).toBe(KEY_HIGHLIGHT_COLOR)
+  })
+
+  it('renders inverse text color when highlighted=true', () => {
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="KC_A" highlighted />
+      </svg>,
+    )
+    const text = container.querySelector('text')!
+    expect(text.getAttribute('fill')).toBe('var(--content-inverse)')
+  })
+
+  it('renders pressed color over highlighted (pressed takes priority)', () => {
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="KC_A" pressed highlighted />
+      </svg>,
+    )
+    const rect = container.querySelector('rect')!
+    expect(rect.getAttribute('fill')).toBe(KEY_PRESSED_COLOR)
+  })
+
+  it('does not invert text when pressed overrides highlighted', () => {
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="KC_A" pressed highlighted />
+      </svg>,
+    )
+    const text = container.querySelector('text')!
+    expect(text.getAttribute('fill')).toBe('var(--key-label)')
+  })
+
+  it('renders selected color over highlighted (selected takes priority)', () => {
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="KC_A" selected highlighted />
+      </svg>,
+    )
+    const rect = container.querySelector('rect')!
+    expect(rect.getAttribute('fill')).toBe(KEY_SELECTED_COLOR)
+  })
+
+  it('renders highlighted color over everPressed', () => {
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="KC_A" highlighted everPressed />
+      </svg>,
+    )
+    const rect = container.querySelector('rect')!
+    expect(rect.getAttribute('fill')).toBe(KEY_HIGHLIGHT_COLOR)
+  })
+
+  it('renders everPressed color when only everPressed=true', () => {
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="KC_A" everPressed />
+      </svg>,
+    )
+    const rect = container.querySelector('rect')!
+    expect(rect.getAttribute('fill')).toBe(KEY_EVER_PRESSED_COLOR)
+  })
+
+  it('renders customFill (e.g. the View Matrix duplicate-position fill) when no higher-priority state is active', () => {
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="KC_A" customFill={KEY_DUPLICATE_COLOR} />
+      </svg>,
+    )
+    const rect = container.querySelector('rect')!
+    expect(rect.getAttribute('fill')).toBe(KEY_DUPLICATE_COLOR)
+  })
+
+  it('renders everPressed color over customFill (everPressed takes priority)', () => {
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="KC_A" everPressed customFill={KEY_DUPLICATE_COLOR} />
+      </svg>,
+    )
+    const rect = container.querySelector('rect')!
+    expect(rect.getAttribute('fill')).toBe(KEY_EVER_PRESSED_COLOR)
+  })
+
+  describe('flashed (post-rewrite flash)', () => {
+    it('does not render a flash overlay when flashed is unset', () => {
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" />
+        </svg>,
+      )
+      expect(container.querySelector('[data-testid="flash-overlay"]')).toBeNull()
+    })
+
+    it('renders a flash overlay with the selected fill and the key-flash animation class when flashed=true', () => {
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" flashed />
+        </svg>,
+      )
+      const overlay = container.querySelector('[data-testid="flash-overlay"]')!
+      expect(overlay).not.toBeNull()
+      expect(overlay.getAttribute('fill')).toBe(KEY_SELECTED_COLOR)
+      expect(overlay.classList.contains('key-flash-overlay')).toBe(true)
+    })
+
+    it('removes the flash overlay once the caller clears flashed', () => {
+      const { container, rerender } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" flashed />
+        </svg>,
+      )
+      expect(container.querySelector('[data-testid="flash-overlay"]')).not.toBeNull()
+
+      rerender(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" />
+        </svg>,
+      )
+      expect(container.querySelector('[data-testid="flash-overlay"]')).toBeNull()
+    })
+
+    it('leaves the key face fill untouched by flashed (no priority branch — the overlay paints on top)', () => {
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" flashed />
+        </svg>,
+      )
+      const rect = container.querySelector('rect')!
+      expect(rect.getAttribute('fill')).toBe(KEY_BG_COLOR)
+    })
+
+    it('inverts label text when flashed, same as selected', () => {
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" flashed />
+        </svg>,
+      )
+      const text = container.querySelector('text')!
+      expect(text.getAttribute('fill')).toBe('var(--content-inverse)')
+    })
+
+    it('still renders the flash overlay alongside other states (independent of the fill-priority chain)', () => {
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" flashed everPressed multiSelected />
+        </svg>,
+      )
+      const overlay = container.querySelector('[data-testid="flash-overlay"]')!
+      expect(overlay).not.toBeNull()
+      expect(overlay.getAttribute('fill')).toBe(KEY_SELECTED_COLOR)
+      // The base fill still resolves through its own priority chain,
+      // unaffected by `flashed` — multiSelected wins here as normal.
+      const rect = container.querySelector('rect')!
+      expect(rect.getAttribute('fill')).toBe(KEY_MULTI_SELECTED_COLOR)
+    })
+
+    it('does not let the flash overlay intercept clicks meant for the key', () => {
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" flashed />
+        </svg>,
+      )
+      const overlay = container.querySelector('[data-testid="flash-overlay"]')! as SVGElement
+      expect(overlay.style.pointerEvents).toBe('none')
+    })
+
+    it('remounts the overlay (restarting its animation) when flashGeneration bumps on a re-apply', () => {
+      const { container, rerender } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" flashed flashGeneration={1} />
+        </svg>,
+      )
+      const firstOverlay = container.querySelector('[data-testid="flash-overlay"]')!
+      expect(firstOverlay).not.toBeNull()
+
+      // Same `flashed=true` the whole time (position still flashing) but a
+      // new apply bumped the generation — this must force a fresh DOM
+      // node so the CSS animation restarts instead of reusing one whose
+      // `forwards` fill-mode may already have settled at opacity 0.
+      rerender(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" flashed flashGeneration={2} />
+        </svg>,
+      )
+      const secondOverlay = container.querySelector('[data-testid="flash-overlay"]')!
+      expect(secondOverlay).not.toBeNull()
+      expect(secondOverlay).not.toBe(firstOverlay)
+    })
+
+    it('computes a negative animation-delay from flashStartedAt for a late-mounted overlay', () => {
+      const now = Date.now()
+      vi.useFakeTimers()
+      vi.setSystemTime(now + 500)
+      try {
+        const { container } = render(
+          <svg>
+            <KeyWidget kleKey={makeKey()} keycode="KC_A" flashed flashStartedAt={now} />
+          </svg>,
+        )
+        const overlay = container.querySelector('[data-testid="flash-overlay"]')! as SVGElement
+        expect(overlay.style.animationDelay).toBe('-500ms')
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('clamps animation-delay to the full animation length for a stale flashStartedAt', () => {
+      const now = Date.now()
+      vi.useFakeTimers()
+      vi.setSystemTime(now + 5000)
+      try {
+        const { container } = render(
+          <svg>
+            <KeyWidget kleKey={makeKey()} keycode="KC_A" flashed flashStartedAt={now} />
+          </svg>,
+        )
+        const overlay = container.querySelector('[data-testid="flash-overlay"]')! as SVGElement
+        expect(overlay.style.animationDelay).toBe('-700ms')
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('renders a stroke-only border copy on top of the overlay while flashed, matching the outer border', () => {
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" flashed selected />
+        </svg>,
+      )
+      const borderCopy = container.querySelector('[data-testid="flash-overlay-border"]')!
+      expect(borderCopy).not.toBeNull()
+      expect(borderCopy.getAttribute('fill')).toBe('none')
+      // `selected` also drives the outer rect's own stroke — the border
+      // copy must match it so the accent border reads unbroken through
+      // the overlay.
+      expect(borderCopy.getAttribute('stroke')).toBe(KEY_SELECTED_COLOR)
+      expect(borderCopy.getAttribute('stroke-width')).toBe('2')
+    })
+
+    it('removes the border copy once the caller clears flashed', () => {
+      const { container, rerender } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" flashed />
+        </svg>,
+      )
+      expect(container.querySelector('[data-testid="flash-overlay-border"]')).not.toBeNull()
+
+      rerender(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" />
+        </svg>,
+      )
+      expect(container.querySelector('[data-testid="flash-overlay-border"]')).toBeNull()
+    })
+  })
+
+  // Pins the flash overlay markup attribute-by-attribute: element kind,
+  // geometry (identical to the key's outer shape), the two layers' order
+  // right after the outer shape, and which layer remounts on a re-apply.
+  describe('flash overlay DOM contract', () => {
+    function pick(el: Element, names: string[]): Record<string, string | null> {
+      return Object.fromEntries(names.map((n) => [n, el.getAttribute(n)]))
+    }
+
+    const RECT_GEOMETRY = ['x', 'y', 'width', 'height', 'rx', 'ry']
+
+    function renderFlashed(kleKey: KleKey, extra: { selected?: boolean; flashGeneration?: number } = {}) {
+      return render(
+        <svg>
+          <KeyWidget kleKey={kleKey} keycode="KC_A" flashed {...extra} />
+        </svg>,
+      )
+    }
+
+    function layers(container: HTMLElement) {
+      const fill = container.querySelector('[data-testid="flash-overlay"]')!
+      const border = container.querySelector('[data-testid="flash-overlay-border"]')!
+      const base = container.querySelector('g')!.firstElementChild!
+      return { fill, border, base }
+    }
+
+    it('draws both layers as rects with the outer rect geometry, directly after it', () => {
+      const { container } = renderFlashed(makeKey())
+      const { fill, border, base } = layers(container)
+      expect(base.tagName).toBe('rect')
+      expect(fill.tagName).toBe('rect')
+      expect(border.tagName).toBe('rect')
+      expect(attrs(fill)).toEqual({
+        ...pick(base, RECT_GEOMETRY),
+        'data-testid': 'flash-overlay',
+        class: 'key-flash-overlay',
+        fill: KEY_SELECTED_COLOR,
+        style: FILL_STYLE,
+      })
+      expect(attrs(border)).toEqual({
+        ...pick(base, RECT_GEOMETRY),
+        'data-testid': 'flash-overlay-border',
+        fill: 'none',
+        stroke: KEY_BORDER_COLOR,
+        'stroke-width': '1',
+        style: BORDER_STYLE,
+      })
+      expect(base.nextElementSibling).toBe(fill)
+      expect(fill.nextElementSibling).toBe(border)
+    })
+
+    it('draws both layers as the union path for a stepped/ISO key, directly after it', () => {
+      const { container } = renderFlashed(
+        makeKey({ width: 1.25, height: 2, x2: -0.25, y2: 0, width2: 1.5, height2: 1 }),
+        { selected: true },
+      )
+      const { fill, border, base } = layers(container)
+      expect(base.tagName).toBe('path')
+      expect(fill.tagName).toBe('path')
+      expect(border.tagName).toBe('path')
+      expect(base.getAttribute('d')).toBeTruthy()
+      expect(attrs(fill)).toEqual({
+        d: base.getAttribute('d'),
+        'data-testid': 'flash-overlay',
+        class: 'key-flash-overlay',
+        fill: KEY_SELECTED_COLOR,
+        style: FILL_STYLE,
+      })
+      expect(attrs(border)).toEqual({
+        d: base.getAttribute('d'),
+        'data-testid': 'flash-overlay-border',
+        fill: 'none',
+        stroke: KEY_SELECTED_COLOR,
+        'stroke-width': '2',
+        style: BORDER_STYLE,
+      })
+      expect(base.nextElementSibling).toBe(fill)
+      expect(fill.nextElementSibling).toBe(border)
+    })
+
+    it('replaces only the fill layer when flashGeneration changes', () => {
+      const { container, rerender } = renderFlashed(makeKey(), { flashGeneration: 1 })
+      const before = layers(container)
+      rerender(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" flashed flashGeneration={2} />
+        </svg>,
+      )
+      const after = layers(container)
+      expect(after.fill).not.toBe(before.fill)
+      expect(after.border).toBe(before.border)
+    })
+  })
+
+  describe('masked key split-click', () => {
+    it('renders inner rect for masked key', () => {
+      mockIsMask = true
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="LT0(KC_A)" />
+        </svg>,
+      )
+      const innerRect = container.querySelector('[data-testid="mask-inner-rect"]')
+      expect(innerRect).not.toBeNull()
+      expect(innerRect!.getAttribute('fill')).toBe(KEY_MASK_RECT_COLOR)
+    })
+
+    it('does not render inner rect for non-masked key', () => {
+      mockIsMask = false
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" />
+        </svg>,
+      )
+      const innerRect = container.querySelector('[data-testid="mask-inner-rect"]')
+      expect(innerRect).toBeNull()
+    })
+
+    it('calls onClick with maskClicked=true when inner rect is clicked', () => {
+      mockIsMask = true
+      const handleClick = vi.fn()
+      const key = makeKey({ row: 1, col: 2 })
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={key} keycode="LT0(KC_A)" onClick={handleClick} />
+        </svg>,
+      )
+      const innerRect = container.querySelector('[data-testid="mask-inner-rect"]')!
+      fireEvent.click(innerRect)
+      expect(handleClick).toHaveBeenCalledTimes(1)
+      expect(handleClick).toHaveBeenCalledWith(key, true, { ctrlKey: false, shiftKey: false })
+    })
+
+    it('calls onClick with maskClicked=false when outer area is clicked', () => {
+      mockIsMask = true
+      const handleClick = vi.fn()
+      const key = makeKey({ row: 1, col: 2 })
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={key} keycode="LT0(KC_A)" onClick={handleClick} />
+        </svg>,
+      )
+      // Click the <g> element (outer area)
+      const g = container.querySelector('g')!
+      fireEvent.click(g)
+      expect(handleClick).toHaveBeenCalledTimes(1)
+      expect(handleClick).toHaveBeenCalledWith(key, false, { ctrlKey: false, shiftKey: false })
+    })
+
+    it('calls onClick with maskClicked=false for non-masked key', () => {
+      mockIsMask = false
+      const handleClick = vi.fn()
+      const key = makeKey({ row: 0, col: 0 })
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={key} keycode="KC_A" onClick={handleClick} />
+        </svg>,
+      )
+      const g = container.querySelector('g')!
+      fireEvent.click(g)
+      expect(handleClick).toHaveBeenCalledWith(key, false, { ctrlKey: false, shiftKey: false })
+    })
+
+    it('passes modifier keys from click event', () => {
+      mockIsMask = false
+      const handleClick = vi.fn()
+      const key = makeKey({ row: 0, col: 0 })
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={key} keycode="KC_A" onClick={handleClick} />
+        </svg>,
+      )
+      const g = container.querySelector('g')!
+      fireEvent.click(g, { ctrlKey: true, shiftKey: false })
+      expect(handleClick).toHaveBeenCalledWith(key, false, { ctrlKey: true, shiftKey: false })
+    })
+
+    it('calls onDoubleClick with maskClicked=true on inner rect double-click', () => {
+      mockIsMask = true
+      const handleDoubleClick = vi.fn()
+      const key = makeKey({ row: 1, col: 3 })
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={key} keycode="LT0(KC_A)" onDoubleClick={handleDoubleClick} />
+        </svg>,
+      )
+      const innerRect = container.querySelector('[data-testid="mask-inner-rect"]')!
+      fireEvent.doubleClick(innerRect)
+      expect(handleDoubleClick).toHaveBeenCalledTimes(1)
+      expect(handleDoubleClick.mock.calls[0][0]).toBe(key)
+      expect(handleDoubleClick.mock.calls[0][2]).toBe(true)
+    })
+
+    it('shows accent border only on inner rect when selectedMaskPart=true', () => {
+      mockIsMask = true
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="LT0(KC_A)" selected selectedMaskPart={true} />
+        </svg>,
+      )
+      const innerRect = container.querySelector('[data-testid="mask-inner-rect"]')!
+      expect(innerRect.getAttribute('stroke')).toBe(KEY_SELECTED_COLOR)
+      expect(innerRect.getAttribute('stroke-width')).toBe('2')
+      // Outer rect is fully default (no accent, no fill)
+      const outerRect = container.querySelector('rect:not([data-testid])')!
+      expect(outerRect.getAttribute('stroke')).toBe(KEY_BORDER_COLOR)
+      expect(outerRect.getAttribute('fill')).toBe(KEY_BG_COLOR)
+    })
+
+    it('shows accent border on outer rect when selectedMaskPart=false', () => {
+      mockIsMask = true
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="LT0(KC_A)" selected selectedMaskPart={false} />
+        </svg>,
+      )
+      const outerRect = container.querySelector('rect:not([data-testid])')!
+      expect(outerRect.getAttribute('stroke')).toBe(KEY_SELECTED_COLOR)
+      expect(outerRect.getAttribute('stroke-width')).toBe('2')
+      // Inner rect should NOT have accent border
+      const innerRect = container.querySelector('[data-testid="mask-inner-rect"]')!
+      expect(innerRect.getAttribute('stroke')).toBe(KEY_BORDER_COLOR)
+    })
+
+    it('uses normal text color for inner label even when outer is selected', () => {
+      mockIsMask = true
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="LT0(KC_A)" selected selectedMaskPart={false} />
+        </svg>,
+      )
+      const texts = container.querySelectorAll('text')
+      // Outer label uses inverted color (on blue fill)
+      expect(texts[0].getAttribute('fill')).toBe('var(--content-inverse)')
+      // Inner label always uses normal color (on inner rect bg)
+      expect(texts[1].getAttribute('fill')).toBe(KEY_TEXT_COLOR)
+    })
+
+    it('uses normal text color for both labels when inner is selected (no fill inversion)', () => {
+      mockIsMask = true
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="LT0(KC_A)" selected selectedMaskPart={true} />
+        </svg>,
+      )
+      const texts = container.querySelectorAll('text')
+      // Both labels use normal text color since outer has no fill
+      expect(texts[0].getAttribute('fill')).toBe(KEY_TEXT_COLOR)
+      expect(texts[1].getAttribute('fill')).toBe(KEY_TEXT_COLOR)
+    })
+
+    it('shows accent border on non-masked key even if selectedMaskPart leaks true', () => {
+      mockIsMask = false
+      const { container } = render(
+        <svg>
+          <KeyWidget kleKey={makeKey()} keycode="KC_A" selected selectedMaskPart={true} />
+        </svg>,
+      )
+      const outerRect = container.querySelector('rect')!
+      expect(outerRect.getAttribute('stroke')).toBe(KEY_SELECTED_COLOR)
+      expect(outerRect.getAttribute('stroke-width')).toBe('2')
+    })
+  })
+})
+
+// --- composite (masked) key inner label honors the active Key Label
+// pack's remap, and a two-part inner label (shift + base) renders
+// stacked instead of crammed onto one line. ---
+
+describe('KeyWidget — inner label remap resolution', () => {
+  it('resolves the inner label via remapLabel when the pack remaps the inner basic keycode', () => {
+    mockIsMask = true
+    mockInnerKeycode = { qmkId: 'KC_8' }
+    const remapLabel = (id: string) => (id === 'KC_8' ? '(\n8' : id)
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="LSFT(KC_8)" remapLabel={remapLabel} />
+      </svg>,
+    )
+    const texts = Array.from(container.querySelectorAll('text')).map((t) => t.textContent)
+    expect(texts).toContain('(')
+    expect(texts).toContain('8')
+  })
+
+  it('falls back to the default inner label when the pack does not remap this inner keycode', () => {
+    mockIsMask = true
+    mockInnerKeycode = { qmkId: 'KC_9' }
+    const remapLabel = (id: string) => (id === 'KC_8' ? '(\n8' : id)
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="LSFT(KC_9)" remapLabel={remapLabel} />
+      </svg>,
+    )
+    const texts = Array.from(container.querySelectorAll('text')).map((t) => t.textContent)
+    expect(texts).toContain('KC_9')
+    expect(texts).not.toContain('(')
+  })
+
+  it('renders the default inner label unchanged when no pack is active (no remapLabel prop) — no-pack regression check', () => {
+    mockIsMask = true
+    mockInnerKeycode = { qmkId: 'KC_A' }
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="LT1(KC_A)" />
+      </svg>,
+    )
+    const texts = Array.from(container.querySelectorAll('text')).map((t) => t.textContent)
+    expect(texts).toContain('KC_A')
+  })
+})
+
+describe('KeyWidget — stacked shift/base inner label', () => {
+  it('renders a two-part inner label as two stacked text elements, shifted char above base', () => {
+    mockIsMask = true
+    mockInnerKeycode = { qmkId: 'KC_8' }
+    const remapLabel = (id: string) => (id === 'KC_8' ? '(\n8' : id)
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="LSFT(KC_8)" remapLabel={remapLabel} />
+      </svg>,
+    )
+    const texts = Array.from(container.querySelectorAll('text'))
+    const shiftText = texts.find((t) => t.textContent === '(')!
+    const baseText = texts.find((t) => t.textContent === '8')!
+    expect(shiftText).toBeTruthy()
+    expect(baseText).toBeTruthy()
+    expect(Number(shiftText.getAttribute('y'))).toBeLessThan(Number(baseText.getAttribute('y')))
+  })
+
+  it('renders a single-part inner label as one centered text element (unchanged)', () => {
+    mockIsMask = true
+    mockInnerKeycode = { qmkId: 'KC_A' }
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="LT1(KC_A)" />
+      </svg>,
+    )
+    const innerTexts = Array.from(container.querySelectorAll('text')).filter((t) => t.textContent === 'KC_A')
+    expect(innerTexts).toHaveLength(1)
+  })
+})
+
+describe('KeyWidget — remap tint applies to the inner label too', () => {
+  it('tints the inner label with the remap color when remapped=true', () => {
+    mockIsMask = true
+    mockInnerKeycode = { qmkId: 'KC_9' }
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="LSFT(KC_9)" remapped />
+      </svg>,
+    )
+    const innerText = Array.from(container.querySelectorAll('text')).find((t) => t.textContent === 'KC_9')!
+    expect(innerText.getAttribute('fill')).toBe(KEY_REMAP_COLOR)
+  })
+
+  it('does not tint the inner label when remapped is false/unset', () => {
+    mockIsMask = true
+    mockInnerKeycode = { qmkId: 'KC_9' }
+    const { container } = render(
+      <svg>
+        <KeyWidget kleKey={makeKey()} keycode="LSFT(KC_9)" />
+      </svg>,
+    )
+    const innerText = Array.from(container.querySelectorAll('text')).find((t) => t.textContent === 'KC_9')!
+    expect(innerText.getAttribute('fill')).not.toBe(KEY_REMAP_COLOR)
+  })
+})
