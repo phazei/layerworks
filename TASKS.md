@@ -9,14 +9,13 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
 - **Phase 1, foundation: built.** Vendored Pipette code (unmodified, 80 files), transport, device store,
   capabilities, and a bare page. Type-check, lint and 770 tests pass. `pnpm hardware` loads the real K15 Max on
   the cable: picture data in about 180 ms, everything in about 550 ms, 259 requests, no resends or strays.
-- Nothing is committed yet; the repo has no commits and no remote.
+- Checked by the user in the browser on the cable and through the 2.4 GHz receiver: the picture loads and the
+  active layer follows Fn and Fn2 on both. Over 2.4 GHz: 259 requests, 2 sent again, 0 failed, 1 stray report.
+- The user has given permission to stage and commit in this repo, section by section. No remote yet; no pushing.
 
 ## Waiting on the user
 
-- **Check phase 1 in the browser**, on the cable and through the 2.4 GHz receiver: `pnpm dev`, connect, and see
-  that the picture appears, that holding Fn / Fn2 and flipping the Mac/Windows switch move the active layer, and
-  that "Could not read" and "Failed" stay empty. Over 2.4 GHz, note "Sent again" and "Stray reports".
-- First commit (suggested message in the hand-over), and whether to create a GitHub repo for it.
+- Whether to create a GitHub repo for Layerworks, and whether it is private.
 
 ## Next
 
@@ -27,7 +26,6 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
 ## Later
 
 - Phases 3-8.
-- Untested on hardware so far: the receiver path of the transport (covered by unit tests only), anything that
-  writes.
+- Untested on hardware so far: anything that writes.
 - Upstream candidate: Pipette's web transport hands layer reports to waiting requests
   (`../docs/research/spike-results.md`, finding 1). A fix would be a branch in `../pipette`.
