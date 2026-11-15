@@ -1,8 +1,12 @@
 /*
  * Motion for the effect previews (EffectPreview.tsx). Their colours are the data being previewed and are set
- * inline; this file only moves them. The previews are 32 px squares; the slides move by one 64 px tile of a
- * repeating background, so they loop without a seam. prefers-reduced-motion stops all of it (styles.css), which
- * leaves each preview in its resting state, so that state must show something.
+ * inline; this file only moves them. The previews are 32 px squares. Patterns that travel move a repeating
+ * gradient by exactly one of its periods per loop, so they loop without a seam. Which way each one moves comes from
+ * the firmware's effect code and is noted in EffectPreview.tsx. prefers-reduced-motion stops all of it
+ * (styles.css), which leaves each preview in its resting state, so that state must show something.
+ *
+ * Durations are multiples of --lw-dur, set from the speed setting; --lw-times scales it for effects whose firmware
+ * clock runs slower or faster than the others'.
  */
 
 .lw-fx {
@@ -12,28 +16,83 @@
   isolation: isolate;
 }
 
+.lw-fx,
+.lw-fx * {
+  --lw-loop: calc(var(--lw-dur) * var(--lw-times, 1));
+}
+
 .lw-fx-breathe {
   animation: lw-breathe var(--lw-dur) ease-in-out infinite;
 }
 
+/* A band of light crossing from left to right, then a pause while it is off the keys. */
 .lw-fx-slide-h {
   background-size: 64px 100%;
-  animation: lw-slide-h var(--lw-dur) linear infinite;
+  animation: lw-slide-h var(--lw-loop) linear infinite;
 }
 
-.lw-fx-slide-v {
-  background-size: 100% 64px;
-  animation: lw-slide-v var(--lw-dur) linear infinite;
+/* A strip twice the preview's size, moved by one period (32 px) per loop: rightwards or downwards. */
+.lw-fx-shift-x {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -32px;
+  width: 64px;
+  animation: lw-shift-x var(--lw-loop) linear infinite;
 }
 
+.lw-fx-shift-y {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -32px;
+  height: 64px;
+  animation: lw-shift-y var(--lw-loop) linear infinite;
+}
+
+/* Turning about the preview's centre; clockwise as seen from above unless .lw-fx-ccw. */
 .lw-fx-spin {
   position: absolute;
   inset: -50%;
-  animation: lw-spin var(--lw-dur) linear infinite;
+  animation: lw-spin var(--lw-loop) linear infinite;
 }
 
+.lw-fx-turn {
+  position: absolute;
+  animation: lw-spin var(--lw-loop) linear infinite;
+}
+
+.lw-fx-ccw {
+  animation-direction: reverse;
+}
+
+/*
+ * Every colour moving one step round the rainbow. A hue-rotate filter is only an approximation that darkens
+ * strong colours, so it is kept for slow drifts; exact cycles animate a registered property used in the colours
+ * themselves: --lw-turn (the hue, 0 to 360deg) and --lw-shift (0 to 1, one gradient period).
+ */
 .lw-fx-hue {
-  animation: lw-hue var(--lw-dur) linear infinite;
+  animation: lw-hue var(--lw-loop) linear infinite;
+}
+
+@property --lw-turn {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --lw-shift {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+.lw-fx-cycle {
+  animation: lw-cycle var(--lw-loop) linear infinite;
+}
+
+.lw-fx-flow {
+  animation: lw-flow var(--lw-loop) linear infinite;
 }
 
 .lw-fx-slow {
@@ -42,6 +101,15 @@
 
 .lw-fx-shimmer {
   animation: lw-shimmer var(--lw-dur) ease-in-out infinite;
+}
+
+.lw-fx-swing {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -16px;
+  width: 64px;
+  animation: lw-swing var(--lw-dur) ease-in-out infinite alternate;
 }
 
 .lw-fx-dot {
@@ -62,7 +130,9 @@
 
 .lw-fx-ring {
   position: absolute;
-  inset: 4px;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
   border-radius: 50%;
   border: 3px solid;
   transform: scale(0.8);
@@ -74,6 +144,25 @@
   inset: 9px;
   border-radius: 3px;
   animation: lw-pop var(--lw-dur) ease-out infinite;
+}
+
+/* Lit around the pressed key, shrinking back into it as it fades. */
+.lw-fx-shrink {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
+  animation: lw-shrink var(--lw-dur) ease-out infinite;
+}
+
+/* A spark flying out from the pressed key along its row or column (--lw-to-x, --lw-to-y). */
+.lw-fx-fly {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 1px;
+  animation: lw-fly var(--lw-dur) ease-out infinite;
 }
 
 @keyframes lw-breathe {
@@ -88,9 +177,15 @@
   }
 }
 
-@keyframes lw-slide-v {
+@keyframes lw-shift-x {
   to {
-    background-position-y: -64px;
+    transform: translateX(32px);
+  }
+}
+
+@keyframes lw-shift-y {
+  to {
+    transform: translateY(32px);
   }
 }
 
@@ -106,9 +201,27 @@
   }
 }
 
+@keyframes lw-cycle {
+  to {
+    --lw-turn: 360deg;
+  }
+}
+
+@keyframes lw-flow {
+  to {
+    --lw-shift: 1;
+  }
+}
+
 @keyframes lw-shimmer {
   50% {
-    filter: hue-rotate(30deg);
+    filter: hue-rotate(17deg);
+  }
+}
+
+@keyframes lw-swing {
+  to {
+    transform: translateX(-16px);
   }
 }
 
@@ -135,7 +248,7 @@
 
 @keyframes lw-ring {
   from {
-    transform: scale(0.35);
+    transform: scale(0.2);
     opacity: 1;
   }
   to {
@@ -151,5 +264,27 @@
   60%,
   100% {
     opacity: 0.3;
+  }
+}
+
+@keyframes lw-shrink {
+  from {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.25);
+    opacity: 0.15;
+  }
+}
+
+@keyframes lw-fly {
+  from {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate(var(--lw-to-x), var(--lw-to-y));
+    opacity: 0;
   }
 }

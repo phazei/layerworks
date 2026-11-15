@@ -220,6 +220,11 @@ export interface DeviceStore {
   /** Changes the lighting effect or its values. Shown on the keyboard at once, saved to it after a short pause. */
   setLighting(change: LightingChange): Promise<void>
   /**
+   * Reads the lighting effect and its values again (one request), for when the keyboard may have changed them
+   * itself: its lighting keys change them without telling anyone.
+   */
+  refreshLighting(): Promise<void>
+  /**
    * Unlocks the keyboard: the user holds its unlock keys while the keyboard counts down (`unlocking`). Holds every
    * other request until it ends; it can't be cancelled. Resolves 'unlocked', 'disconnected' when the keyboard went
    * away first, or 'failed' when it couldn't start (then the keyboard was never blocked). One at a time: a second
@@ -518,12 +523,26 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     set(history())
   }
 
+  /**
+   * Sends the effect and its values so that the keyboard keeps them. vial-qmk's rgb_matrix.c reloads speed and
+   * colour from what was last saved on the first frame of a different effect (off counts as one), over what was
+   * just sent. So when the effect changes, the values are sent, saved and sent again: wherever that first frame
+   * falls, it either reloads the values just saved or comes before the second send, which then stays.
+   */
+  async function sendLighting(modeBefore: number, next: Required<LightingChange>): Promise<void> {
+    const { mode, speed, hue, sat, val } = next
+    await protocol.setVialRGBMode(mode, speed, hue, sat, val)
+    if (mode === modeBefore) return
+    await protocol.saveLighting()
+    await protocol.setVialRGBMode(mode, speed, hue, sat, val)
+  }
+
   async function setLighting(change: LightingChange): Promise<void> {
     const now = state.lighting
     if (!now || now.kind !== 'vialrgb') return
     const next = { ...now, ...change }
     const sent = await write(
-      () => protocol.setVialRGBMode(next.mode, next.speed, next.hue, next.sat, next.val),
+      () => sendLighting(now.mode, next),
       () => (state.lighting ? { lighting: { ...state.lighting, ...change } } : {}),
     )
     if (!sent) return
@@ -532,6 +551,17 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       lightingSaveTimer = null
       void write(() => protocol.saveLighting(), () => ({}))
     }, LIGHTING_SAVE_DELAY_MS)
+  }
+
+  async function refreshLighting(): Promise<void> {
+    const current = session
+    if (!current || state.lighting?.kind !== 'vialrgb') return
+    try {
+      const values = await protocol.getVialRGBMode()
+      if (session === current && state.lighting) set({ lighting: { ...state.lighting, ...values } })
+    } catch {
+      // A missed refresh leaves the values as they were; the next one or the next change puts them right.
+    }
   }
 
   let unlocking: Promise<UnlockResult> | null = null
@@ -689,7 +719,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         what: 'lighting',
         needsUnlock: false,
         send: async () => {
-          await protocol.setVialRGBMode(mode, speed, hue, sat, val)
+          await sendLighting(state.lighting?.mode ?? -1, { mode, speed, hue, sat, val })
           await protocol.saveLighting()
         },
         applied: () => (state.lighting ? { lighting: { ...state.lighting, mode, speed, hue, sat, val } } : {}),
@@ -800,6 +830,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     undo: () => inOrder(() => step('undo')),
     redo: () => inOrder(() => step('redo')),
     setLighting: (change) => inOrder(() => setLighting(change)),
+    refreshLighting: () => inOrder(refreshLighting),
     unlock,
     lock: () => inOrder(lock),
     restore: (plan, onProgress) => inOrder(() => restore(plan, onProgress)),

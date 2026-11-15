@@ -4,11 +4,15 @@
 
 /** CSS colour for a QMK hue and saturation, at full brightness unless `value` (0-1) says otherwise. */
 export function hsvCss(hue: number, sat: number, value = 1): string {
-  const h = (hue / 256) * 360
+  return hsvCssAt(((hue / 256) * 360).toFixed(1), sat, value)
+}
+
+/** The same with the hue as any CSS angle expression, e.g. `var(--lw-turn)` for a colour that is animated. */
+export function hsvCssAt(hue: string, sat: number, value = 1): string {
   const s = sat / 255
   const l = value * (1 - s / 2)
   const sl = l === 0 || l === 1 ? 0 : (value - l) / Math.min(l, 1 - l)
-  return `hsl(${h.toFixed(1)} ${(sl * 100).toFixed(1)}% ${(l * 100).toFixed(1)}%)`
+  return `hsl(${hue} ${(sl * 100).toFixed(1)}% ${(l * 100).toFixed(1)}%)`
 }
 
 /** The hue slider's track: the whole rainbow. */

@@ -385,11 +385,12 @@ describe('changing the lighting', () => {
 
     expect(config.rgb).toMatchObject({ mode: 13, hue: 99, speed: 128 })
     expect(store.getState().lighting).toMatchObject({ mode: 13, hue: 99 })
+    // A new effect is saved once on the way (see sendLighting); the values after it only after the pause.
     const saves = () => link.requests.filter((r) => r[0] === 0x09).length
-    expect(saves()).toBe(0)
+    expect(saves()).toBe(1)
     await vi.advanceTimersByTimeAsync(1500)
     vi.useRealTimers()
-    expect(saves()).toBe(1)
+    expect(saves()).toBe(2)
   })
 
   it('keeps changes asked for at the same moment, in order', async () => {
@@ -411,4 +412,49 @@ describe('changing the lighting', () => {
     expect(config.rgb).toMatchObject({ mode: 13, hue: 99, val: 40 })
     expect(config.keymap[1][0][2]).toBe(0x29)
   })
+
+  // The firmware reloads speed and colour from what it last saved on the first frame of a new effect.
+  it('gives a new effect the values shown, not the ones the keyboard last saved', async () => {
+    const { config, link } = connected()
+    await store.connect(link)
+    await loaded(store)
+
+    await store.setLighting({ speed: 255, hue: 50 })
+    await store.setLighting({ mode: 13 })
+
+    expect(config.rgb).toMatchObject({ mode: 13, speed: 255, hue: 50 })
+    expect(config.rgb).toMatchObject(pickRgb(store.getState().lighting!))
+  })
+
+  it('reads the lighting again, for changes made on the keyboard itself', async () => {
+    const { config, link } = connected()
+    await store.connect(link)
+    await loaded(store)
+    config.rgb = { ...config.rgb, mode: 13, val: 30 }
+
+    await store.refreshLighting()
+
+    expect(store.getState().lighting).toMatchObject({ mode: 13, val: 30, kind: 'vialrgb' })
+  })
+
+  it('turns the lights off and on again with the values shown', async () => {
+    const { config, link } = connected()
+    await store.connect(link)
+    await loaded(store)
+
+    await store.setLighting({ val: 60 })
+    await store.setLighting({ mode: 0 })
+    await store.setLighting({ mode: 22 })
+
+    expect(config.rgb).toMatchObject({ mode: 22, val: 60 })
+    expect(config.rgb).toMatchObject(pickRgb(store.getState().lighting!))
+  })
+})
+
+const pickRgb = ({ mode, speed, hue, sat, val }: { mode: number; speed: number; hue: number; sat: number; val: number }) => ({
+  mode,
+  speed,
+  hue,
+  sat,
+  val,
 })

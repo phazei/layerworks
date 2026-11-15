@@ -27,27 +27,47 @@ export const EFFECT_GROUPS: { id: EffectGroup; title: string }[] = [
   { id: 'custom', title: 'Set per key or zone' },
 ]
 
-/** How a tile hints at the effect. Drawn by EffectPreview. */
+/**
+ * How a tile hints at the effect. Drawn by EffectPreview, which also notes for each one which way it moves on the
+ * keyboard and the firmware file that was worked out from.
+ */
 export type PreviewKind =
   | 'solid'
   | 'two'
   | 'gradient-v'
   | 'gradient-h'
   | 'breathe'
-  | 'band'
-  | 'spin'
+  | 'band-sat'
+  | 'band-val'
+  | 'pinwheel-sat'
+  | 'pinwheel-val'
+  | 'spiral-sat'
+  | 'spiral-val'
   | 'rainbow-all'
   | 'rainbow-h'
   | 'rainbow-v'
+  | 'chevron'
   | 'rainbow-rings'
-  | 'rainbow-spin'
-  | 'shimmer'
+  | 'rainbow-rings-dual'
+  | 'rainbow-pinwheel'
+  | 'rainbow-spiral'
+  | 'beacon'
+  | 'rainbow-beacon'
+  | 'rainbow-pinwheels'
+  | 'hue-breathe'
+  | 'hue-pendulum'
+  | 'hue-wave'
   | 'rain'
   | 'rain-random'
   | 'matrix'
   | 'heat'
   | 'react'
+  | 'react-shift'
+  | 'glow'
+  | 'cross'
+  | 'nexus'
   | 'splash'
+  | 'splash-colours'
   | 'per-key'
   | 'zones'
 
@@ -69,6 +89,8 @@ export interface EffectInfo {
   speed: Use
   /** What the speed setting does, when it isn't how fast the effect moves. */
   speedHint?: string
+  /** A typing effect that answers every key pressed, not only the last: the preview shows two keys. */
+  many?: boolean
 }
 
 const CYCLES = 'This effect cycles through all colours by itself.'
@@ -81,6 +103,7 @@ const ZONES = 'Each zone has its own colour and speed.'
 
 const FADE = 'Here speed sets how quickly a lit key fades.'
 const SPREAD = 'Here speed sets how quickly the light spreads and fades.'
+const SHRINK = 'Here speed sets how quickly the light shrinks back and fades.'
 
 type Row = Omit<EffectInfo, 'id' | 'qmkName'>
 
@@ -117,28 +140,28 @@ const EFFECTS: Record<number, Row> = {
     speedHint: 'Here speed sets how far the colours spread.',
   },
   6: { name: 'Breathing', group: 'moving', preview: 'breathe', description: 'All keys slowly glow brighter and dimmer.', hue: true, sat: true, speed: true },
-  7: { name: 'Pale band', group: 'moving', preview: 'band', description: 'A pale band sweeps across the keys.', hue: true, sat: true, speed: true },
-  8: { name: 'Bright band', group: 'moving', preview: 'band', description: 'A bright band sweeps across; the rest stays dim.', hue: true, sat: true, speed: true },
-  9: { name: 'Pale pinwheel', group: 'moving', preview: 'spin', description: 'Pale blades turn around the middle.', hue: true, sat: true, speed: true },
-  10: { name: 'Bright pinwheel', group: 'moving', preview: 'spin', description: 'Bright blades turn around the middle.', hue: true, sat: true, speed: true },
-  11: { name: 'Pale spiral', group: 'moving', preview: 'spin', description: 'A pale spiral turns around the middle.', hue: true, sat: true, speed: true },
-  12: { name: 'Bright spiral', group: 'moving', preview: 'spin', description: 'A bright spiral turns around the middle of the keyboard.', hue: true, sat: true, speed: true },
+  7: { name: 'Colour band', group: 'moving', preview: 'band-sat', description: 'A band of your colour sweeps from left to right across white keys.', hue: true, sat: true, speed: true },
+  8: { name: 'Bright band', group: 'moving', preview: 'band-val', description: 'A band of light sweeps from left to right; the other keys stay dark.', hue: true, sat: true, speed: true },
+  9: { name: 'Pale pinwheel', group: 'moving', preview: 'pinwheel-sat', description: 'Three blades fading from your colour to white turn anticlockwise.', hue: true, sat: true, speed: true },
+  10: { name: 'Bright pinwheel', group: 'moving', preview: 'pinwheel-val', description: 'Three blades fading from bright to dark turn anticlockwise.', hue: true, sat: true, speed: true },
+  11: { name: 'Pale spiral', group: 'moving', preview: 'spiral-sat', description: 'A spiral fading from your colour to white turns anticlockwise.', hue: true, sat: true, speed: true },
+  12: { name: 'Bright spiral', group: 'moving', preview: 'spiral-val', description: 'A spiral fading from bright to dark turns anticlockwise around the middle.', hue: true, sat: true, speed: true },
   13: { name: 'Rainbow, all keys', group: 'moving', preview: 'rainbow-all', description: 'All keys change colour together, round the rainbow.', hue: CYCLES, sat: true, speed: true },
-  14: { name: 'Rainbow wave, sideways', group: 'moving', preview: 'rainbow-h', description: 'A rainbow scrolls across from one side to the other.', hue: RAINBOW, sat: true, speed: true },
-  15: { name: 'Rainbow wave, upwards', group: 'moving', preview: 'rainbow-v', description: 'A rainbow scrolls from the bottom row to the top.', hue: RAINBOW, sat: true, speed: true },
-  16: { name: 'Rainbow arrows', group: 'moving', preview: 'rainbow-h', description: 'Rainbow stripes bent into arrows move across.', hue: RAINBOW, sat: true, speed: true },
-  17: { name: 'Rainbow rings', group: 'moving', preview: 'rainbow-rings', description: 'Rainbow rings flow around the middle.', hue: RAINBOW, sat: true, speed: true },
-  18: { name: 'Rainbow rings, two centres', group: 'moving', preview: 'rainbow-rings', description: 'Rainbow rings flow around the middle of each half.', hue: RAINBOW, sat: true, speed: true },
-  19: { name: 'Rainbow pinwheel', group: 'moving', preview: 'rainbow-spin', description: 'A rainbow turns like a pinwheel.', hue: RAINBOW, sat: true, speed: true },
-  20: { name: 'Rainbow spiral', group: 'moving', preview: 'rainbow-spin', description: 'A rainbow spiral turns around the middle.', hue: RAINBOW, sat: true, speed: true },
-  21: { name: 'Turning colours', group: 'moving', preview: 'spin', description: 'Shades of your colour turn around the middle like a lighthouse beam.', hue: true, sat: true, speed: true },
-  22: { name: 'Rainbow lighthouse', group: 'moving', preview: 'rainbow-spin', description: 'A rainbow turns around the middle like a lighthouse beam.', hue: RAINBOW, sat: true, speed: true },
-  23: { name: 'Rainbow pinwheels', group: 'moving', preview: 'rainbow-spin', description: 'Two rainbow pinwheels turn side by side.', hue: RAINBOW, sat: true, speed: true },
+  14: { name: 'Rainbow wave, left to right', group: 'moving', preview: 'rainbow-h', description: 'A rainbow scrolls across from left to right.', hue: RAINBOW, sat: true, speed: true },
+  15: { name: 'Rainbow wave, top to bottom', group: 'moving', preview: 'rainbow-v', description: 'A rainbow scrolls from the top row down to the bottom row.', hue: RAINBOW, sat: true, speed: true },
+  16: { name: 'Rainbow arrows', group: 'moving', preview: 'chevron', description: 'Rainbow stripes bent into arrows move to the right.', hue: RAINBOW, sat: true, speed: true },
+  17: { name: 'Rainbow rings', group: 'moving', preview: 'rainbow-rings', description: 'Rainbow rings flow in towards the middle.', hue: RAINBOW, sat: true, speed: true },
+  18: { name: 'Rainbow rings, two centres', group: 'moving', preview: 'rainbow-rings-dual', description: 'Rainbow rings flow in towards the middle of each half.', hue: RAINBOW, sat: true, speed: true },
+  19: { name: 'Rainbow pinwheel', group: 'moving', preview: 'rainbow-pinwheel', description: 'A rainbow with straight blades turns anticlockwise.', hue: RAINBOW, sat: true, speed: true },
+  20: { name: 'Rainbow spiral', group: 'moving', preview: 'rainbow-spiral', description: 'A rainbow with curved blades turns anticlockwise.', hue: RAINBOW, sat: true, speed: true },
+  21: { name: 'Turning colours', group: 'moving', preview: 'beacon', description: 'Colours on either side of yours sweep clockwise around the middle like a lighthouse beam.', hue: true, sat: true, speed: true },
+  22: { name: 'Rainbow lighthouse', group: 'moving', preview: 'rainbow-beacon', description: 'Rainbow stripes sweep clockwise around the middle like a lighthouse beam.', hue: RAINBOW, sat: true, speed: true },
+  23: { name: 'Rainbow pinwheels', group: 'moving', preview: 'rainbow-pinwheels', description: 'Rainbow stripes turn in each half of the keyboard, the two halves in opposite directions.', hue: RAINBOW, sat: true, speed: true },
   24: { name: 'Raindrops', group: 'rain', preview: 'rain', description: 'Keys light up one by one in your colour and its neighbours.', hue: true, sat: true, speed: true },
   25: { name: 'Jellybeans', group: 'rain', preview: 'rain-random', description: 'Keys light up one by one in random colours.', hue: OWN_COLOURS, sat: OWN_COLOURS, speed: true },
-  26: { name: 'Colour breathing', group: 'moving', preview: 'shimmer', description: 'Your colour gently shifts back and forth.', hue: true, sat: true, speed: true },
-  27: { name: 'Colour pendulum', group: 'moving', preview: 'shimmer', description: 'A gentle shift of your colour swings from side to side.', hue: true, sat: true, speed: true },
-  28: { name: 'Colour wave', group: 'moving', preview: 'shimmer', description: 'A gentle shift of your colour washes across.', hue: true, sat: true, speed: true },
+  26: { name: 'Colour breathing', group: 'moving', preview: 'hue-breathe', description: 'Your colour gently shifts back and forth.', hue: true, sat: true, speed: true },
+  27: { name: 'Colour pendulum', group: 'moving', preview: 'hue-pendulum', description: 'A gentle shift of your colour swings from side to side.', hue: true, sat: true, speed: true },
+  28: { name: 'Colour wave', group: 'moving', preview: 'hue-wave', description: 'A gentle shift of your colour washes across from left to right.', hue: true, sat: true, speed: true },
   29: {
     name: 'Typing heat map',
     group: 'typing',
@@ -162,23 +185,23 @@ const EFFECTS: Record<number, Row> = {
   32: {
     name: 'Change colour on press',
     group: 'typing',
-    preview: 'react',
+    preview: 'react-shift',
     description: 'Pressed keys shift colour, then drift back; the colour drifts round the rainbow.',
     hue: CYCLES,
     sat: true,
     speed: true,
     speedHint: FADE,
   },
-  33: { name: 'Glow around the key', group: 'typing', preview: 'splash', description: 'A glow spreads around the key you press.', hue: CYCLES, sat: true, speed: true, speedHint: SPREAD },
-  34: { name: 'Glow around each key', group: 'typing', preview: 'splash', description: 'A glow spreads around every key you press.', hue: CYCLES, sat: true, speed: true, speedHint: SPREAD },
-  35: { name: 'Cross from the key', group: 'typing', preview: 'splash', description: 'Light runs along the row and column of the key you press.', hue: CYCLES, sat: true, speed: true, speedHint: SPREAD },
-  36: { name: 'Cross from each key', group: 'typing', preview: 'splash', description: 'Light runs along the row and column of every key you press.', hue: CYCLES, sat: true, speed: true, speedHint: SPREAD },
-  37: { name: 'Sparks from the key', group: 'typing', preview: 'splash', description: 'Short lines of light shoot out from the key you press.', hue: true, sat: true, speed: true, speedHint: SPREAD },
-  38: { name: 'Sparks from each key', group: 'typing', preview: 'splash', description: 'Short lines of light shoot out from every key you press.', hue: true, sat: true, speed: true, speedHint: SPREAD },
-  39: { name: 'Colour splash', group: 'typing', preview: 'splash', description: 'A ring of changing colours spreads from the key you press.', hue: true, sat: true, speed: true, speedHint: SPREAD },
-  40: { name: 'Colour splashes', group: 'typing', preview: 'splash', description: 'A ring of changing colours spreads from every key you press.', hue: true, sat: true, speed: true, speedHint: SPREAD },
+  33: { name: 'Glow around the key', group: 'typing', preview: 'glow', description: 'A glow lights the keys around the one you press, then shrinks back into it.', hue: CYCLES, sat: true, speed: true, speedHint: SHRINK },
+  34: { name: 'Glow around each key', group: 'typing', preview: 'glow', many: true, description: 'A glow lights the keys around every key you press, then shrinks back.', hue: CYCLES, sat: true, speed: true, speedHint: SHRINK },
+  35: { name: 'Cross from the key', group: 'typing', preview: 'cross', description: 'The row and column of the key you press light up, then shrink back into it.', hue: CYCLES, sat: true, speed: true, speedHint: SHRINK },
+  36: { name: 'Cross from each key', group: 'typing', preview: 'cross', many: true, description: 'The row and column of every key you press light up, then shrink back.', hue: CYCLES, sat: true, speed: true, speedHint: SHRINK },
+  37: { name: 'Sparks from the key', group: 'typing', preview: 'nexus', description: 'Sparks run out along the row and column of the key you press.', hue: true, sat: true, speed: true, speedHint: SPREAD },
+  38: { name: 'Sparks from each key', group: 'typing', preview: 'nexus', many: true, description: 'Sparks run out along the row and column of every key you press.', hue: true, sat: true, speed: true, speedHint: SPREAD },
+  39: { name: 'Colour splash', group: 'typing', preview: 'splash-colours', description: 'A ring spreads from the key you press, changing colour as it goes.', hue: true, sat: true, speed: true, speedHint: SPREAD },
+  40: { name: 'Colour splashes', group: 'typing', preview: 'splash-colours', many: true, description: 'A ring spreads from every key you press, changing colour as it goes.', hue: true, sat: true, speed: true, speedHint: SPREAD },
   41: { name: 'One-colour splash', group: 'typing', preview: 'splash', description: 'A ring in your colour spreads from the key you press.', hue: true, sat: true, speed: true, speedHint: SPREAD },
-  42: { name: 'One-colour splashes', group: 'typing', preview: 'splash', description: 'A ring in your colour spreads from every key you press.', hue: true, sat: true, speed: true, speedHint: SPREAD },
+  42: { name: 'One-colour splashes', group: 'typing', preview: 'splash', many: true, description: 'A ring in your colour spreads from every key you press.', hue: true, sat: true, speed: true, speedHint: SPREAD },
   43: { name: 'Pixel rain', group: 'rain', preview: 'rain-random', description: 'Random keys light up in random colours, then go dark.', hue: OWN_COLOURS, sat: OWN_COLOURS, speed: true },
   44: { name: 'Pixel mirror', group: 'rain', preview: 'rain', description: 'Lights flow outwards from the middle in a mirrored pattern.', hue: true, sat: true, speed: true },
   48: {

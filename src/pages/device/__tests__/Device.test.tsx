@@ -89,7 +89,7 @@ describe('Device page', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Save a backup' }))
 
-    expect(downloads).toHaveLength(1)
+    await waitFor(() => expect(downloads).toHaveLength(1))
     expect(downloads[0].name).toMatch(/^keychron-k15-max-ansi-knob-rgb-\d{4}-\d{2}-\d{2}\.layerworks\.json$/)
     const backup = parseBackup(await downloads[0].blob.text())
     expect(backup.keyboard.name).toBe(deviceStore.getState().keyboard!.name)

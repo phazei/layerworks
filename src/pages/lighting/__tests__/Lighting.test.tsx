@@ -4,7 +4,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '../..'
-import { deviceStore } from '../../../device'
+import { createBackup, deviceStore, planRestore } from '../../../device'
+import { backupContents } from '../../../device/backup'
 import { FakeLink, fakeKeyboard, fakeKeyboardConfig, type FakeKeyboardConfig } from '../../../device/fake-keyboard'
 import { definePlugin } from '../../../plugins/api'
 import { Shell } from '../../../shell/Shell'
@@ -39,6 +40,51 @@ beforeEach(() => {
 afterEach(async () => {
   await act(() => deviceStore.disconnect())
   location.hash = ''
+})
+
+describe('the Lighting page after a restore', () => {
+  it('runs a picked effect at the speed it shows', async () => {
+    await open({ rgbEffects: [12, 29], rgb: { mode: 29, speed: 128, hue: 10, sat: 255, val: 150 } })
+    await screen.findByRole('button', { name: 'Bright spiral' })
+    await settled()
+    const backup = createBackup(deviceStore.getState(), [], new Date())
+
+    // Bright spiral at full speed, saved on the keyboard.
+    act(() => screen.getByRole('button', { name: 'Bright spiral' }).click())
+    await settled()
+    fireEvent.change(screen.getByRole('slider', { name: /Speed/ }), { target: { value: '255' } })
+    await settled()
+    config.rgbSaved = { ...config.rgb }
+
+    // Restore the backup (heat map, half speed), then pick Bright spiral again.
+    await act(() => deviceStore.restore(planRestore(backupContents(backup), deviceStore.getState(), [])))
+    act(() => screen.getByRole('button', { name: 'Bright spiral' }).click())
+    await settled()
+
+    expect(config.rgb).toMatchObject({ mode: 12, speed: 128 })
+    expect(deviceStore.getState().lighting).toMatchObject({ mode: 12, speed: 128 })
+    expect(screen.getByRole('slider', { name: /Speed/ })).toHaveValue('128')
+  })
+})
+
+describe('the Lighting page and the keyboard’s own lighting keys', () => {
+  it('reads the lighting again when Fn is let go and when the window gets the focus', async () => {
+    await open()
+    const brightness = await screen.findByRole('slider', { name: /Brightness/ })
+    await settled()
+
+    // Fn + a brightness key on the keyboard: the layer push says Fn is held, then let go.
+    config.rgb = { ...config.rgb, val: 60 }
+    act(() => link.deliver([0xa3, 0, 1]))
+    act(() => link.deliver([0xa3, 0, 0]))
+    await waitFor(() => expect(brightness).toHaveValue('60'))
+
+    config.rgb = { ...config.rgb, val: 90 }
+    act(() => {
+      window.dispatchEvent(new FocusEvent('focus'))
+    })
+    await waitFor(() => expect(brightness).toHaveValue('90'))
+  })
 })
 
 describe('the Lighting page', () => {

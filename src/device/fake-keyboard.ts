@@ -92,6 +92,11 @@ export interface FakeKeyboardConfig {
   rgbEffects?: number[]
   /** The brightness VialRGB reports as its maximum. Default: 200. */
   rgbMaxBrightness?: number
+  /**
+   * The lighting as last saved (EEPROM); `rgb` is what is running (RAM). Set from `rgb` when the fake starts. As in
+   * vial-qmk's rgb_matrix.c, the first frame of a different effect reloads speed and colour from here.
+   */
+  rgbSaved?: { mode: number; speed: number; hue: number; sat: number; val: number }
   /** keymap[layer][row][col] */
   keymap: number[][][]
   /** knob[layer] = [counter-clockwise, clockwise] */
@@ -222,6 +227,7 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
     ),
   )
   const keymapBytes = () => config.keymap.flat(2).flatMap(be16)
+  config.rgbSaved ??= { ...config.rgb }
   /** vial.c's vial_keycode_firewall: QK_BOOT only goes in while unlocked. */
   const firewall = (code: number) => (code === QK_BOOT && !config.unlocked ? 0 : code)
 
@@ -405,11 +411,23 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
         return Array.from(request)
       case 0x07:
         if (request[1] === 0x41) {
+          // vialrgb.c: set the mode (0 turns the lights off), the speed, then the colour, which
+          // rgb_matrix_sethsv ignores while the lights are off.
           const [speed, hue, sat, val] = request.subarray(4, 8)
-          config.rgb = { mode: request[2] | (request[3] << 8), speed, hue, sat, val }
+          const mode = request[2] | (request[3] << 8)
+          const before = config.rgb
+          config.rgb = mode === 0 ? { ...before, mode, speed } : { mode, speed, hue, sat, val }
+          // rgb_matrix.c: the first frame of a different effect (off counts as one) reloads speed and colour from
+          // EEPROM, over what was just sent. The firmware does it on its next frame; here, at once.
+          if (mode !== before.mode) {
+            const saved = config.rgbSaved!
+            config.rgb = { ...config.rgb, speed: saved.speed, hue: saved.hue, sat: saved.sat, val: saved.val }
+          }
         }
         return Array.from(request)
       case 0x09:
+        // vialrgb_save: the running lighting goes to EEPROM.
+        config.rgbSaved = { ...config.rgb }
         return [0x09]
       case 0x08:
         if (request[1] === 0x40) return [0x08, 0x40, 1, 0, config.rgbMaxBrightness ?? 200]

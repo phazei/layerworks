@@ -254,6 +254,8 @@ export function Restore() {
   }, [ready])
 
   async function open(fileName: string, read: () => Promise<string>) {
+    // The keyboard's own lighting keys change the lighting without telling the app; compare with what it has now.
+    await deviceStore.refreshLighting()
     const state = deviceStore.getState()
     const kb = state.keyboard
     if (!kb) return

@@ -71,7 +71,10 @@ export function Backup() {
               variant="primary"
               icon={<HardDriveDownload size={16} aria-hidden />}
               disabled={loading}
-              onClick={() => setSaved(saveBackup())}
+              onClick={() => {
+                // The keyboard's own lighting keys change the lighting without telling the app; save what it has now.
+                void deviceStore.refreshLighting().then(() => setSaved(saveBackup()))
+              }}
             >
               Save a backup
             </Button>

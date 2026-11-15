@@ -3,7 +3,7 @@
 // plugins add for this section. Changes go to the keyboard as they are made (latest value first while a slider is
 // dragged; see lighting/latest.ts) and the device store saves them on the keyboard after a pause.
 
-import { useEffect, useId, useMemo, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useRef, type ReactNode } from 'react'
 import { Lightbulb } from 'lucide-react'
 import { deviceStore, useDevice, type Lighting, type LightingChange } from '../device'
 import { activePanels, activePlugins, type PageDef } from '../plugins/api'
@@ -31,7 +31,28 @@ function usePlugins() {
   }, [link, uid, capabilities])
 }
 
+/**
+ * The keyboard's own lighting keys change the lighting without telling anyone, so it is read again (one request)
+ * when the page opens, when the window gets the focus back, and when a held layer is let go: the lighting keys sit
+ * on the Fn layers.
+ */
+function useLightingRefresh(): void {
+  const held = useDevice((s) => s.layer?.held ?? 0)
+  const wasHeld = useRef(held)
+  useEffect(() => {
+    const refresh = () => void deviceStore.refreshLighting()
+    refresh()
+    window.addEventListener('focus', refresh)
+    return () => window.removeEventListener('focus', refresh)
+  }, [])
+  useEffect(() => {
+    if (wasHeld.current !== 0 && held === 0) void deviceStore.refreshLighting()
+    wasHeld.current = held
+  }, [held])
+}
+
 function LightingPage() {
+  useLightingRefresh()
   const lighting = useDevice((s) => s.lighting)
   const capabilities = useDevice((s) => s.capabilities)
   const failed = useDevice((s) => s.failed)

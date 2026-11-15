@@ -313,6 +313,28 @@ describe('restoring', () => {
     expect(config.rgb.mode).toBe(22)
   })
 
+  it('leaves the keyboard running the lighting the store shows', async () => {
+    // A backup taken on effect 39 at half speed.
+    await store.setLighting({ mode: 39, speed: 128, hue: 20 })
+    const backup = createBackup(store.getState(), [], new Date())
+    // Then effect 13 at full speed, saved on the keyboard.
+    await store.setLighting({ mode: 13, speed: 255, hue: 200 })
+    config.rgbSaved = { ...config.rgb }
+
+    await store.restore(planRestore(backupContents(backup), store.getState(), []))
+    const rgb = () => {
+      const { mode, speed, hue, sat, val } = store.getState().lighting!
+      return { mode, speed, hue, sat, val }
+    }
+    expect(config.rgb).toEqual(rgb())
+    expect(config.rgbSaved).toEqual(rgb())
+
+    // Back to effect 13: it runs at the speed shown, not the one saved before the restore.
+    await store.setLighting({ mode: 13 })
+    expect(config.rgb).toEqual(rgb())
+    expect(config.rgb).toMatchObject({ mode: 13, speed: 128, hue: 20 })
+  })
+
   it('sets the wireless timers on their own', async () => {
     await store.setWirelessTimers({ backlitTime: 120, idleTime: 1800 })
 
