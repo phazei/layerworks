@@ -158,7 +158,8 @@ pnpm shots /keys /lighting                   # dark and light, 1280 × 800, on t
 pnpm shots --offline /home                   # no keyboard connected
 pnpm shots --size=1000x700 --theme=dark /keys
 pnpm shots --query=help=layer-key /keys      # with the help panel open
-pnpm shots --no-build /keys                  # reuse dist/
+pnpm shots --no-build /keys                  # reuse the last build
+pnpm shots --port=5197 /keys                 # own port and build folder, for two runs side by side
 ```
 
 `scripts/screenshot.mjs` builds, serves the build on port 5198, takes each page with headless Edge into

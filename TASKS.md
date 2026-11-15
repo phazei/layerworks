@@ -9,15 +9,15 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
 - **Phase 1, foundation: done and checked by the user** in the browser on the cable and through the 2.4 GHz
   receiver (picture loads, active layer follows Fn and Fn2; over 2.4 GHz: 259 requests, 2 sent again, 0 failed,
   1 stray report).
-- **Groundwork for phases 2-4: in the repo, not yet used by any page.**
-  - Device layer: `assign` / `undo` / `redo` for keys and knob, `setLighting` with delayed save, keycode names,
-    palette groups, shortcut and layer-key builders (`src/device/keycodes.ts`). Unit-tested on the fake keyboard.
-    **Never run against the real keyboard yet.**
-  - Demo keyboard (`src/demo/`): a K15 Max inside the page, from the firmware definition and `backups/keymap.json`.
-  - `src/ui/`: tokens (dark and light), controls, layout pieces, preferences.
-  - `src/shell/`: router, session (connect / demo / disconnect), stage store, layer names, pressed-key detection.
-  - `src/plugins/api.ts`: `definePlugin`, pages and panels. `src/help/`: first topics and the help-panel store.
-- `src/App.tsx` is still the phase 1 proof page. It works, but is to be replaced by the shell (package 1).
+- **The shell is in place** (`src/shell/`, `src/pages/`): sidebar, keyboard stage with the layer stack, status
+  line with undo / redo, help panel, connect prompt, themes. Every section has a page; Help lists the topics and
+  Settings has the theme switch, the rest are placeholders until their package below is done.
+- **Device layer for changes:** `assign` / `undo` / `redo` for keys and knob, `setLighting` with delayed save,
+  keycode names, palette groups, shortcut and layer-key builders. Unit-tested on the fake keyboard.
+  **Never run against the real keyboard yet.**
+- Not shown anywhere yet: the capabilities list and request counters of the old proof page (candidates for the
+  Device page), battery and 2.4 GHz outside the sidebar's device card. The battery line has only been seen in
+  code: the demo keyboard is on the cable.
 - The user has given permission to stage and commit in this repo, section by section. No remote; no pushing.
 
 ## Standing instruction from the user
@@ -35,32 +35,9 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
 
 ## Next: work packages
 
-Each is sized for one delegated agent. Do them in order; 3 and 4 can run in parallel once 1 is merged. Every
-package: follow `AGENTS.md`, keep `README.md` current, add tests, and finish with `pnpm typecheck && pnpm lint &&
-pnpm test` passing and screenshots of the demo keyboard.
-
-### 1. Shell (spec sections 5 and 8)
-
-Replace `src/App.tsx` with the real frame.
-
-- `src/shell/Shell.tsx`: sidebar on the left, main area with the keyboard stage (when the page asks for it and a
-  keyboard is connected), the page, and the status line at the bottom. Help panel slides in from the right.
-- Sidebar: app name, device card (name, cable / 2.4 GHz, battery when wireless, locked state, disconnect), then
-  the pages from `activePages()` grouped `main` / `plugins` / `app`, icon + label, current page marked.
-- Keyboard stage: layer stack (named layers from `layer-names.ts`, rename in place, live layer marked, "Follow
-  the keyboard" toggle with its help topic) beside `KeyboardPicture`, with pressed keys from `usePressedKeys`.
-  State lives in `stage-store.ts` so it survives page changes. Selection is passed through for pages that edit.
-- Status line: "Saved on the keyboard" / "Saving…" / the write error, and undo / redo buttons (`deviceStore`).
-- Not connected: pages that need a keyboard show a connect prompt (granted devices, "Connect a keyboard…",
-  "Try the demo keyboard", the WebHID-unsupported message). `?demo` in the URL connects the demo at start.
-- Theme: dark / light / system, stored with `prefs.ts`, applied as the `dark` class on `<html>`.
-- Pages register through `definePlugin` in a built-in `core` plugin (`src/pages/index.ts`). Until their packages
-  are done, Shortcuts & macros, Typing feel, Test, Device and Help are placeholder pages that say in a sentence
-  what will be there.
-- `scripts/screenshot.mjs`: builds, serves, and saves screenshots of given `#/paths` in demo mode, dark and light
-  (recipe in `AGENTS.md`).
-- Tests: plugin registry, layer names, stage store, `positionsSending`, and a jsdom test that the shell renders
-  the demo keyboard's pages.
+Each is sized for one delegated agent. 2, 3 and 4 touch different pages and can run side by side (give each its
+own `pnpm shots --port=`); 5 and 6 follow. Every package: follow `AGENTS.md`, keep `README.md` current, add
+tests, and finish with `pnpm typecheck && pnpm lint && pnpm test` passing and screenshots of the demo keyboard.
 
 ### 2. Keys page (spec section 7 "Keys")
 

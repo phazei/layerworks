@@ -5,7 +5,8 @@
 //
 // Builds, serves the build on port 5198, saves <page>-<theme>.png per path into %TEMP%\opencode\layerworks-shots,
 // and stops the server. Options (each adds to the file name when it changes what is shown):
-//   --no-build        use the existing dist/
+//   --no-build        use the existing build
+//   --port=5197       another port, with its own build folder (.vite/shots-<port>), so two runs can go side by side
 //   --offline         without the demo keyboard (the not-connected state); files get an "-offline" suffix
 //   --theme=dark      one theme only (dark or light)
 //   --size=1000x700   window size (default 1280x800)
@@ -20,10 +21,13 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const PORT = 5198
+const DEFAULT_PORT = 5198
 
 const args = process.argv.slice(2)
 const option = (name) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3)
+const PORT = Number(option('port') ?? DEFAULT_PORT)
+// Another port gets its own build folder and browser profile, so two runs can go side by side.
+const buildDir = PORT === DEFAULT_PORT ? 'dist' : join('.vite', `shots-${PORT}`)
 const flag = (name) => args.includes(`--${name}`)
 const paths = args.filter((a) => !a.startsWith('--'))
 if (paths.length === 0) paths.push('/home')
@@ -65,7 +69,7 @@ async function waitForServer(server) {
 }
 
 function shoot(edge, url, file) {
-  const profile = join(outDir, '.edge-profile')
+  const profile = join(outDir, `.edge-profile-${PORT}`)
   const result = spawnSync(
     edge,
     [
@@ -85,10 +89,10 @@ function shoot(edge, url, file) {
 }
 
 const edge = findEdge()
-if (!flag('no-build')) run('pnpm build')
+if (!flag('no-build')) run(`pnpm vite build --outDir "${buildDir}" --emptyOutDir`)
 
 // Vite's own entry point, run by node directly, so stopping it stops the server (no shell in between).
-const server = spawn(process.execPath, [join(root, 'node_modules', 'vite', 'bin', 'vite.js'), 'preview', '--port', String(PORT), '--strictPort'], {
+const server = spawn(process.execPath, [join(root, 'node_modules', 'vite', 'bin', 'vite.js'), 'preview', '--outDir', buildDir, '--port', String(PORT), '--strictPort'], {
   cwd: root,
   stdio: 'ignore',
 })
