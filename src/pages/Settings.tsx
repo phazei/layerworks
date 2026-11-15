@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Settings for the app itself (not the keyboard): theme for now; layer names, about and licences follow.
+// Settings for the app itself (not the keyboard): theme, layer names, and about Layerworks. Works offline.
 
 import type { ReactNode } from 'react'
 import { Monitor, Moon, Settings, Sun } from 'lucide-react'
@@ -7,6 +7,8 @@ import type { PageDef } from '../plugins/api'
 import { Segmented } from '../ui/controls'
 import { Card } from '../ui/layout'
 import { useThemeChoice, type ThemeChoice } from '../ui/theme'
+import { About } from './settings/About'
+import { LayerNames } from './settings/LayerNames'
 
 const THEMES: { value: ThemeChoice; label: ReactNode }[] = [
   { value: 'dark', label: <span className="inline-flex items-center gap-1.5"><Moon size={14} aria-hidden />Dark</span> },
@@ -24,11 +26,8 @@ function SettingsPage() {
           <Segmented label="Theme" value={theme} options={THEMES} onChange={setTheme} />
         </div>
       </Card>
-      <Card title="Coming soon">
-        <p className="leading-relaxed text-muted">
-          Names for your layers, the language of the key labels, and information about Layerworks and its licences.
-        </p>
-      </Card>
+      <LayerNames />
+      <About />
     </div>
   )
 }
