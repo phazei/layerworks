@@ -27,7 +27,9 @@ import type {
 import { buildCapabilities, type Capabilities, type LightingInfo } from './capabilities'
 import type { HidLink, LinkKind } from './link'
 import { LAYER_PUSH, parseLayerReport, type LayerState } from './pushes'
+import { pollMatrix, type MatrixPoller } from './matrix'
 import { createTransport, TransportError, type Transport } from './transport'
+import { parseUnlockStatus, runUnlock, statusRequest, type UnlockProgress } from './unlock'
 
 export interface LinkInfo {
   kind: LinkKind
@@ -97,6 +99,8 @@ export interface DeviceState {
   settings: Record<number, number[]> | null
   lighting: Lighting | null
   unlock: UnlockStatus | null
+  /** The unlock under way (`unlock()`): the keyboard's own count. null when none is running. */
+  unlocking: UnlockProgress | null
   /** null while loading, and for firmware without Keychron commands. */
   keychron: KeychronState | null
   /** Changes on their way to the keyboard. 0 means everything shown is saved on it. */
@@ -149,6 +153,7 @@ const DISCONNECTED: DeviceState = {
   settings: null,
   lighting: null,
   unlock: null,
+  unlocking: null,
   keychron: null,
   writing: 0,
   writeError: null,
@@ -175,9 +180,32 @@ export interface DeviceStore {
   redo(): Promise<void>
   /** Changes the lighting effect or its values. Shown on the keyboard at once, saved to it after a short pause. */
   setLighting(change: LightingChange): Promise<void>
+  /**
+   * Unlocks the keyboard: the user holds its unlock keys while the keyboard counts down (`unlocking`). Holds every
+   * other request until it ends; it can't be cancelled. Resolves 'unlocked', 'disconnected' when the keyboard went
+   * away first, or 'failed' when it couldn't start (then the keyboard was never blocked). One at a time: a second
+   * call joins the first.
+   */
+  unlock(): Promise<UnlockResult>
+  /** Locks the keyboard again. */
+  lock(): Promise<void>
+  /**
+   * Reads every key straight from the keyboard while it is unlocked; `listener` gets the keys down ("row,col")
+   * whenever they change. Polling runs while anyone watches and the keyboard is unlocked, and stops when the last
+   * watcher leaves, the keyboard locks or goes away. Returns the stop function.
+   */
+  watchMatrix(listener: (down: ReadonlySet<string>) => void): () => void
   /** The request queue of the connected keyboard, for plugins and raw commands; null when disconnected. */
   readonly transport: Transport | null
 }
+
+export type UnlockResult = 'unlocked' | 'disconnected' | 'failed'
+
+/** Said when a keyboard is found in the middle of an unlock some other page or app started and left. */
+export const STILL_UNLOCKING =
+  'The keyboard is still waiting to be unlocked (an app or page started it and closed before it finished), and ' +
+  'won’t answer until then. Unplug it and plug it back in, or move its connection switch away and back, then ' +
+  'connect again.'
 
 export interface DeviceStoreOptions {
   /** Turns the keyboard's compressed definition into JSON text. */
@@ -186,12 +214,36 @@ export interface DeviceStoreOptions {
 
 export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceStore {
   let state = DISCONNECTED
-  let session: { transport: Transport; link: HidLink } | null = null
+  type Session = { transport: Transport; link: HidLink }
+  let session: Session | null = null
   const listeners = new Set<() => void>()
 
   function set(patch: Partial<DeviceState>): void {
     state = { ...state, ...patch }
+    syncMatrix()
     for (const listener of [...listeners]) listener()
+  }
+
+  // Matrix reading: one poller for all watchers, running only while it can get an answer.
+  const matrixWatchers = new Set<(down: ReadonlySet<string>) => void>()
+  let matrix: { poller: MatrixPoller; session: Session } | null = null
+
+  function syncMatrix(): void {
+    const kb = state.keyboard
+    const wanted = matrixWatchers.size > 0 && session !== null && kb !== null && state.unlock?.unlocked === true
+    if (matrix && (!wanted || matrix.session !== session)) {
+      matrix.poller.stop()
+      matrix = null
+      for (const watcher of [...matrixWatchers]) watcher(new Set())
+    }
+    if (wanted && !matrix && session && kb) {
+      matrix = {
+        session,
+        poller: pollMatrix(session.transport, kb, (down) => {
+          for (const watcher of [...matrixWatchers]) watcher(down)
+        }),
+      }
+    }
   }
 
   function capabilities(): Capabilities | null {
@@ -208,10 +260,13 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       qmkSettings: state.settings ? new Set(Object.keys(state.settings).map(Number)) : null,
       lighting: state.lighting,
       keychron: state.keychron,
+      unlocked: state.unlock ? state.unlock.unlocked : null,
     })
   }
 
   async function readKeyboard(transport: Transport): Promise<{ keyboard: KeyboardData; layer: LayerState | null }> {
+    // A keyboard in the middle of an unlock answers almost nothing truthfully; reading it would give nonsense.
+    if (parseUnlockStatus(await transport.request(statusRequest()))?.inProgress) throw new Error(STILL_UNLOCKING)
     const probe = await runProbeSequence(async (data) => Array.from(await transport.request(data)), decompress)
     const viaProtocol = await protocol.getProtocolVersion()
     const counts = probe.vialProtocol >= VIAL_PROTOCOL_DYNAMIC ? await protocol.getDynamicEntryCount() : NO_ENTRIES
@@ -418,6 +473,61 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     }, LIGHTING_SAVE_DELAY_MS)
   }
 
+  let unlocking: Promise<UnlockResult> | null = null
+
+  async function runUnlockFlow(): Promise<UnlockResult> {
+    const current = session
+    if (!current) return 'disconnected'
+    if (state.unlock?.unlocked) return 'unlocked'
+    let started = false
+    try {
+      const status = await runUnlock({
+        transport: current.transport,
+        onProgress: (progress) => {
+          started = true
+          if (session === current) set({ unlocking: progress })
+        },
+      })
+      if (session !== current) return 'disconnected'
+      set({ unlock: status, unlocking: null })
+      set({ capabilities: capabilities() })
+      return 'unlocked'
+    } catch (error) {
+      if (session !== current || (error instanceof TransportError && error.reason === 'disconnected')) {
+        return 'disconnected'
+      }
+      // Only reached before the keyboard started counting (or when it refused to start): it still works.
+      console.warn(`[device] unlock ${started ? 'stopped' : 'did not start'}:`, error)
+      set({ unlocking: null })
+      return 'failed'
+    }
+  }
+
+  function unlock(): Promise<UnlockResult> {
+    unlocking ??= runUnlockFlow().finally(() => {
+      unlocking = null
+    })
+    return unlocking
+  }
+
+  async function lock(): Promise<void> {
+    if (!state.unlock?.unlocked) return
+    const sent = await write(
+      () => protocol.lock(),
+      () => (state.unlock ? { unlock: { ...state.unlock, unlocked: false } } : {}),
+    )
+    if (sent) set({ capabilities: capabilities() })
+  }
+
+  function watchMatrix(listener: (down: ReadonlySet<string>) => void): () => void {
+    matrixWatchers.add(listener)
+    syncMatrix()
+    return () => {
+      matrixWatchers.delete(listener)
+      syncMatrix()
+    }
+  }
+
   async function disconnect(): Promise<void> {
     const ending = session
     if (!ending) return
@@ -445,6 +555,9 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     undo: () => inOrder(() => step('undo')),
     redo: () => inOrder(() => step('redo')),
     setLighting: (change) => inOrder(() => setLighting(change)),
+    unlock,
+    lock: () => inOrder(lock),
+    watchMatrix,
 
     async connect(link) {
       await disconnect()

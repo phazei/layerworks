@@ -27,6 +27,8 @@ export interface CapabilitySources {
   keychron: KeychronState | null
   /** Names of extension commands a plugin has detected. */
   commands?: ReadonlySet<string>
+  /** Whether the keyboard is unlocked (Vial unlock); null or left out while not read yet. */
+  unlocked?: boolean | null
 }
 
 export type Feature =
@@ -47,8 +49,11 @@ export type Feature =
   | 'debounce'
   | 'nkro'
   | 'snapClick'
+  /** Reading every key straight from the keyboard (the Test page). Needs unlocking. */
+  | 'keyMatrix'
 
-export type Availability = { available: true } | { available: false; reason: string }
+/** `needsUnlock`: unlocking the keyboard makes it available; offer to unlock beside the reason. */
+export type Availability = { available: true } | { available: false; reason: string; needsUnlock?: boolean }
 
 export interface Capabilities {
   readonly viaProtocol: number
@@ -132,6 +137,11 @@ export function buildCapabilities(sources: CapabilitySources): Capabilities {
         return keychronOnly((kc) => kc.hasNkro)
       case 'snapClick':
         return keychronOnly((kc) => kc.hasSnapClick)
+      case 'keyMatrix':
+        if (sources.unlocked == null) return no(STILL_LOADING)
+        return sources.unlocked
+          ? yes
+          : { available: false, needsUnlock: true, reason: 'The keyboard only shares every key once it is unlocked.' }
     }
   }
 

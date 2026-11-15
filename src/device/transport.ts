@@ -50,6 +50,11 @@ export interface Transport {
   request(bytes: ArrayLike<number>, options?: RequestOptions): Promise<Uint8Array>
   /** Sends a report that has no reply. Queued like a request. */
   send(bytes: ArrayLike<number>): Promise<void>
+  /**
+   * Runs `job` with the queue to itself: requests made through the `request` it is given go straight out, and
+   * every other request and send waits until the job has finished. For exchanges nothing may interrupt (unlock).
+   */
+  exclusive<T>(job: (request: Transport['request']) => Promise<T>): Promise<T>
   /** Listens for one kind of unsolicited report. Returns the unsubscribe function. */
   onPush(shape: PushShape, listener: (report: Uint8Array) => void): () => void
   /** Stops the transport: everything waiting or queued rejects. Does not close the link. */
@@ -189,34 +194,43 @@ export function createTransport(link: HidLink, options: TransportOptions = {}): 
     })
   }
 
+  /** One request with its resends, sent now: the caller holds the queue. */
+  async function exchange(bytes: ArrayLike<number>, requestOptions: RequestOptions = {}): Promise<Uint8Array> {
+    if (stopped) throw disconnected()
+    const request = toReport(bytes)
+    const timeoutMs = requestOptions.timeoutMs ?? defaults.timeoutMs
+    const attempts = Math.max(1, requestOptions.attempts ?? defaults.attempts)
+    const accept = requestOptions.accept ?? echoesCommand
+
+    stats.requests++
+    for (let sent = 1; ; sent++) {
+      try {
+        const reply = await attempt(request, accept, timeoutMs)
+        if (sent > 1) await delay(defaults.settleMs)
+        return reply
+      } catch (error) {
+        const retry = error instanceof TransportError && error.reason === 'timeout' && sent < attempts
+        if (!retry || stopped) {
+          if (!stopped) stats.failures++
+          throw stopped ? disconnected() : error
+        }
+        stats.resends++
+      }
+    }
+  }
+
   return {
     link,
     stats,
     stop,
 
     request(bytes, requestOptions = {}) {
-      const request = toReport(bytes)
-      const timeoutMs = requestOptions.timeoutMs ?? defaults.timeoutMs
-      const attempts = Math.max(1, requestOptions.attempts ?? defaults.attempts)
-      const accept = requestOptions.accept ?? echoesCommand
+      const request = toReport(bytes) // copied now: the caller may reuse its buffer while this waits
+      return enqueue(() => exchange(request, requestOptions))
+    },
 
-      return enqueue(async () => {
-        stats.requests++
-        for (let sent = 1; ; sent++) {
-          try {
-            const reply = await attempt(request, accept, timeoutMs)
-            if (sent > 1) await delay(defaults.settleMs)
-            return reply
-          } catch (error) {
-            const retry = error instanceof TransportError && error.reason === 'timeout' && sent < attempts
-            if (!retry || stopped) {
-              if (!stopped) stats.failures++
-              throw stopped ? disconnected() : error
-            }
-            stats.resends++
-          }
-        }
-      })
+    exclusive(job) {
+      return enqueue(() => job(exchange))
     },
 
     send(bytes) {

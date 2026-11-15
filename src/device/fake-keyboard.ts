@@ -104,6 +104,10 @@ export interface FakeKeyboardConfig {
   keychron: { protocol: number; features: number; firmware: string } | null
   layer: { base: number; held: number }
   unlocked: boolean
+  /** The keys to hold for unlocking, (row, col). */
+  unlockKeys: [number, number][]
+  /** Physical keys down right now, "row,col": what the switch matrix reports, and what unlocking checks. */
+  held: Set<string>
 }
 
 export function fakeKeyboardConfig(overrides: Partial<FakeKeyboardConfig> = {}): FakeKeyboardConfig {
@@ -136,9 +140,16 @@ export function fakeKeyboardConfig(overrides: Partial<FakeKeyboardConfig> = {}):
     keychron: null,
     layer: { base: 0, held: 0 },
     unlocked: false,
+    unlockKeys: [
+      [0, 0],
+      [1, 2],
+    ],
+    held: new Set(),
     ...overrides,
   }
 }
+
+const UNLOCK_COUNTER_MAX = 50
 
 /** VialRGB effect numbers the fake keyboard has. */
 export const RGB_EFFECTS = [1, 2, 3, 6, 13, 15, 22, 39]
@@ -169,6 +180,22 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
   )
   const keymapBytes = () => config.keymap.flat(2).flatMap(be16)
 
+  // Unlock as vial-qmk does it (quantum/vial.c): 50 steps, one per poll while every unlock key is held and more
+  // than 100 ms have passed since the last step; any other poll starts the count again.
+  const unlock = { inProgress: false, counter: UNLOCK_COUNTER_MAX, timer: 0 }
+  const holdingUnlockKeys = () => config.unlockKeys.every(([row, col]) => config.held.has(`${row},${col}`))
+
+  const matrixState = (): number[] => {
+    const bytesPerRow = Math.ceil(config.cols / 8)
+    const out: number[] = []
+    for (let row = 0; row < config.rows; row++) {
+      let bits = 0
+      for (let col = 0; col < config.cols; col++) if (config.held.has(`${row},${col}`)) bits += 2 ** col
+      for (let i = bytesPerRow - 1; i >= 0; i--) out.push(Math.floor(bits / 256 ** i) % 256)
+    }
+    return [0x02, 0x03, ...out]
+  }
+
   const vial = (request: Uint8Array): number[] => {
     switch (request[1]) {
       case 0x00:
@@ -186,8 +213,34 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
       case 0x04:
         config.knob[request[2]][request[4]] = (request[5] << 8) | request[6]
         return []
-      case 0x05:
-        return [config.unlocked ? 1 : 0, 0, 0, 0, 1, 2, ...new Array<number>(26).fill(0xff)]
+      case 0x05: {
+        const out = new Array<number>(REPORT_LEN).fill(0xff)
+        out[0] = config.unlocked ? 1 : 0
+        out[1] = unlock.inProgress ? 1 : 0
+        config.unlockKeys.forEach(([row, col], i) => out.splice(2 + i * 2, 2, row, col))
+        return out
+      }
+      case 0x06:
+        unlock.inProgress = true
+        unlock.counter = UNLOCK_COUNTER_MAX
+        unlock.timer = Date.now()
+        return Array.from(request)
+      case 0x07:
+        if (unlock.inProgress) {
+          if (Date.now() - unlock.timer > 100 && holdingUnlockKeys()) {
+            unlock.timer = Date.now()
+            if (--unlock.counter === 0) {
+              unlock.inProgress = false
+              config.unlocked = true
+            }
+          } else {
+            unlock.counter = UNLOCK_COUNTER_MAX
+          }
+        }
+        return [config.unlocked ? 1 : 0, unlock.inProgress ? 1 : 0, unlock.counter]
+      case 0x08:
+        config.unlocked = false
+        return Array.from(request)
       case 0x09: {
         const from = request[2] | (request[3] << 8)
         const rest = config.qsids.filter((q) => q > from).flatMap(le16)
@@ -229,13 +282,21 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
     }
   }
 
+  /** While unlocking, the firmware answers only these Vial commands and sends everything else back unchanged. */
+  const ANSWERED_WHILE_UNLOCKING = [0x00, 0x01, 0x02, 0x05, 0x06, 0x07]
+
   return (request) => {
+    if (unlock.inProgress && !(request[0] === 0xfe && ANSWERED_WHILE_UNLOCKING.includes(request[1]))) {
+      return Array.from(request)
+    }
     switch (request[0]) {
       case 0xfe:
         return vial(request)
       case 0x01:
         return [0x01, 0x00, 0x09]
       case 0x02:
+        // The switch matrix only while unlocked; locked, the request comes back with every key up.
+        if (request[1] === 0x03) return config.unlocked ? matrixState() : Array.from(request)
         return [0x02, request[1], 0, 0, 0, 0]
       case 0x05:
         config.keymap[request[1]][request[2]][request[3]] = (request[4] << 8) | request[5]

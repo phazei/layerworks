@@ -15,6 +15,7 @@ import { Sidebar } from './Sidebar'
 import { Stage } from './Stage'
 import { stage } from './stage-store'
 import { StatusLine } from './StatusLine'
+import { UnlockDialog } from './UnlockDialog'
 
 const HOME = 'home'
 
@@ -88,6 +89,7 @@ export function Shell() {
         </main>
         {ready && <StatusLine />}
       </div>
+      <UnlockDialog />
     </div>
   )
 }

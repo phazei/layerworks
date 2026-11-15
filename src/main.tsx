@@ -5,6 +5,9 @@
 //   ?theme=dark     forces a theme without remembering it (src/ui/theme.ts)
 //   ?demo-effect=25 starts the demo keyboard on another lighting effect (read in src/demo/demo-link.ts)
 //   ?select=3,2     selects a key (row,col) or knob direction (knob,0,1) once a keyboard is in; ?layer=3 shows a layer
+//   ?unlock         opens the unlock dialog once the keyboard's lock state is in; ?unlock=start starts unlocking
+//   ?demo-unlocked  starts the demo keyboard unlocked; ?demo-press=0,1;3,14 presses demo keys by itself
+//                   (both read in src/demo/demo-link.ts)
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -14,6 +17,7 @@ import './pages'
 import { Shell } from './shell/Shell'
 import { connectDemo } from './shell/session'
 import { parseSelection, stage } from './shell/stage-store'
+import { openUnlock, startUnlock } from './shell/unlock-dialog'
 import { deviceStore } from './device'
 import './styles.css'
 
@@ -32,6 +36,16 @@ if (select || layer) {
       if (layer && /^\d+$/.test(layer)) stage.showLayer(Number(layer))
       if (select) stage.select(select)
     }, 100)
+  })
+}
+
+const unlock = params.get('unlock')
+if (unlock !== null) {
+  const stop = deviceStore.subscribe(() => {
+    if (!deviceStore.getState().unlock) return
+    stop()
+    if (unlock === 'start') void startUnlock()
+    else openUnlock()
   })
 }
 

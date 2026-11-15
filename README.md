@@ -5,8 +5,8 @@ A configurator for Keychron keyboards running Vial firmware
 the browser (Chrome or Edge, over WebHID), on the cable or through the 2.4 GHz receiver.
 
 The design is in the Alice-Keyboard project: `../docs/spec/layerworks.md`. What exists so far: the connection
-layer, the shell (sidebar, keyboard stage, status line, help panel, themes) and a page for every section; Home and
-Settings are built (see "The built pages"), most of the rest are still placeholders.
+layer, the shell (sidebar, keyboard stage, status line, help panel, themes), the unlock flow and a page for every
+section; Home, Keys, Lighting, Test and Settings are built (see "The built pages"), the rest are still placeholders.
 
 ## Run it
 
@@ -29,6 +29,9 @@ Options in the URL, before the `#`:
 | `?select=3,2`, `?select=knob,0,1` | Selects a key (row, column) or a knob direction once a keyboard is in, for screenshots of the Keys inspector |
 | `?layer=<n>` | Shows layer n on the stage instead of following the keyboard |
 | `?demo-effect=<id>` | Starts the demo keyboard on another lighting effect (VialRGB id, e.g. `25`), for screenshots |
+| `?demo-unlocked` | Starts the demo keyboard unlocked (the Test page reads every key) |
+| `?demo-press=2,2;2,3;0,1+3,14` | The demo presses keys (row,col) by itself from a second after connecting: each step in turn, keys joined by `+` together, the last step stays held |
+| `?unlock`, `?unlock=start` | Opens the unlock dialog once the lock state is read; `start` starts unlocking straight away (with `?demo-press=0,1+3,14` the demo holds Esc and Enter) |
 
 Example: `http://localhost:5199/?demo&theme=light#/keys`.
 
@@ -52,6 +55,8 @@ src/
     store.ts           everything read from the keyboard, the load sequence, and the changes
                        (assign / undo / redo for keys and knob, setLighting)
     capabilities.ts    what this keyboard can do, with a reason for what it can't
+    unlock.ts          the Vial unlock flow: one poll loop with the queue held
+    matrix.ts          reading the switch matrix (which keys are down), and the picture's physical keys
     keycodes.ts        key names, the palette's groups, shortcut and layer-key builders
     fake-keyboard.ts   a HidLink with no hardware and a small Vial keyboard behind it (tests, demo)
     useDevice.ts       the app's store and its React hook
@@ -62,6 +67,8 @@ src/
     controls.tsx       Button, IconButton, Toggle, Slider, Segmented, TextInput, Spinner, Badge, Checkbox,
                        SearchField, OptionButton (one of several choices, marked when current)
     layout.tsx         Card, Disclosure ("More options"), Dialog, Notice, HelpButton
+    Modal.tsx          a modal with its own buttons, which can refuse Esc (the unlock flow)
+    ProgressBar.tsx    a filled bar
     display.tsx        Facts / Fact (label over value), ActionTile (large shortcut link), ExternalLink (new tab)
     prefs.ts           what the app remembers in the browser (usePref)
     theme.ts           dark / light / system, applied as the `dark` class on <html>
@@ -70,7 +77,8 @@ src/
   shell/             the frame around the pages
     Shell.tsx          the frame: sidebar, page title, stage, page, status line, help panel; picks the page
     Sidebar.tsx        app name, device card, pages grouped main / plugins ("Extras") / app
-    DeviceCard.tsx     the connected keyboard: name, cable or 2.4 GHz, battery, locked, disconnect
+    DeviceCard.tsx     the connected keyboard: name, cable or 2.4 GHz, battery, locked (unlock / lock), disconnect
+    UnlockDialog.tsx   the unlock flow on screen; unlock-dialog.ts opens it (openUnlock)
     Stage.tsx          the keyboard stage: layer stack beside the picture, pressed keys, selection
     LayerStack.tsx     the layers: pick, rename in place, active one marked, "Follow the keyboard"
     StatusLine.tsx     saved / saving / write error, parts still loading or not readable, undo / redo
@@ -82,7 +90,7 @@ src/
     layer-names.ts     layer names, kept in the browser per keyboard
     pressed-keys.ts    held keys, from the browser's key events
   pages/             the built-in sections, one file each, registered as the "core" plugin (index.ts);
-                     a page's own parts in a folder beside it (home/, keys/, settings/, lighting/)
+                     a page's own parts in a folder beside it (home/, keys/, settings/, lighting/, test/)
   plugins/api.ts     definePlugin: pages and panels, for built-in sections and plugins alike
   help/              help topics (topics.ts) and which one the help panel shows
   vendor/pipette/    code copied from Pipette, unmodified (VENDOR.md)
@@ -145,15 +153,16 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
 ## The built pages
 
 - **Home** (`Home.tsx`, `home/`): the landing page. Under the stage: the keyboard's name with connection,
-  battery (on 2.4 GHz, when known), the layer in use by name, firmware version and lock state; four shortcut
+  battery (on 2.4 GHz, when known), the active layer by name, firmware version and lock state; four shortcut
   tiles (keys, lighting, backup, test); and what the keyboard can do, from `capabilities`
   (`home/features.ts` gives each feature its friendly and QMK name), with the missing ones and their reasons
   behind a `Disclosure`. With no keyboard it shows the connect prompt and three lines on what the app is for.
 - **Keys** (`Keys.tsx`, `keys/`): click a key or one side of the knob on the stage; with nothing selected the
   page says so. The inspector (`keys/Inspector.tsx`) is two columns when it is wide (a container query), one
   when narrow. It asks "What should this key do?", says which layer it is on and, above the base layer, whether
-  the key has its own assignment or falls through, and to what (`keys/describe.ts`, `fallThrough`: the layers
-  down to the keyboard's base layer, then layer 0, as QMK does). "Now" shows the current assignment as a keycap,
+  the key has its own assignment or falls through, and to what (`keys/describe.ts`, `fallThrough`: from a layer
+  above the keyboard's base layer to the base layer, then layer 0; from any other layer straight to layer 0;
+  worded "normally", since other layers held at the same time aren't counted). "Now" shows the current assignment as a keycap,
   in words, and its QMK name. Then one `Segmented` choice, opened on the one that matches the current assignment:
   - **A key** (`keys/KeyPalette.tsx`): `keyPalette()` groups as key tiles in a box that scrolls and fills the
     space left; the current key is marked and scrolled into view. The search matches label, description and QMK
@@ -165,7 +174,8 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     its name; a sentence assigns.
   - *More options* (`keys/MoreOptions.tsx`): Nothing, Same as the layer below, and a key-code field that shows
     what the typed code means (`parseKeycode`) before "Use this code". It opens by itself when the current
-    assignment lives there (nothing, transparent, or a code no choice builds, which is put in the field).
+    assignment lives there (nothing, transparent, or a code no choice builds, which is put in the field), for
+    that key only: `Disclosure`'s `forceOpen` leaves the remembered open/closed state alone.
 
   Every assignment is `deviceStore.assign`, so it shows in the picture at once and Undo takes it back; the
   selection stays. A knob's direction 0 is counter-clockwise (left), 1 clockwise (right), as vial-qmk stores
@@ -184,12 +194,53 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
   the page shows the capability's reason instead.
   - `lighting/effects.ts` holds each effect's friendly name, description, group, preview, and whether it uses
     colour, vividness and speed, or the reason it doesn't, read from the firmware's effect code (sources in the
-    file). A slider the current effect ignores is disabled with that reason under it.
+    file). A slider the current effect ignores is disabled with that reason under it; when colour and
+    vividness are off for the same reason, it is said once under both and describes both.
   - Changes go through `lighting/latest.ts`: one `setLighting` at a time; while one is on its way only the newest
     of the rest waits, so a dragged slider never floods the keyboard and always ends on its last value. The
     sliders show the value at once, from what is still on its way.
   - A plugin can rename effects with `lightingEffects: { 41: { name, description } }` in its `definePlugin`, for
     firmware that puts its own effect in a standard slot (the K15's ripple is Solid Splash, VialRGB id 41).
+- **Test** (`Test.tsx`, `test/`): full height, with its own picture (no layer stack; labels follow the active
+  layer). "37 of 90 keys seen" with a bar and "Start again"; a key is lit while down and stays marked once seen
+  (`KeyboardPicture`'s `seen`, in `--key-bg-seen`). Total: the picture's physical keys (`matrixKeys`; the K15 Max
+  has 90, plus two knob turns that no reading can see). Two sources, combined:
+  - the browser's key events (`usePressedKeys`), always: only keys that type something, only while the window is
+    in front (the page says so when it isn't). While the page is open it keeps keys without Ctrl or Win from
+    doing their browser job (scrolling, Tab, F5 ...), outside dialogs and text fields;
+  - the keyboard's switch matrix (`test/useMatrix.ts` → `deviceStore.watchMatrix`) while unlocked: every key,
+    Fn included. It reads only while the page is shown and the tab is visible; through the receiver it pauses
+    after 2 minutes without a change (each read keeps the keyboard awake) until a key or click.
+
+  A note under the picture says which source is in use; locked, it names what can't be seen and offers "Unlock to
+  see every key…". Seen keys survive a visit to another page (`test/seen.ts`), not another keyboard.
+
+## Unlocking
+
+Vial keeps a few things locked: macro writes, the switch matrix, the bootloader jump and the reset key. Unlocking
+means holding the keyboard's unlock keys (Esc and Enter on the K15 Max; the keyboard lists them) while it counts
+50 steps. While it counts, the keyboard doesn't type, answers almost no command, and can't be cancelled; it ends
+by finishing or by restarting (unplugging, or moving the connection switch). Once unlocked it stays so until it
+restarts or changes connection mode.
+
+- `deviceStore.unlock()` runs `device/unlock.ts`: through `Transport.exclusive`, which holds the request queue for
+  the whole flow, so nothing else is sent (requests asked for meanwhile wait, with no timeout running, and go out
+  afterwards). Status, start (skipped when the keyboard is already counting), then one poll loop with a pause of
+  120 ms after each reply on the cable and 150 ms through the receiver (the firmware needs more than 100 ms
+  between steps and starts the count again otherwise). A poll without a reply is not resent; the loop just
+  polls again and marks the progress `silent`. `DeviceState.unlocking` holds `{ remaining, total, silent }`.
+  It resolves `'unlocked'`, `'disconnected'` (the keyboard went away mid-way) or `'failed'` (it never started
+  counting, so it still works). A second call joins the first.
+- `deviceStore.lock()` locks again. `capabilities.check('keyMatrix')` returns `needsUnlock: true` with its reason
+  while locked: the sign for a page to offer unlocking.
+- A keyboard found counting at connect (an app closed mid-unlock) isn't read: the store reports `STILL_UNLOCKING`,
+  which says to replug it.
+- **On screen** (`shell/UnlockDialog.tsx`, opened by `openUnlock(reason)` from `shell/unlock-dialog.ts`; mounted
+  once in the shell): first what unlocking is for, the keys to hold marked on a small picture, and that the
+  keyboard won't type and nothing can stop it once started; then the count as a bar ("Keep holding…", "The count
+  started again…"), with no buttons, Esc ignored and the browser asking before the page is left; then done, or
+  "disconnected" / "didn't start". The device card shows Locked with "Unlock…", Unlocking…, or Unlocked with
+  "Lock".
 
 ## The keyboard stage and selection
 
@@ -229,7 +280,7 @@ pnpm shots --port=5197 /keys                 # own port and build folder, for tw
   `writeError` holds the last failure.
 - `deviceStore.setLighting(change)` sends the effect and its values at once and saves them to the keyboard 1.5 s
   after the last change.
-- Nothing else writes yet.
+- `deviceStore.lock()` locks the keyboard (see "Unlocking"). Nothing else writes yet.
 
 ## Demo keyboard
 
@@ -239,6 +290,12 @@ data with `node scripts/demo-data.mjs` after the firmware definition or the keym
 is the real keyboard's: the 25 VialRGB effects the Vial build lists, maximum brightness 255, starting on Solid
 Splash in indigo (`?demo-effect=` picks another). The test fake keeps its own small list (`RGB_EFFECTS`).
 
+The keys of whatever keyboard is typed on stand in for the demo's switches: each browser key event presses the
+demo key that sends the same key on its base layer, so holding Esc and Enter unlocks it, and once unlocked the Test
+page sees those keys through the matrix too. It starts locked (`?demo-unlocked` for unlocked); `?demo-press=`
+presses keys by itself for screenshots. Unlocking, the matrix and the commands ignored while counting behave as
+vial-qmk's do (`fake-keyboard.ts`).
+
 ## How it talks to the keyboard
 
 ```
@@ -247,7 +304,11 @@ pages / plugins → device store → vendored protocol code → transport (reque
 ```
 
 - **One queue.** Every request goes through `Transport.request`, one at a time. The vendored protocol functions
-  use it too (the store injects it), so nothing can overlap.
+  use it too (the store injects it), so nothing can overlap. `Transport.exclusive(job)` gives one job the queue
+  for as long as it runs (the unlock flow); everything else waits behind it.
+- **The switch matrix** (`0x02 0x03`, `device/matrix.ts`) is read one request at a time through the queue: a
+  20 ms pause after each reply on the cable (about 45 reads a second), 60 ms through the receiver. Each read is
+  a snapshot, so a very quick tap can fall between two.
 - **Replies are checked.** VIA and Keychron replies start with the request's command byte (or `0xFF` for an
   unknown command); anything else is dropped as stray. Vial replies (`0xFE …`) carry data from the first byte and
   can't be checked.
@@ -264,8 +325,10 @@ pages / plugins → device store → vendored protocol code → transport (reque
 
 ## Tests
 
-Unit tests sit in `__tests__/` beside the code. `src/device/__tests__/fake-keyboard.ts` provides a `HidLink`
-with no hardware behind it and a small Vial keyboard to answer it, on the cable or through a receiver.
+Unit tests sit in `__tests__/` beside the code. `src/device/fake-keyboard.ts` provides a `HidLink` with no
+hardware behind it and a small Vial keyboard to answer it, on the cable or through a receiver; its `held` set is
+the switch matrix, which unlocking checks. The unlock and matrix tests run on fake timers and check the poll
+spacing and that nothing else is sent while unlocking.
 
 ## Licence
 

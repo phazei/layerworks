@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Demo mode: a K15 Max that exists only in the page, for trying the app with no keyboard attached. It answers
-// the same requests the real one does, and remembers changes until the page is reloaded.
+// the same requests the real one does, and remembers changes until the page is reloaded. The keys of whatever
+// keyboard the visitor types on stand in for its switches: holding Esc and Enter holds the demo's unlock keys.
 
 import { FakeLink, fakeKeyboard, fakeKeyboardConfig, report } from '../device/fake-keyboard'
 import type { HidLink } from '../device/link'
+import { usageOf } from '../shell/pressed-keys'
 import data from './k15-max.json'
 
 const FEATURE_DEFAULT_LAYER = 0x01
@@ -19,16 +21,42 @@ const K15_RGB_EFFECTS = [1, 2, 6, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 25
 /** The firmware's defaults after a reset: Solid Splash in indigo (the ripple keymap's config.h). */
 const K15_RGB = { mode: 41, speed: 128, hue: 184, sat: 255, val: 255 }
 
+/** The ripple keymap's VIAL_UNLOCK_COMBO_ROWS / _COLS: Esc and Enter. */
+const K15_UNLOCK_KEYS: [number, number][] = [
+  [0, 1],
+  [3, 14],
+]
+
+const params = () => new URLSearchParams(typeof location === 'undefined' ? '' : location.search)
+
 /** `?demo-effect=<VialRGB id>` starts the demo on another effect, e.g. for screenshots. */
 function startEffect(): number | null {
-  if (typeof location === 'undefined') return null
-  const value = Number(new URLSearchParams(location.search).get('demo-effect') ?? NaN)
+  const value = Number(params().get('demo-effect') ?? NaN)
   return Number.isInteger(value) && value >= 0 ? value : null
 }
+
+/**
+ * `?demo-press=0,1;2,3+2,4` presses keys on the demo by itself, for screenshots: from a second after connecting,
+ * each step (keys joined by "+" go down together) is held for a moment in turn, and the last stays held.
+ */
+export function parsePressScript(text: string): string[][] {
+  return text
+    .split(';')
+    // An unescaped "+" arrives as a space.
+    .map((step) => step.split(/[+ ]/).filter((key) => /^\d+,\d+$/.test(key)))
+    .filter((step) => step.length > 0)
+}
+
+const PRESS_START_MS = 1000
+const PRESS_STEP_MS = 150
 
 export interface DemoLink extends HidLink {
   /** Pretends a layer key is held (0 for none), the way the keyboard reports it. */
   holdLayer(layer: number): void
+  /** Pretends a physical key ("row,col") is down or up. */
+  setKey(position: string, down: boolean): void
+  /** Pretends the keyboard was unplugged. */
+  drop(): void
 }
 
 export function createDemoLink(): DemoLink {
@@ -48,13 +76,78 @@ export function createDemoLink(): DemoLink {
     rgb: { ...K15_RGB, mode: startEffect() ?? K15_RGB.mode },
     rgbEffects: K15_RGB_EFFECTS,
     rgbMaxBrightness: 255,
+    unlockKeys: K15_UNLOCK_KEYS,
+    // `?demo-unlocked` starts the demo unlocked, e.g. for screenshots of the Test page reading every key.
+    unlocked: params().has('demo-unlocked'),
   })
   const link = new FakeLink('cable')
   link.responder = fakeKeyboard(config)
+
+  const setKey = (position: string, down: boolean) => {
+    if (down) config.held.add(position)
+    else config.held.delete(position)
+  }
+
+  /** The physical key that types a browser key code: the first one sending it on the base layer, else layer 0. */
+  const positionOf = (code: string): string | null => {
+    const usage = usageOf(code)
+    if (usage === undefined) return null
+    for (const layer of [config.layer.base, 0]) {
+      for (let row = 0; row < config.rows; row++) {
+        const col = config.keymap[layer][row].indexOf(usage)
+        if (col >= 0) return `${row},${col}`
+      }
+    }
+    return null
+  }
+
+  const cleanups: (() => void)[] = []
+  if (typeof window !== 'undefined') {
+    const fromCode = new Map<string, string>()
+    const down = (event: KeyboardEvent) => {
+      const position = positionOf(event.code)
+      if (!position) return
+      fromCode.set(event.code, position)
+      setKey(position, true)
+    }
+    const up = (event: KeyboardEvent) => {
+      const position = fromCode.get(event.code)
+      if (!position) return
+      fromCode.delete(event.code)
+      setKey(position, false)
+    }
+    const releaseAll = () => {
+      for (const position of fromCode.values()) setKey(position, false)
+      fromCode.clear()
+    }
+    // Capture phase, so the demo's switches move even when a page stops the event.
+    window.addEventListener('keydown', down, true)
+    window.addEventListener('keyup', up, true)
+    window.addEventListener('blur', releaseAll)
+    cleanups.push(() => {
+      window.removeEventListener('keydown', down, true)
+      window.removeEventListener('keyup', up, true)
+      window.removeEventListener('blur', releaseAll)
+    })
+
+    const script = parsePressScript(params().get('demo-press') ?? '')
+    script.forEach((step, i) => {
+      const at = PRESS_START_MS + i * PRESS_STEP_MS
+      const press = setTimeout(() => step.forEach((key) => setKey(key, true)), at)
+      const release = i < script.length - 1 && setTimeout(() => step.forEach((key) => setKey(key, false)), at + PRESS_STEP_MS - 30)
+      cleanups.push(() => {
+        clearTimeout(press)
+        if (release) clearTimeout(release)
+      })
+    })
+  }
+  link.onClose(() => cleanups.splice(0).forEach((cleanup) => cleanup()))
+
   return Object.assign(link, {
     holdLayer(layer: number) {
       config.layer.held = layer
       link.deliver(report(0xa3, config.layer.base, layer))
     },
+    setKey,
   })
 }

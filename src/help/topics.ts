@@ -150,7 +150,19 @@ const topics = {
     body: [
       'The keyboard keeps a few powerful changes locked, so a web page can’t make them behind your back: editing macros, watching every key for the key test, and restarting into firmware update mode.',
       'Everyday changes such as keys, layers and lighting work while it is locked. When something needs unlocking, the app says so and shows you how: you hold two keys on the keyboard for a few seconds.',
+      'While it unlocks, the keyboard doesn’t type and the unlock can’t be cancelled; letting go of the keys only starts the count again. Unplugging the keyboard, or moving its connection switch, ends it. Once unlocked, it stays so until it restarts or changes connection mode, or until you lock it again from the device card.',
     ],
+    example: 'On the K15 Max: click Unlock… in the device card, then hold Esc and Enter until the bar is full.',
+  },
+  'test-keys': {
+    title: 'Testing keys',
+    qmkName: 'Matrix tester',
+    body: [
+      'Press every key once: each lights up while it is down and stays marked afterwards, so a key that never lights is one that doesn’t work.',
+      'While the keyboard is locked, the app sees keys the way any web page does, through the browser: only the keys that type something, and only while this window is in front. Fn and other layer keys, and the knob, send nothing the browser can see. Unlocked, the app reads every switch straight from the keyboard, Fn included.',
+    ],
+    example: 'Unlock, then hold Fn: its key lights up although your computer never hears about it.',
+    docs: QMK + 'faq_debug',
   },
   saving: {
     title: 'Where changes are kept',

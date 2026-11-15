@@ -3,14 +3,15 @@
 
 import type { ReactNode } from 'react'
 import { BatteryFull, BatteryLow, BatteryMedium, Cable, Keyboard, Lock, LockOpen, Radio, Unplug } from 'lucide-react'
-import { useDevice } from '../device'
+import { deviceStore, useDevice } from '../device'
 import { Badge, Button, Spinner } from '../ui/controls'
 import { HelpButton } from '../ui/layout'
 import { demoKeyboard, disconnect } from './session'
+import { openUnlock } from './unlock-dialog'
 
 function Fact({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex items-center gap-2 text-[13px] text-muted">
+    <div className="flex min-h-6 items-center gap-2 text-[13px] text-muted">
       <span className="flex w-4 justify-center">{icon}</span>
       {children}
     </div>
@@ -34,6 +35,7 @@ export function DeviceCard() {
   const keyboard = useDevice((s) => s.keyboard)
   const keychron = useDevice((s) => s.keychron)
   const unlock = useDevice((s) => s.unlock)
+  const unlocking = useDevice((s) => s.unlocking)
 
   if (status === 'connecting') {
     return (
@@ -75,9 +77,19 @@ export function DeviceCard() {
         {battery !== null && <Battery level={battery} />}
         {unlock && (
           <Fact icon={unlock.unlocked ? <LockOpen size={15} aria-hidden /> : <Lock size={15} aria-hidden />}>
-            <span className="flex items-center gap-0.5">
-              {unlock.unlocked ? 'Unlocked' : 'Locked'}
+            <span className="flex flex-1 items-center gap-0.5">
+              {unlocking ? 'Unlocking…' : unlock.unlocked ? 'Unlocked' : 'Locked'}
               <HelpButton topic="unlock" />
+              {!unlocking && (
+                <Button
+                  size="sm"
+                  variant="quiet"
+                  className="ml-auto -mr-1 h-6 px-2"
+                  onClick={() => (unlock.unlocked ? void deviceStore.lock() : openUnlock())}
+                >
+                  {unlock.unlocked ? 'Lock' : 'Unlock…'}
+                </Button>
+              )}
             </span>
           </Fact>
         )}
