@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // A HidLink with no hardware behind it, and a small Vial keyboard to put behind it.
 
-import { REPORT_LEN, type HidLink, type LinkKind } from '../link'
+import { REPORT_LEN, type HidLink, type LinkKind } from './link'
 
 const XOR = 0x28
 
@@ -84,6 +84,10 @@ export interface FakeKeyboardConfig {
   /** KLE rows for the definition. Labels are "row,col", or "idx,dir" + "e" for a knob. */
   kle: unknown[][]
   customKeycodes: { name: string; title: string; shortName: string }[]
+  /** A complete Vial definition to serve instead of one built from name, rows, cols, kle and customKeycodes. */
+  definition?: object
+  /** VialRGB state: effect number, speed, hue, saturation, brightness. */
+  rgb: { mode: number; speed: number; hue: number; sat: number; val: number }
   /** keymap[layer][row][col] */
   keymap: number[][][]
   /** knob[layer] = [clockwise, counter-clockwise] */
@@ -114,6 +118,7 @@ export function fakeKeyboardConfig(overrides: Partial<FakeKeyboardConfig> = {}):
       ['1,0', '1,1', '1,2'],
     ],
     customKeycodes: [{ name: 'CUSTOM_ONE', title: 'First custom key', shortName: 'Cst1' }],
+    rgb: { mode: 22, speed: 128, hue: 10, sat: 255, val: 180 },
     keymap: Array.from({ length: layers }, (_, layer) =>
       Array.from({ length: rows }, (_, row) =>
         Array.from({ length: cols }, (_, col) => 4 + layer * rows * cols + row * cols + col),
@@ -131,6 +136,9 @@ export function fakeKeyboardConfig(overrides: Partial<FakeKeyboardConfig> = {}):
   }
 }
 
+/** VialRGB effect numbers the fake keyboard has. */
+export const RGB_EFFECTS = [1, 2, 3, 6, 13, 15, 22, 39]
+
 const le16 = (v: number) => [v & 0xff, (v >> 8) & 0xff]
 const be16 = (v: number) => [(v >> 8) & 0xff, v & 0xff]
 
@@ -139,18 +147,23 @@ export async function plainDefinition(bytes: number[]): Promise<string> {
   return new TextDecoder().decode(Uint8Array.from(bytes))
 }
 
-/** Answers the requests the device store makes while loading, from the given config. */
+/**
+ * Answers the requests the device layer makes, from the given config. Writes (keys, knob, lighting) change the
+ * config, so later reads see them.
+ */
 export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
   const definition = new TextEncoder().encode(
-    JSON.stringify({
-      name: config.name,
-      matrix: { rows: config.rows, cols: config.cols },
-      layouts: { keymap: config.kle },
-      lighting: 'vialrgb',
-      customKeycodes: config.customKeycodes,
-    }),
+    JSON.stringify(
+      config.definition ?? {
+        name: config.name,
+        matrix: { rows: config.rows, cols: config.cols },
+        layouts: { keymap: config.kle },
+        lighting: 'vialrgb',
+        customKeycodes: config.customKeycodes,
+      },
+    ),
   )
-  const keymapBytes = config.keymap.flat(2).flatMap(be16)
+  const keymapBytes = () => config.keymap.flat(2).flatMap(be16)
 
   const vial = (request: Uint8Array): number[] => {
     switch (request[1]) {
@@ -166,6 +179,9 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
         const [cw, ccw] = config.knob[request[2]]
         return [...be16(cw), ...be16(ccw)]
       }
+      case 0x04:
+        config.knob[request[2]][request[4]] = (request[5] << 8) | request[6]
+        return []
       case 0x05:
         return [config.unlocked ? 1 : 0, 0, 0, 0, 1, 2, ...new Array<number>(26).fill(0xff)]
       case 0x09: {
@@ -217,12 +233,26 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
         return [0x01, 0x00, 0x09]
       case 0x02:
         return [0x02, request[1], 0, 0, 0, 0]
+      case 0x05:
+        config.keymap[request[1]][request[2]][request[3]] = (request[4] << 8) | request[5]
+        return Array.from(request)
+      case 0x07:
+        if (request[1] === 0x41) {
+          const [speed, hue, sat, val] = request.subarray(4, 8)
+          config.rgb = { mode: request[2] | (request[3] << 8), speed, hue, sat, val }
+        }
+        return Array.from(request)
+      case 0x09:
+        return [0x09]
       case 0x08:
         if (request[1] === 0x40) return [0x08, 0x40, 1, 0, 200]
-        if (request[1] === 0x41) return [0x08, 0x41, 22, 0, 128, 10, 255, 180]
+        if (request[1] === 0x41) {
+          const { mode, speed, hue, sat, val } = config.rgb
+          return [0x08, 0x41, ...le16(mode), speed, hue, sat, val]
+        }
         if (request[1] === 0x42) {
           const from = request[2] | (request[3] << 8)
-          const effects = [1, 2, 22].filter((e) => e > from).flatMap(le16)
+          const effects = RGB_EFFECTS.filter((e) => e > from).flatMap(le16)
           return [0x08, 0x42, ...effects, ...new Array<number>(REPORT_LEN).fill(0xff)].slice(0, REPORT_LEN)
         }
         return [0x08, request[1]]
@@ -238,7 +268,7 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
         return [0x11, config.layers]
       case 0x12: {
         const offset = (request[1] << 8) | request[2]
-        return [0x12, request[1], request[2], request[3], ...keymapBytes.slice(offset, offset + request[3])]
+        return [0x12, request[1], request[2], request[3], ...keymapBytes().slice(offset, offset + request[3])]
       }
       default:
         return request[0] >= 0xa0 && request[0] <= 0xaf ? keychron(request) : [0xff]

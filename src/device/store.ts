@@ -99,7 +99,41 @@ export interface DeviceState {
   unlock: UnlockStatus | null
   /** null while loading, and for firmware without Keychron commands. */
   keychron: KeychronState | null
+  /** Changes on their way to the keyboard. 0 means everything shown is saved on it. */
+  writing: number
+  /** Why the last change could not be written; cleared by the next one that succeeds. */
+  writeError: string | null
+  canUndo: boolean
+  canRedo: boolean
 }
+
+/** One place a keycode can be assigned: a key, or one direction of a knob (0 is clockwise). */
+export type Slot =
+  | { kind: 'key'; layer: number; row: number; col: number }
+  | { kind: 'knob'; layer: number; knob: number; direction: 0 | 1 }
+
+interface Edit {
+  slot: Slot
+  from: number
+  to: number
+}
+
+const UNDO_LIMIT = 100
+
+export function slotKeycode(keyboard: KeyboardData, slot: Slot): number {
+  return slot.kind === 'key'
+    ? (keyboard.keymap[`${slot.layer},${slot.row},${slot.col}`] ?? 0)
+    : (keyboard.knobs[`${slot.layer},${slot.knob},${slot.direction}`] ?? 0)
+}
+
+function withKeycode(keyboard: KeyboardData, slot: Slot, keycode: number): KeyboardData {
+  return slot.kind === 'key'
+    ? { ...keyboard, keymap: { ...keyboard.keymap, [`${slot.layer},${slot.row},${slot.col}`]: keycode } }
+    : { ...keyboard, knobs: { ...keyboard.knobs, [`${slot.layer},${slot.knob},${slot.direction}`]: keycode } }
+}
+
+/** The lighting values that can be changed together. */
+export type LightingChange = Partial<Pick<Lighting, 'mode' | 'speed' | 'hue' | 'sat' | 'val'>>
 
 const DISCONNECTED: DeviceState = {
   status: 'disconnected',
@@ -116,7 +150,14 @@ const DISCONNECTED: DeviceState = {
   lighting: null,
   unlock: null,
   keychron: null,
+  writing: 0,
+  writeError: null,
+  canUndo: false,
+  canRedo: false,
 }
+
+/** Lighting changes reach the keyboard at once but only survive a restart once saved; save after this pause. */
+const LIGHTING_SAVE_DELAY_MS = 1500
 
 const NO_ENTRIES: DynamicEntryCounts = { tapDance: 0, combo: 0, keyOverride: 0, altRepeatKey: 0, featureFlags: 0 }
 const KC_GET_LAYER = 0xa3
@@ -128,6 +169,12 @@ export interface DeviceStore {
   /** Takes over an open link and loads the keyboard. Resolves when the keyboard picture can be drawn. */
   connect(link: HidLink): Promise<void>
   disconnect(): Promise<void>
+  /** Assigns a keycode to a key or knob direction on the keyboard. Can be undone. */
+  assign(slot: Slot, keycode: number): Promise<void>
+  undo(): Promise<void>
+  redo(): Promise<void>
+  /** Changes the lighting effect or its values. Shown on the keyboard at once, saved to it after a short pause. */
+  setLighting(change: LightingChange): Promise<void>
   /** The request queue of the connected keyboard, for plugins and raw commands; null when disconnected. */
   readonly transport: Transport | null
 }
@@ -282,9 +329,90 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     }
   }
 
+  let undoStack: Edit[] = []
+  let redoStack: Edit[] = []
+  let lightingSaveTimer: ReturnType<typeof setTimeout> | null = null
+
+  function forget(): void {
+    undoStack = []
+    redoStack = []
+    if (lightingSaveTimer) clearTimeout(lightingSaveTimer)
+    lightingSaveTimer = null
+  }
+
+  /** Runs one write, keeping `writing` and `writeError` in step. Resolves with whether it reached the keyboard. */
+  async function write(send: () => Promise<void>, applied: () => Partial<DeviceState>): Promise<boolean> {
+    const current = session
+    if (!current) return false
+    set({ writing: state.writing + 1 })
+    try {
+      await send()
+      if (session === current) set({ ...applied(), writing: state.writing - 1, writeError: null })
+      return session === current
+    } catch (error) {
+      if (session === current) {
+        set({ writing: state.writing - 1, writeError: error instanceof Error ? error.message : String(error) })
+      }
+      return false
+    }
+  }
+
+  function writeKeycode(slot: Slot, keycode: number): Promise<boolean> {
+    return write(
+      () =>
+        slot.kind === 'key'
+          ? protocol.setKeycode(slot.layer, slot.row, slot.col, keycode)
+          : protocol.setEncoder(slot.layer, slot.knob, slot.direction, keycode),
+      () => (state.keyboard ? { keyboard: withKeycode(state.keyboard, slot, keycode) } : {}),
+    )
+  }
+
+  const history = () => ({ canUndo: undoStack.length > 0, canRedo: redoStack.length > 0 })
+
+  async function assign(slot: Slot, keycode: number): Promise<void> {
+    if (!state.keyboard) return
+    const from = slotKeycode(state.keyboard, slot)
+    if (from === keycode) return
+    if (!(await writeKeycode(slot, keycode))) return
+    undoStack = [...undoStack, { slot, from, to: keycode }].slice(-UNDO_LIMIT)
+    redoStack = []
+    set(history())
+  }
+
+  async function step(from: 'undo' | 'redo'): Promise<void> {
+    const edit = (from === 'undo' ? undoStack : redoStack).at(-1)
+    if (!edit) return
+    if (!(await writeKeycode(edit.slot, from === 'undo' ? edit.from : edit.to))) return
+    if (from === 'undo') {
+      undoStack = undoStack.filter((e) => e !== edit)
+      redoStack = [...redoStack, edit]
+    } else {
+      redoStack = redoStack.filter((e) => e !== edit)
+      undoStack = [...undoStack, edit]
+    }
+    set(history())
+  }
+
+  async function setLighting(change: LightingChange): Promise<void> {
+    const now = state.lighting
+    if (!now || now.kind !== 'vialrgb') return
+    const next = { ...now, ...change }
+    const sent = await write(
+      () => protocol.setVialRGBMode(next.mode, next.speed, next.hue, next.sat, next.val),
+      () => (state.lighting ? { lighting: { ...state.lighting, ...change } } : {}),
+    )
+    if (!sent) return
+    if (lightingSaveTimer) clearTimeout(lightingSaveTimer)
+    lightingSaveTimer = setTimeout(() => {
+      lightingSaveTimer = null
+      void write(() => protocol.saveLighting(), () => ({}))
+    }, LIGHTING_SAVE_DELAY_MS)
+  }
+
   async function disconnect(): Promise<void> {
     const ending = session
     if (!ending) return
+    forget()
     session = null
     ending.transport.stop()
     set(DISCONNECTED)
@@ -304,6 +432,10 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     },
 
     disconnect,
+    assign,
+    undo: () => step('undo'),
+    redo: () => step('redo'),
+    setLighting,
 
     async connect(link) {
       await disconnect()
@@ -314,6 +446,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
 
       link.onClose(() => {
         if (session !== current) return
+        forget()
         session = null
         transport.stop()
         set(DISCONNECTED)

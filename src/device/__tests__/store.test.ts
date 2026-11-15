@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { serialize } from '../../vendor/pipette/shared/keycodes/keycodes'
 import { keycodeLabel } from '../../vendor/pipette/shared/keycodes/keycodes-utils'
 import { createDeviceStore, LOAD_PARTS, type DeviceStore } from '../store'
-import { FakeLink, fakeKeyboard, fakeKeyboardConfig, plainDefinition, report } from './fake-keyboard'
+import { FakeLink, fakeKeyboard, fakeKeyboardConfig, plainDefinition, report, RGB_EFFECTS } from '../fake-keyboard'
 
 const FEATURE_DEFAULT_LAYER = 0x01
 
@@ -137,7 +137,7 @@ describe('background loading', () => {
     expect(Object.keys(state.settings ?? {}).map(Number)).toEqual([2, 7, 18])
     expect(state.settings?.[7][0]).toBe(7)
     expect(state.lighting).toMatchObject({ kind: 'vialrgb', mode: 22, speed: 128, hue: 10, maxBrightness: 200 })
-    expect([...(state.lighting?.effects ?? [])].sort((a, b) => a - b)).toEqual([0, 1, 2, 22])
+    expect([...(state.lighting?.effects ?? [])].sort((a, b) => a - b)).toEqual([0, ...RGB_EFFECTS])
     expect(state.unlock).toEqual({ unlocked: false, inProgress: false, keys: [[0, 0], [1, 2]] })
     expect(state.keychron).toBeNull()
   })
@@ -280,5 +280,115 @@ describe('disconnecting', () => {
     expect(first.link.closed).toBe(true)
     expect(store.getState().keyboard?.name).toBe('Second')
     expect(store.getState().failed).toEqual([])
+  })
+})
+
+describe('changing keys', () => {
+  const key = { kind: 'key', layer: 1, row: 0, col: 2 } as const
+  const knob = { kind: 'knob', layer: 0, knob: 0, direction: 1 } as const
+
+  it('writes a key to the keyboard and then shows it', async () => {
+    const { config, link } = connected()
+    await store.connect(link)
+    await loaded(store)
+
+    await store.assign(key, 0x29)
+
+    expect(config.keymap[1][0][2]).toBe(0x29)
+    expect(store.getState().keyboard?.keymap['1,0,2']).toBe(0x29)
+    expect(store.getState()).toMatchObject({ writing: 0, writeError: null, canUndo: true, canRedo: false })
+  })
+
+  it('writes a knob direction', async () => {
+    const { config, link } = connected()
+    await store.connect(link)
+    await loaded(store)
+
+    await store.assign(knob, 0x52)
+
+    expect(config.knob[0]).toEqual([0x81, 0x52])
+    expect(store.getState().keyboard?.knobs['0,0,1']).toBe(0x52)
+  })
+
+  it('undoes and redoes on the keyboard', async () => {
+    const { config, link } = connected()
+    await store.connect(link)
+    await loaded(store)
+    const before = config.keymap[1][0][2]
+    await store.assign(key, 0x29)
+    await store.assign(knob, 0x52)
+
+    await store.undo()
+    await store.undo()
+    expect(config.keymap[1][0][2]).toBe(before)
+    expect(config.knob[0][1]).toBe(0x80)
+    expect(store.getState()).toMatchObject({ canUndo: false, canRedo: true })
+
+    await store.redo()
+    expect(config.keymap[1][0][2]).toBe(0x29)
+    expect(store.getState().keyboard?.keymap['1,0,2']).toBe(0x29)
+    expect(store.getState()).toMatchObject({ canUndo: true, canRedo: true })
+  })
+
+  it('drops the redo list after a new change', async () => {
+    const { link } = connected()
+    await store.connect(link)
+    await loaded(store)
+    await store.assign(key, 0x29)
+    await store.undo()
+
+    await store.assign(key, 0x2a)
+
+    expect(store.getState().canRedo).toBe(false)
+  })
+
+  it('does nothing when the keycode is already there', async () => {
+    const { config, link } = connected()
+    await store.connect(link)
+    await loaded(store)
+    const sent = link.requests.length
+
+    await store.assign(key, config.keymap[1][0][2])
+
+    expect(link.requests).toHaveLength(sent)
+    expect(store.getState().canUndo).toBe(false)
+  })
+
+  it('keeps the old key and reports the error when the write fails', async () => {
+    vi.useFakeTimers()
+    const { config, link } = connected()
+    await store.connect(link)
+    await vi.runAllTimersAsync()
+    const keyboard = fakeKeyboard(config)
+    link.responder = (request) => (request[0] === 0x05 ? null : keyboard(request))
+
+    const assigning = store.assign(key, 0x29)
+    await vi.advanceTimersByTimeAsync(1000)
+    await assigning
+    vi.useRealTimers()
+
+    expect(store.getState().keyboard?.keymap['1,0,2']).toBe(config.keymap[1][0][2])
+    expect(store.getState()).toMatchObject({ writing: 0, canUndo: false })
+    expect(store.getState().writeError).toMatch(/No reply/)
+  })
+})
+
+describe('changing the lighting', () => {
+  it('sends the change at once and saves it after a pause', async () => {
+    vi.useFakeTimers()
+    const { config, link } = connected()
+    await store.connect(link)
+    await vi.runAllTimersAsync()
+
+    await store.setLighting({ mode: 13 })
+    await store.setLighting({ hue: 99 })
+
+    expect(config.rgb).toMatchObject({ mode: 13, hue: 99, speed: 128 })
+    expect(store.getState().lighting).toMatchObject({ mode: 13, hue: 99 })
+    const saves = () => link.requests.filter((r) => r[0] === 0x09).length
+    expect(saves()).toBe(0)
+    await vi.advanceTimersByTimeAsync(1500)
+    vi.useRealTimers()
+    expect(saves()).toBe(1)
   })
 })

@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createTransport, TransportError } from '../transport'
 import { LAYER_PUSH, parseLayerReport, type PushShape } from '../pushes'
-import { FakeLink, report } from './fake-keyboard'
+import { FakeLink, report } from '../fake-keyboard'
 
 const layerPush = (base: number, held: number) => report(0xa3, base, held)
 
