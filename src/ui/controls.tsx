@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The small controls every page is built from. All colours and radii come from tokens.css.
 
-import { useId, type ButtonHTMLAttributes, type ComponentPropsWithRef, type InputHTMLAttributes, type ReactNode } from 'react'
+import { useId, type ButtonHTMLAttributes, type ComponentPropsWithRef, type InputHTMLAttributes, type KeyboardEvent, type ReactNode } from 'react'
 import { Check, LoaderCircle, Search } from 'lucide-react'
 
 export function cx(...parts: (string | false | null | undefined)[]): string {
@@ -70,21 +70,32 @@ interface ToggleProps {
   label: ReactNode
   hint?: ReactNode
   disabled?: boolean
+  /** Shown beside the label but not part of it (a help button), so it stays out of the switch's name. */
+  help?: ReactNode
 }
 
-export function Toggle({ checked, onChange, label, hint, disabled }: ToggleProps) {
+export function Toggle({ checked, onChange, label, hint, disabled, help }: ToggleProps) {
   const id = useId()
+  const hintId = useId()
   return (
     <div className={cx('flex items-start justify-between gap-4', disabled && 'opacity-50')}>
-      <label htmlFor={id} className="min-w-0">
-        <div>{label}</div>
-        {hint && <div className="text-[13px] text-muted">{hint}</div>}
-      </label>
+      <div className="min-w-0">
+        <div className="flex items-center gap-1">
+          <label htmlFor={id}>{label}</label>
+          {help}
+        </div>
+        {hint && (
+          <div id={hintId} className="text-[13px] text-muted">
+            {hint}
+          </div>
+        )}
+      </div>
       <button
         id={id}
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-describedby={hint ? hintId : undefined}
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={cx(
@@ -117,17 +128,27 @@ interface SliderProps {
   track?: string
   /** A line under the slider: what it does here, or why it is disabled. */
   hint?: ReactNode
+  /** Shown beside the label but not part of it (a help button), so it stays out of the slider's name. */
+  help?: ReactNode
+  /** The id of a line elsewhere that describes this slider too, e.g. one reason shared by two sliders. */
+  describedBy?: string
 }
 
-export function Slider({ label, value, min = 0, max, step = 1, onChange, format, disabled, track, hint }: SliderProps) {
+export function Slider({ label, value, min = 0, max, step = 1, onChange, format, disabled, track, hint, help, describedBy }: SliderProps) {
   const id = useId()
   const hintId = useId()
   const filled = ((value - min) / (max - min)) * 100
+  const description = [hint ? hintId : null, describedBy].filter(Boolean).join(' ') || undefined
   return (
     <div className="flex flex-col gap-1.5">
       <div className={cx('flex flex-col gap-1.5', disabled && 'opacity-50')}>
-        <div className="flex justify-between">
-          <label htmlFor={id}>{label}</label>
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5">
+            <label htmlFor={id} className="flex items-center gap-1.5">
+              {label}
+            </label>
+            {help}
+          </span>
           <span className="text-muted tabular-nums">{format ? format(value) : value}</span>
         </div>
         <input
@@ -138,7 +159,7 @@ export function Slider({ label, value, min = 0, max, step = 1, onChange, format,
           step={step}
           value={value}
           disabled={disabled}
-          aria-describedby={hint ? hintId : undefined}
+          aria-describedby={description}
           onChange={(e) => onChange(Number(e.target.value))}
           className="lw-slider"
           style={{
@@ -164,14 +185,26 @@ interface SegmentedProps<T extends string> {
 }
 
 export function Segmented<T extends string>({ label, value, options, onChange }: SegmentedProps<T>) {
+  // A radio group: Tab reaches the chosen option, the arrow keys move the choice.
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key]
+    if (!step) return
+    event.preventDefault()
+    const at = options.findIndex((option) => option.value === value)
+    const next = (at + step + options.length) % options.length
+    onChange(options[next].value)
+    event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next]?.focus()
+  }
+  const anyChosen = options.some((option) => option.value === value)
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex rounded-pill bg-raised p-1">
-      {options.map((option) => (
+    <div role="radiogroup" aria-label={label} onKeyDown={onKeyDown} className="inline-flex rounded-pill bg-raised p-1">
+      {options.map((option, i) => (
         <button
           key={option.value}
           type="button"
           role="radio"
           aria-checked={option.value === value}
+          tabIndex={option.value === value || (!anyChosen && i === 0) ? 0 : -1}
           onClick={() => onChange(option.value)}
           className={cx(
             'h-7 cursor-pointer rounded-pill px-3.5 text-[13px] font-medium transition-colors duration-(--motion-fast)',

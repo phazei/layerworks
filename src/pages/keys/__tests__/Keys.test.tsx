@@ -8,6 +8,7 @@ import { deviceStore, layerKeycode, shortcutKeycode } from '../../../device'
 import { connectDemo, disconnect } from '../../../shell/session'
 import { Shell } from '../../../shell/Shell'
 import { stage, type Selection } from '../../../shell/stage-store'
+import { getPref, setPref } from '../../../ui/prefs'
 
 // The demo keyboard rests on its Windows layer (2). Row 3, column 2 is A; row 5, column 7 is MO(3); on layer 3,
 // row 4, column 1 is "same as the layer below", over Left Shift.
@@ -121,13 +122,26 @@ describe('the Keys page', () => {
     openMoreOptions()
     await click(screen.getByRole('button', { name: /Same as the layer below/ }))
     await waitFor(() => expect(keymap(3, 3, 2)).toBe(0x01))
-    expect(screen.getByText(/It does what it does on Windows/)).toHaveTextContent('A KC_A')
+    expect(screen.getByText(/It normally does what it does on Windows/)).toHaveTextContent('A KC_A')
   })
 
   it('says when a key on a higher layer has nothing of its own', async () => {
+    setPref('open:keys-more', false)
     await openKeys({ kind: 'key', row: 4, col: 1 }, 3)
     expect(screen.getByText(/where it has nothing of its own/)).toHaveTextContent('Left Shift')
     expect(screen.getByRole('button', { name: 'More options' })).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('opens More options for a key that lives there, only for that key', async () => {
+    setPref('open:keys-more', false)
+    await openKeys({ kind: 'key', row: 4, col: 1 }, 3)
+    expect(screen.getByRole('button', { name: 'More options' })).toHaveAttribute('aria-expanded', 'true')
+    act(() => {
+      stage.showLayer(2)
+      stage.select(A_KEY)
+    })
+    expect(screen.getByRole('button', { name: 'More options' })).toHaveAttribute('aria-expanded', 'false')
+    expect(getPref('open:keys-more', false)).toBe(false)
   })
 
   it('takes a typed key code, saying what it means first', async () => {

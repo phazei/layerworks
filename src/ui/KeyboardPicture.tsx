@@ -18,9 +18,19 @@ interface Props {
   selection?: PictureSelection | null
   /** Makes keys and knob directions clickable. */
   onSelect?: (selection: PictureSelection) => void
+  /** "row,col" of keys to mark as seen (the Test page), in the token colour --key-bg-seen. Pressed wins. */
+  seen?: Set<string>
+  /** "row,col" of keys to point out, e.g. the keys to hold for unlocking. */
+  highlighted?: Set<string>
 }
 
-export function KeyboardPicture({ keyboard, layer, pressed, selection, onSelect }: Props) {
+// The widget's own "ever pressed" colour is a fixed light green; seen keys use its per-key fill instead, which
+// takes a token.
+const SEEN_FILL = 'var(--key-bg-seen)'
+
+export function KeyboardPicture({ keyboard, layer, pressed, selection, onSelect, seen, highlighted }: Props) {
+  const seenFills = useMemo(() => (seen ? new Map([...seen].map((pos) => [pos, SEEN_FILL])) : undefined), [seen])
+
   const keycodes = useMemo(() => {
     const map = new Map<string, string>()
     for (let row = 0; row < keyboard.rows; row++) {
@@ -51,6 +61,8 @@ export function KeyboardPicture({ keyboard, layer, pressed, selection, onSelect 
         keycodes={keycodes}
         encoderKeycodes={knobKeycodes}
         pressedKeys={pressed}
+        highlightedKeys={highlighted}
+        keyColors={seenFills}
         selectedKey={selection?.kind === 'key' ? selection : null}
         selectedEncoder={selection?.kind === 'knob' ? { idx: selection.knob, dir: selection.direction } : null}
         onKeyClick={onSelect && ((key: KleKey) => onSelect({ kind: 'key', row: key.row, col: key.col }))}

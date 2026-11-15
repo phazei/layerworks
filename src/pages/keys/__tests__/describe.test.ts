@@ -56,17 +56,31 @@ describe('fallThrough', () => {
     ({ keymap: Object.fromEntries(codes.map((code, layer) => [`${layer},0,0`, code])), knobs: {} }) as unknown as KeyboardData
   const at = (layer: number) => ({ kind: 'key', layer, row: 0, col: 0 }) as const
 
-  it('finds the first layer below with an assignment, down to the base layer', () => {
-    const kb = keyboard([0x04, 0x01, 0x05, 0x01, 0x01])
-    expect(fallThrough(kb, at(3), 2)).toEqual({ layer: 2, code: 0x05 })
+  it('falls from a layer above the base to the base layer, skipping the layers in between', () => {
+    // Windows Fn (3) has F1 of its own, but with Fn2 held over Windows it isn't on: Fn2 falls to Windows.
+    const kb = keyboard([0x04, 0x01, 0x05, 0x3a, 0x01])
     expect(fallThrough(kb, at(4), 2)).toEqual({ layer: 2, code: 0x05 })
-    expect(fallThrough(kb, at(1), 2)).toEqual({ layer: 0, code: 0x04 })
+    expect(fallThrough(kb, at(3), 2)).toBeNull()
+    expect(fallThrough(keyboard([0x04, 0x01, 0x05, 0x01, 0x01]), at(3), 2)).toEqual({ layer: 2, code: 0x05 })
   })
 
-  it('skips layers under the base, except layer 0', () => {
-    const kb = keyboard([0x04, 0x07, 0x01, 0x01, 0x01])
+  it('falls from a layer at or under the base straight to layer 0', () => {
+    // Mac Fn while on Windows: Mac Fn isn't stacked on Windows, so it falls to Mac.
+    const kb = keyboard([0x04, 0x01, 0x01, 0x01, 0x01])
+    expect(fallThrough(kb, at(1), 2)).toEqual({ layer: 0, code: 0x04 })
     expect(fallThrough(kb, at(2), 2)).toEqual({ layer: 0, code: 0x04 })
+    // On the Mac pair, Mac Fn falls to Mac.
+    expect(fallThrough(kb, at(1), 0)).toEqual({ layer: 0, code: 0x04 })
+  })
+
+  it('goes on to layer 0 when the base layer has nothing either', () => {
+    const kb = keyboard([0x04, 0x07, 0x01, 0x01, 0x01])
     expect(fallThrough(kb, at(4), 2)).toEqual({ layer: 0, code: 0x04 })
+    expect(fallThrough(kb, at(3), 2)).toEqual({ layer: 0, code: 0x04 })
+  })
+
+  it('is null when nothing it falls to has an assignment', () => {
+    expect(fallThrough(keyboard([0x01, 0x01, 0x01, 0x01, 0x01]), at(4), 2)).toBeNull()
   })
 
   it('is null for keys with their own assignment, and on the bottom layer', () => {

@@ -3,11 +3,10 @@
 // plugins add for this section. Changes go to the keyboard as they are made (latest value first while a slider is
 // dragged; see lighting/latest.ts) and the device store saves them on the keyboard after a pause.
 
-import { useEffect, useMemo, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, type ReactNode } from 'react'
 import { Lightbulb } from 'lucide-react'
 import { deviceStore, useDevice, type Lighting, type LightingChange } from '../device'
 import { activePanels, activePlugins, type PageDef } from '../plugins/api'
-import type { HelpTopicId } from '../help/topics'
 import { OptionButton, Slider, Spinner, Toggle } from '../ui/controls'
 import { Card, HelpButton, Notice } from '../ui/layout'
 import { usePref } from '../ui/prefs'
@@ -135,11 +134,8 @@ function LightingControls({ lighting, renames }: { lighting: Lighting; renames: 
         <Toggle
           checked={on}
           onChange={turnOn}
-          label={
-            <span className="flex items-center gap-1 font-medium">
-              Lights on <HelpButton topic="lighting-on" />
-            </span>
-          }
+          label={<span className="font-medium">Lights on</span>}
+          help={<HelpButton topic="lighting-on" />}
           hint={on ? undefined : 'Off for now. Turning them on brings back your effect.'}
         />
         <div className="mt-4 border-t border-edge pt-4">
@@ -166,13 +162,9 @@ function CurrentEffect({ effect, hue, sat, speed, on }: { effect: EffectInfo; hu
   )
 }
 
-const labelled = (text: string, topic: HelpTopicId, before?: ReactNode) => (
-  <span className="flex items-center gap-1.5">
-    {before}
-    {text}
-    <HelpButton topic={topic} />
-  </span>
-)
+
+/** "This effect …" as "this effect …", to follow a colon. */
+const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1)
 
 /** The hint under a slider: the reason when the effect ignores it, otherwise what it does here, if special. */
 const reason = (use: Use, otherwise?: string) => (use === true ? otherwise : use)
@@ -188,17 +180,22 @@ function EffectSettings({ effect, now, change }: SettingsProps) {
   const swatch = (
     <span aria-hidden className="size-3.5 rounded-pill border border-edge-strong" style={{ backgroundColor: hsvCss(now.hue, now.sat) }} />
   )
+  // When colour and vividness are off for the same reason, it is said once, under both, and describes both.
+  const sharedReason = effect.hue !== true && effect.hue === effect.sat ? effect.hue : null
+  const sharedReasonId = useId()
   return (
     <div className="mt-5 flex flex-col gap-4">
       <Slider
-        label={labelled('Brightness', 'lighting-brightness')}
+        label="Brightness"
+        help={<HelpButton topic="lighting-brightness" />}
         value={Math.min(now.val, max)}
         max={max}
         format={(v) => percent(v, max)}
         onChange={(val) => change({ val })}
       />
       <Slider
-        label={labelled('Speed', 'lighting-speed')}
+        label="Speed"
+        help={<HelpButton topic="lighting-speed" />}
         value={now.speed}
         max={255}
         format={(v) => percent(v, 255)}
@@ -207,25 +204,34 @@ function EffectSettings({ effect, now, change }: SettingsProps) {
         onChange={(speed) => change({ speed })}
       />
       <Slider
-        label={labelled('Colour', 'lighting-colour', swatch)}
+        label={<>{swatch}Colour</>}
+        help={<HelpButton topic="lighting-colour" />}
         value={now.hue}
         max={255}
         format={() => colourName(now.hue, now.sat)}
         track={HUE_TRACK}
         disabled={effect.hue !== true}
-        hint={reason(effect.hue)}
+        hint={sharedReason ? undefined : reason(effect.hue)}
+        describedBy={sharedReason ? sharedReasonId : undefined}
         onChange={(hue) => change({ hue })}
       />
       <Slider
         label="Vividness"
+        help={<HelpButton topic="lighting-colour" />}
         value={now.sat}
         max={255}
         format={(v) => percent(v, 255)}
         track={satTrack(now.hue)}
         disabled={effect.sat !== true}
-        hint={effect.sat === true || effect.sat === effect.hue ? undefined : effect.sat}
+        hint={sharedReason ? undefined : reason(effect.sat)}
+        describedBy={sharedReason ? sharedReasonId : undefined}
         onChange={(sat) => change({ sat })}
       />
+      {sharedReason && (
+        <p id={sharedReasonId} className="-mt-2.5 text-[13px] text-muted">
+          Colour and vividness don’t apply: {lowerFirst(sharedReason)}
+        </p>
+      )}
     </div>
   )
 }

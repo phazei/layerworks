@@ -44,7 +44,7 @@ export function Status() {
           </Fact>
         )}
         <Fact
-          label="Layer in use"
+          label="Active layer"
           icon={<Layers size={ICON} aria-hidden />}
           hint={
             layer === null

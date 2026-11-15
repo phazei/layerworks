@@ -20,13 +20,13 @@
   --content-secondary: #5d6470;
   --content-inverse: #ffffff;
 
-  --accent: #2f6fe4;
-  --accent-hover: #245dc7;
+  --accent: #2a64d4; /* dark enough for text on --accent-soft (4.6:1) */
+  --accent-hover: #2257bd;
   --accent-soft: #e3edfd; /* accent-tinted background: selection, active nav item */
   --accent-alt: #7a5af5;
   --on-accent: #ffffff;
 
-  --success: #1f8f4e;
+  --success: #18773f; /* readable on white and on --accent-soft ("Active" in the layer stack) */
   --warning: #a8660a;
   --danger: #c93434;
   --danger-soft: #fbe9e9;
@@ -40,6 +40,7 @@
   --key-label: #171a1f;
   --key-label-remap: #a8660a;
   --key-mask-bg: #eef0f3;
+  --key-bg-seen: #cdebd9; /* a key the Test page has seen; the default label must stay readable on it */
   --wire-row: #2f6fe4;
   --wire-col: #c0379a;
 
@@ -87,6 +88,7 @@
   --key-label: #e9ebee;
   --key-label-remap: #e0a345;
   --key-mask-bg: #17191c;
+  --key-bg-seen: #1d4a32;
   --wire-row: #6aa3ff;
   --wire-col: #ff7ad1;
 

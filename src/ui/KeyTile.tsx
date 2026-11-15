@@ -43,7 +43,7 @@ export function KeyTile({ label, name, current, picked, className, ...rest }: Ke
         picked
           ? 'border-accent bg-accent text-on-accent'
           : current
-            ? 'border-accent bg-accent-soft font-semibold text-accent'
+            ? 'border-accent bg-accent-soft font-semibold text-accent ring-1 ring-accent'
             : 'hover:border-accent hover:bg-(--key-bg-hover)',
         className,
       )}

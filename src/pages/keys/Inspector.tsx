@@ -2,7 +2,7 @@
 // The inspector under the keyboard stage: what the selected key or knob direction does now, and the three ways of
 // choosing something else (a key, a shortcut, a layer switch), with the rarer ones under "More options".
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   canTakeModifiers,
   deviceStore,
@@ -19,7 +19,6 @@ import type { HelpTopicId } from '../../help/topics'
 import { cx, Segmented } from '../../ui/controls'
 import { KeyCap } from '../../ui/KeyTile'
 import { Card, Disclosure, HelpButton } from '../../ui/layout'
-import { setPref } from '../../ui/prefs'
 import { choiceFor, describeKeycode, fallThrough, layerName, type Choice } from './describe'
 import { KeyPalette } from './KeyPalette'
 import { LayerChoice } from './LayerChoice'
@@ -52,10 +51,10 @@ function Whereabouts({ keyboard, slot, names, base }: Props) {
   }
   if (slot.layer === 0) return <>{on}. There is no layer below the bottom one, so it does nothing.</>
   const below = fallThrough(keyboard, slot, base)
-  if (!below) return <>{on}. No layer below has anything on it either, so it does nothing.</>
+  if (!below) return <>{on}. The layers it falls through to have nothing on it either, so it does nothing.</>
   return (
     <>
-      {on}, where it has nothing of its own. It does what it does on {layerName(names, below.layer)}:{' '}
+      {on}, where it has nothing of its own. It normally does what it does on {layerName(names, below.layer)}:{' '}
       <span className="font-medium text-content">{describeKeycode(below.code, names)}</span>{' '}
       <span className="font-mono text-xs">{keycodeId(below.code)}</span>
     </>
@@ -75,12 +74,10 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
     [palette],
   )
 
-  // Opens on the choice that holds what the key does now; "More options" opens when that is where it is.
+  // Opens on the choice that holds what the key does now. "More options" opens for this key when that is where
+  // it is, without changing whether it stays open for the next one.
   const [opening] = useState(() => choiceFor(current, paletteCodes))
   const [choice, setChoice] = useState<Choice>(opening.choice)
-  useEffect(() => {
-    if (opening.more) setPref(`open:${MORE_OPTIONS}`, true)
-  }, [opening])
 
   const assign = (code: number) => void deviceStore.assign(slot, code)
   // Vial stores a knob's counter-clockwise turn as direction 0 and the clockwise one as 1.
@@ -143,7 +140,7 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
         </div>
 
         <div className="[grid-area:more] @3xl:[&>div]:mt-0">
-          <Disclosure id={MORE_OPTIONS}>
+          <Disclosure id={MORE_OPTIONS} forceOpen={opening.more}>
             <MoreOptions
               current={current}
               names={names}

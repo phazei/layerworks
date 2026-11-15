@@ -45,18 +45,17 @@ export function choiceFor(code: number, paletteCodes: ReadonlySet<number>): { ch
 }
 
 /**
- * For a slot that is "same as the layer below": the first layer under it with an assignment of its own, and that
- * assignment. Above the keyboard's base layer, the layers down to the base count; layers under the base are off,
- * except that QMK falls back to layer 0 when nothing else has an assignment. A layer under the base belongs to the
- * other pair (Mac while on Windows), so all layers under it count. null on the bottom layer, or when no layer
- * below has an assignment.
+ * For a slot that is "same as the layer below": the layer it normally ends up on, and what it does there. QMK
+ * takes the highest switched-on layer under it with an assignment, and layer 0 when none has one. While a layer
+ * above the base is in use, the layer switched on under it is normally just the keyboard's base layer (the
+ * Mac/Windows switch), so the key falls to the base layer, then to layer 0: on Fn2 over Windows it is the Windows
+ * key, not the Windows Fn one. A layer at or under the base (Mac Fn while on Windows) falls straight to layer 0.
+ * Other layers held at the same time are not counted. null on the bottom layer, or when nothing below has an
+ * assignment.
  */
 export function fallThrough(keyboard: KeyboardData, slot: Slot, base: number): { layer: number; code: number } | null {
   if (slotKeycode(keyboard, slot) !== KC_SAME_AS_BELOW || slot.layer === 0) return null
-  const stop = slot.layer > base ? base : slot.layer === base ? slot.layer : 0
-  const layers = []
-  for (let layer = slot.layer - 1; layer >= stop; layer--) layers.push(layer)
-  if (!layers.includes(0)) layers.push(0)
+  const layers = slot.layer > base && base > 0 ? [base, 0] : [0]
   for (const layer of layers) {
     const code = slotKeycode(keyboard, { ...slot, layer })
     if (code !== KC_SAME_AS_BELOW) return { layer, code }

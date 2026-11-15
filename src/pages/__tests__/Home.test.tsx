@@ -38,7 +38,7 @@ describe('Home on the demo keyboard', () => {
     const card = glance.closest('section')!
     expect(card).toHaveTextContent(deviceStore.getState().keyboard!.name)
     expect(glance).toHaveTextContent('ConnectionCable')
-    expect(glance).toHaveTextContent('Layer in useWindows')
+    expect(glance).toHaveTextContent('Active layerWindows')
     expect(glance).toHaveTextContent('Firmwaredemo')
     expect(glance).toHaveTextContent('ProtectionLocked')
     // The demo keyboard is on the cable, so there's no battery to show.
@@ -48,7 +48,7 @@ describe('Home on the demo keyboard', () => {
   it('follows the layer the keyboard reports', async () => {
     render(<Shell />)
     await act(async () => demoKeyboard()!.holdLayer(3))
-    expect(screen.getByLabelText('At a glance')).toHaveTextContent('Layer in useWindows Fn')
+    expect(screen.getByLabelText('At a glance')).toHaveTextContent('Active layerWindows Fn')
     expect(screen.getByLabelText('At a glance')).toHaveTextContent('Held on top of Windows')
   })
 

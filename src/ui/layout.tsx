@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The containers pages are made of: a card per group of settings, with advanced ones folded away.
 
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronRight, CircleHelp } from 'lucide-react'
 import { openHelp } from '../help/help-store'
 import type { HelpTopicId } from '../help/topics'
@@ -52,18 +52,30 @@ interface DisclosureProps {
   /** Remembered under this name, so it reopens the way it was left. */
   id: string
   label?: string
+  /**
+   * Open now, whatever was remembered, without changing what is remembered: for when what the user is looking
+   * at lives inside. Read when the disclosure appears; give it a new `key` to apply a new value.
+   */
+  forceOpen?: boolean
   children: ReactNode
 }
 
 /** "More options": advanced controls, one click away, never a separate mode. */
-export function Disclosure({ id, label = 'More options', children }: DisclosureProps) {
-  const [open, setOpen] = usePref(`open:${id}`, false)
+export function Disclosure({ id, label = 'More options', forceOpen = false, children }: DisclosureProps) {
+  const [remembered, setRemembered] = usePref(`open:${id}`, false)
+  const [forced, setForced] = useState(forceOpen)
+  const open = forced || remembered
+  const toggle = () => {
+    // Closing one that was opened for the user is a choice too: it stays closed, and is remembered so.
+    setForced(false)
+    setRemembered(!open)
+  }
   return (
     <div className="mt-4 border-t border-edge pt-3">
       <button
         type="button"
         aria-expanded={open}
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         className="flex cursor-pointer items-center gap-1 rounded-control text-[13px] font-medium text-muted hover:text-content"
       >
         <ChevronRight size={15} className={cx('transition-transform duration-(--motion)', open && 'rotate-90')} />

@@ -72,11 +72,12 @@ export function HelpPanel() {
             <a
               href={topic.docs}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 self-start text-[13px] font-medium text-accent hover:underline"
             >
               Read more in the QMK documentation
               <ExternalLink size={13} aria-hidden />
+              <span className="sr-only">(opens in a new tab)</span>
             </a>
           )}
         </div>

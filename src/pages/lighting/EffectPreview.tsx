@@ -105,9 +105,9 @@ export function EffectPreview({ effect, hue, sat, speed }: Props) {
       )
     // Effects that drift through the colours by themselves (effect.hue is a reason) turn round the rainbow.
     case 'react':
-      return on(<span className={drifts} style={{ background: c(0, 0.25) }}><span className="lw-fx-pop" style={{ background: c() }} /></span>)
+      return on(<span className={drifts} style={{ background: c(0, 0.45) }}><span className="lw-fx-pop" style={{ background: c() }} /></span>)
     case 'splash':
-      return on(<span className={drifts} style={{ background: c(0, 0.25) }}><span className="lw-fx-ring" style={{ borderColor: c() }} /></span>)
+      return on(<span className={drifts} style={{ background: c(0, 0.45) }}><span className="lw-fx-ring" style={{ borderColor: c() }} /></span>)
     case 'per-key':
       return bg(
         `conic-gradient(${hsvCss(0, 220)} 0 25%, ${hsvCss(43, 220)} 0 50%, ${hsvCss(150, 220)} 0 75%, ${hsvCss(200, 220)} 0)`,

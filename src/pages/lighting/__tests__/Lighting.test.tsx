@@ -97,7 +97,12 @@ describe('the Lighting page', () => {
     act(() => screen.getByRole('button', { name: 'Digital rain' }).click())
     await settled()
     expect(screen.getByRole('slider', { name: /Speed/ })).toHaveAccessibleDescription('This effect runs at its own pace.')
+    // Both colour sliders are off for one reason, said once and describing both.
+    const reason = 'Colour and vividness don’t apply: this effect picks its own colours.'
     expect(screen.getByRole('slider', { name: 'Vividness' })).toBeDisabled()
+    expect(screen.getByRole('slider', { name: 'Vividness' })).toHaveAccessibleDescription(reason)
+    expect(screen.getByRole('slider', { name: 'Colour' })).toHaveAccessibleDescription(reason)
+    expect(screen.getAllByText(reason)).toHaveLength(1)
   })
 
   it('turns the lights off and back on to the same effect', async () => {
