@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The containers pages are made of: a card per group of settings, with advanced ones folded away.
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { ChevronRight, CircleHelp } from 'lucide-react'
 import { openHelp } from '../help/help-store'
 import type { HelpTopicId } from '../help/topics'
@@ -105,6 +105,7 @@ interface DialogProps {
 /** A confirmation. Editing never happens in a dialog. */
 export function Dialog({ open, title, children, confirmLabel, danger, onConfirm, onCancel }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null)
+  const titleId = useId()
   useEffect(() => {
     const dialog = ref.current
     if (!dialog) return
@@ -115,13 +116,14 @@ export function Dialog({ open, title, children, confirmLabel, danger, onConfirm,
   return (
     <dialog
       ref={ref}
+      aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault()
         onCancel()
       }}
       className="m-auto w-[min(440px,90vw)] rounded-card border border-edge bg-card p-6 text-content shadow-pop backdrop:bg-backdrop"
     >
-      <h2 className="text-base font-semibold">{title}</h2>
+      <h2 id={titleId} className="text-base font-semibold">{title}</h2>
       <div className="mt-2 text-muted">{children}</div>
       <div className="mt-6 flex justify-end gap-2">
         <Button onClick={onCancel}>Cancel</Button>

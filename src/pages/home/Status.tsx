@@ -3,6 +3,7 @@
 
 import { BatteryFull, BatteryLow, BatteryMedium, Cable, Cpu, Layers, Lock, LockOpen, Radio } from 'lucide-react'
 import { useDevice, type LoadPart } from '../../device'
+import { readFirmware } from '../device/firmware'
 import { useConnectedLayerNames } from '../../shell/layer-names'
 import { openUnlock } from '../../shell/unlock-dialog'
 import { Button } from '../../ui/controls'
@@ -65,7 +66,7 @@ export function Status() {
           icon={<Cpu size={ICON} aria-hidden />}
           hint={keyboard ? `Vial protocol ${keyboard.vialProtocol}, VIA ${keyboard.viaProtocol}` : undefined}
         >
-          {keychron?.firmwareVersion || pending('keychron', loading, 'Not reported')}
+          {readFirmware(keychron?.firmwareVersion ?? '')?.version ?? pending('keychron', loading, 'Not reported')}
         </Fact>
         <Fact
           label="Protection"

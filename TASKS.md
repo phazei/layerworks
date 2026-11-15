@@ -15,7 +15,10 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
   key or knob direction; a key, a shortcut, a layer key, More options), Lighting (effect grid, lights on/off,
   brightness, speed, colour, plugin panel slot; no keyboard picture until there is a live preview), Settings
   (theme, layer names, about), Help (topic list), Test (keys seen from browser key events, and from the key
-  matrix once unlocked). Shortcuts & macros, Typing feel and Device are placeholders.
+  matrix once unlocked), Device (backup and restore to one file, Vial `.vil` import and export, sleep timers,
+  keyboard information). Shortcuts & macros and Typing feel are placeholders.
+- **Restore and the sleep timers write to the keyboard**; like all writes they have run on the fake and demo
+  keyboards only.
 - **Unlock flow** (`src/device/unlock.ts`, `src/shell/UnlockDialog.tsx`): built and tested on the fake keyboard;
   tryable on the demo keyboard by holding Esc and Enter. **Never run against the real keyboard yet.**
 - **Device layer for changes:** `assign` / `undo` / `redo` for keys and knob, `setLighting` with delayed save,
@@ -41,40 +44,46 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
   and Enter. The bar should move steadily for about 6 s. If it keeps falling back to 0, the 120 ms pause between
   polls (`UNLOCK_POLL_MS` in `src/device/unlock.ts`) is too short; try 150. Then check **Lock** works, that the
   Test page sees Fn2 (right B) while unlocked, and repeat over 2.4 GHz. Replugging the keyboard ends a stuck unlock.
+- First real backup and restore, on the cable, after the checks above: Device → **Save a backup**; change one
+  key; **Choose a backup file…** and check the summary lists only that key; restore. Then restore a file with a
+  changed macro while locked (it should be skipped and say so), unlock, and restore again. Watch the status line
+  for write errors. Changing a sleep timer over 2.4 GHz nudges the mouse pointer; the firmware does that itself.
 - Reactions to the look (tokens, accent colour, density), and to the wording: effect names and groups on
   Lighting ("Vividness" for saturation), the layer line in the Keys inspector, Home's welcome lines.
 
-## Next: work packages
+## Next
 
-Each is sized for one delegated agent; two at most run at a time (`AGENTS.md`). Every package: follow `AGENTS.md`, keep `README.md` current, add
-tests, and finish with `pnpm typecheck && pnpm lint && pnpm test` passing and screenshots of the demo keyboard.
+The six first work packages (shell, Keys, Home and Settings, Lighting, Test and unlock, Device) are built. What
+follows needs the user's reactions first, then continues with the spec's later phases. Each item below is sized
+for one delegated agent; two at most run at a time (`AGENTS.md`).
 
-### 6. Device page (spec section 7 "Device")
+### After the user's first look
 
-- Backup / restore to one file (keymap, knob, macros, entries, settings, lighting, Keychron data, layer names),
-  `.vil` import / export, firmware information, wireless and sleep timers.
-- Restore writes a lot: fake keyboard only until the user has tested it.
+- Apply the reactions (look, wording, layout).
+- With the user present: the real-keyboard checks listed under "Waiting on the user". Fix what they show.
+
+### Phase 6 packages (spec section 7)
+
+- **Shortcuts & macros**: macro list and editor (the restore path already writes the macro buffer; needs
+  unlock), tap dance ("multi-tap keys"), combos ("key chords"), key overrides, alt repeat. Largest remaining piece;
+  split into macros first, then the four entry kinds.
+- **Typing feel**: the QMK settings the keyboard reports (tap/hold timing, auto shift, mouse keys …) with plain
+  names, and debounce / Snap Click from the Keychron data.
+- **Keys, tap/hold choices**: "one thing when tapped, another when held" (mod-tap, layer-tap) in the inspector.
+- **Lighting, per key**: Keychron per-key RGB and mixed zones (the data is in the backup already, not restored).
 
 ### Small things from review
 
-- Literal values that should be tokens: the `Toggle` knob (`bg-white shadow`), the `Dialog` backdrop
-  (`bg-black/50`), the `.lw-slider` thumb in `styles.css`.
-- Light theme: a key held down on the Test page has a dark label on the green `--success`; the label colour is
-  chosen inside the vendored widget, so the fix is a lighter pressed colour or a wrapper-side override.
-- Keys at 1000×700: the stage takes most of the height and the palette starts below the fold. Needs a layout
-  decision (a smaller picture, or the layer stack collapsing further).
-- Settings and Help sit in a narrow column and leave the right half empty at 1280 px.
-- Home: the "Protection" fact could offer `openUnlock()`; its "?" sits beside the layer name rather than the label.
-- Home: the battery line (2.4 GHz only) has never been seen rendered; the demo keyboard is on the cable. A demo
-  option for a wireless link would cover it. The firmware line shows whatever the keyboard reports; check it
-  reads well on the real one (`v1.1.2 1970-01-01-00:00:00`).
-- `src/pages/test/seen.ts` resets its state during render; works, could be cleaner.
-- `pnpm shots` keeps one browser profile between runs, so remembered choices ("More options" open, theme) from an
-  earlier run can show in a later shot. A fresh profile per run would fix it.
-- The keyboard has 90 physical keys; "92" in older notes counts the knob's two directions.
+- Device card: the quiet "Unlock…" and "Lock" buttons read as plain text; give them a slightly stronger style.
+- Keys in a short window: the palette shows five columns and feels crowded.
+- Restore doesn't write per-key RGB or Snap Click yet (they are in the backup file).
+- The plain demo keyboard has no wireless features (Home's tests expect that); `?demo-wireless` turns them on.
+- `readFirmware` lives in `src/pages/device/firmware.ts` and Home imports it from there; move it to `src/device`
+  when something else needs it.
+- The build warns that the main chunk is over 500 kB; split the vendored keycode tables or the pages when it
+  matters.
 ## Later
 
-- Phase 6 (advanced: tap/hold, shortcuts & macros, typing feel, per-key lighting), 7 (help content, first-run
-  tour), 8 (Ripple plugin with its firmware command; see `../TASKS.md` "Firmware extensions").
+- Phase 7 (help content, first-run tour), 8 (Ripple plugin with its firmware command; see `../TASKS.md` "Firmware extensions").
 - Upstream candidate: Pipette's web transport hands layer reports to waiting requests
   (`../docs/research/spike-results.md`, finding 1). A fix would be a branch in `../pipette`.
