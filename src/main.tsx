@@ -6,8 +6,9 @@
 //   ?demo-effect=25 starts the demo keyboard on another lighting effect (read in src/demo/demo-link.ts)
 //   ?select=3,2     selects a key (row,col) or knob direction (knob,0,1) once a keyboard is in; ?layer=3 shows a layer
 //   ?unlock         opens the unlock dialog once the keyboard's lock state is in; ?unlock=start starts unlocking
-//   ?demo-unlocked  starts the demo keyboard unlocked; ?demo-press=0,1;3,14 presses demo keys by itself
-//                   (both read in src/demo/demo-link.ts)
+//   ?demo-unlocked  starts the demo keyboard unlocked; ?demo-press=0,1;3,14 presses demo keys by itself;
+//                   ?demo-wireless connects the demo through the 2.4 GHz receiver, with a battery level
+//                   (all read in src/demo/demo-link.ts)
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

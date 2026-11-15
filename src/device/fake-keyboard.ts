@@ -100,8 +100,17 @@ export interface FakeKeyboardConfig {
   macroCount: number
   macros: number[]
   qsids: number[]
+  /** QMK setting values written so far, by ID; a setting not written reads as its own ID in the first byte. */
+  settingValues?: Record<number, number[]>
+  /**
+   * Tap dance, combo, key override and alt repeat entries written so far, as the bytes after the status byte. An
+   * entry not written reads as its number + 1 in the first byte, so tests can tell them apart.
+   */
+  entryBytes?: Partial<Record<EntryKind, number[][]>>
+  /** VIA layout options. Default 0. */
+  layoutOptions?: number
   /** null: the firmware has no Keychron commands. */
-  keychron: { protocol: number; features: number; firmware: string } | null
+  keychron: FakeKeychron | null
   layer: { base: number; held: number }
   unlocked: boolean
   /** The keys to hold for unlocking, (row, col). */
@@ -109,6 +118,25 @@ export interface FakeKeyboardConfig {
   /** Physical keys down right now, "row,col": what the switch matrix reports, and what unlocking checks. */
   held: Set<string>
 }
+
+export type EntryKind = 'tapDance' | 'combo' | 'keyOverride' | 'altRepeatKey'
+
+export interface FakeKeychron {
+  protocol: number
+  features: number
+  firmware: string
+  /** Misc feature bits (`0xA7 0x01`); with them, the misc protocol version reads 2. Default 0: none. */
+  misc?: number
+  /** Wireless timers in seconds (`0xA7 0x0B/0x0C`): backlight off, sleep. */
+  lpm?: { backlitTime: number; idleTime: number }
+  /** Battery percent (`0xAC`); 0 on the cable, as the firmware reports it. */
+  battery?: number
+  /** Debounce (`0xA7 0x05/0x06`). */
+  debounce?: { type: number; time: number }
+}
+
+/** QK_BOOT in Vial protocol 6: the firmware turns it into 0 in knob and entry writes while locked. */
+const QK_BOOT = 0x7c00
 
 export function fakeKeyboardConfig(overrides: Partial<FakeKeyboardConfig> = {}): FakeKeyboardConfig {
   const layers = overrides.layers ?? 3
@@ -151,11 +179,24 @@ export function fakeKeyboardConfig(overrides: Partial<FakeKeyboardConfig> = {}):
 
 const UNLOCK_COUNTER_MAX = 50
 
+/** Dynamic entry kinds in the order of their get/set subcommands (1/2, 3/4, 5/6, 7/8). */
+const ENTRY_KINDS: EntryKind[] = ['tapDance', 'combo', 'keyOverride', 'altRepeatKey']
+/** Where each kind's keycodes sit in its bytes (u16 LE), the ones vial.c runs through its firewall. */
+const ENTRY_KEYCODES: Record<EntryKind, number[]> = {
+  tapDance: [0, 2, 4, 6],
+  combo: [8],
+  keyOverride: [2],
+  altRepeatKey: [0, 2],
+}
+
 /** VialRGB effect numbers the fake keyboard has. */
 export const RGB_EFFECTS = [1, 2, 3, 6, 13, 15, 22, 39]
 
 const le16 = (v: number) => [v & 0xff, (v >> 8) & 0xff]
 const be16 = (v: number) => [(v >> 8) & 0xff, v & 0xff]
+const be32 = (v: number) => [...be16(Math.floor(v / 0x10000)), ...be16(v)]
+const readBe32 = (bytes: Uint8Array, at: number) =>
+  bytes[at] * 0x1000000 + (bytes[at + 1] << 16) + (bytes[at + 2] << 8) + bytes[at + 3]
 
 /** The definition is not compressed here; pair it with `plainDefinition` as the store's decompress function. */
 export async function plainDefinition(bytes: number[]): Promise<string> {
@@ -163,8 +204,10 @@ export async function plainDefinition(bytes: number[]): Promise<string> {
 }
 
 /**
- * Answers the requests the device layer makes, from the given config. Writes (keys, knob, lighting) change the
- * config, so later reads see them.
+ * Answers the requests the device layer makes, from the given config. Writes (keys, knob, lighting, macros, tap
+ * dance and the other entries, QMK settings, layout options, Keychron timers and debounce) change the config, so
+ * later reads see them. Locked, macro writes are ignored and QK_BOOT in knob and entry writes becomes 0, as in
+ * vial-qmk.
  */
 export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
   const definition = new TextEncoder().encode(
@@ -179,6 +222,8 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
     ),
   )
   const keymapBytes = () => config.keymap.flat(2).flatMap(be16)
+  /** vial.c's vial_keycode_firewall: QK_BOOT only goes in while unlocked. */
+  const firewall = (code: number) => (code === QK_BOOT && !config.unlocked ? 0 : code)
 
   // Unlock as vial-qmk does it (quantum/vial.c): 50 steps, one per poll while every unlock key is held and more
   // than 100 ms have passed since the last step; any other poll starts the count again.
@@ -211,7 +256,7 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
         return [...be16(cw), ...be16(ccw)]
       }
       case 0x04:
-        config.knob[request[2]][request[4]] = (request[5] << 8) | request[6]
+        config.knob[request[2]][request[4]] = firewall((request[5] << 8) | request[6])
         return []
       case 0x05: {
         const out = new Array<number>(REPORT_LEN).fill(0xff)
@@ -246,9 +291,18 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
         const rest = config.qsids.filter((q) => q > from).flatMap(le16)
         return [...rest, ...new Array<number>(REPORT_LEN).fill(0xff)].slice(0, REPORT_LEN)
       }
-      case 0x0a:
-        return [0, request[2], 0, 0, 0]
-      case 0x0d:
+      case 0x0a: {
+        const qsid = request[2] | (request[3] << 8)
+        if (!config.qsids.includes(qsid)) return [1]
+        return [0, ...(config.settingValues?.[qsid] ?? [request[2], 0, 0, 0])]
+      }
+      case 0x0b: {
+        const qsid = request[2] | (request[3] << 8)
+        if (!config.qsids.includes(qsid)) return [1]
+        config.settingValues = { ...config.settingValues, [qsid]: Array.from(request.subarray(4)) }
+        return [0]
+      }
+      case 0x0d: {
         if (request[2] === 0x00) {
           const { tapDance, combo, keyOverride, altRepeatKey, featureFlags } = config.counts
           const out = new Array<number>(REPORT_LEN).fill(0)
@@ -256,10 +310,52 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
           out[REPORT_LEN - 1] = featureFlags
           return out
         }
-        // Any entry: status 0, then the entry number as its first value so tests can tell them apart.
-        return [0, request[3] + 1, 0]
+        const kind = ENTRY_KINDS[(request[2] - 1) >> 1]
+        const index = request[3]
+        if (!kind || index >= config.counts[kind]) return [1]
+        const stored = (config.entryBytes ??= {})[kind] ?? []
+        if (request[2] % 2 === 1) return [0, ...(stored[index] ?? [index + 1, 0])]
+        const bytes = Array.from(request.subarray(4))
+        for (const at of ENTRY_KEYCODES[kind]) {
+          const code = firewall(bytes[at] | (bytes[at + 1] << 8))
+          bytes.splice(at, 2, code & 0xff, code >> 8)
+        }
+        stored[index] = bytes
+        config.entryBytes[kind] = stored
+        return [0]
+      }
       default:
         return Array.from(request)
+    }
+  }
+
+  /** Keychron's misc group (`0xA7`): reply `[0xA7, sub, status, ...]`, status 0 for success. */
+  const keychronMisc = (kc: FakeKeychron, request: Uint8Array): number[] => {
+    const sub = request[1]
+    const misc = kc.misc ?? 0
+    const ok = (...data: number[]) => [0xa7, sub, 0, ...data]
+    const fail = [0xa7, sub, 1]
+    switch (sub) {
+      case 0x01:
+        return misc ? ok(2, 0, misc & 0xff, misc >> 8) : [0xa7, 0x01, 0, 0, 0, 0, 0]
+      case 0x05:
+        return kc.debounce ? ok(0, kc.debounce.type, kc.debounce.time) : fail
+      case 0x06:
+        if (!kc.debounce) return fail
+        kc.debounce = { type: request[2], time: request[3] }
+        return ok()
+      case 0x0b:
+        return kc.lpm ? ok(...le16(kc.lpm.backlitTime), ...le16(kc.lpm.idleTime)) : fail
+      case 0x0c: {
+        // The firmware refuses a backlight time under 5 s or a sleep time under 60 s, and saves on success.
+        const backlitTime = request[2] | (request[3] << 8)
+        const idleTime = request[4] | (request[5] << 8)
+        if (!kc.lpm || backlitTime < 5 || idleTime < 60) return fail
+        kc.lpm = { backlitTime, idleTime }
+        return ok()
+      }
+      default:
+        return fail
     }
   }
 
@@ -276,7 +372,9 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
       case 0xa3:
         return [0xa3, config.layer.base, config.layer.held]
       case 0xa7:
-        return request[1] === 0x01 ? [0xa7, 0x01, 0, 0, 0, 0, 0] : [0xa7, request[1], 1]
+        return keychronMisc(kc, request)
+      case 0xac:
+        return [0xac, kc.battery ?? 0]
       default:
         return [0xff]
     }
@@ -297,7 +395,11 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
       case 0x02:
         // The switch matrix only while unlocked; locked, the request comes back with every key up.
         if (request[1] === 0x03) return config.unlocked ? matrixState() : Array.from(request)
+        if (request[1] === 0x02) return [0x02, 0x02, ...be32(config.layoutOptions ?? 0)]
         return [0x02, request[1], 0, 0, 0, 0]
+      case 0x03:
+        if (request[1] === 0x02) config.layoutOptions = readBe32(request, 2)
+        return Array.from(request)
       case 0x05:
         config.keymap[request[1]][request[2]][request[3]] = (request[4] << 8) | request[5]
         return Array.from(request)
@@ -328,6 +430,15 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
       case 0x0e: {
         const offset = (request[1] << 8) | request[2]
         return [0x0e, request[1], request[2], request[3], ...config.macros.slice(offset, offset + request[3])]
+      }
+      case 0x0f: {
+        // via.c: macro writes are skipped until unlocked, and the request comes back unchanged either way.
+        const offset = (request[1] << 8) | request[2]
+        const size = request[3]
+        if (config.unlocked && size <= 28 && offset + size <= config.macros.length) {
+          config.macros.splice(offset, size, ...request.subarray(4, 4 + size))
+        }
+        return Array.from(request)
       }
       case 0x11:
         return [0x11, config.layers]

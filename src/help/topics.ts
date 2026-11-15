@@ -171,6 +171,61 @@ const topics = {
       'Flashing new firmware can erase it, so make a backup first (Device page).',
     ],
   },
+  backup: {
+    title: 'Backing up',
+    body: [
+      'A backup is one file with everything the keyboard holds: every key on every layer, the knob, macros, multi-tap keys and the other extras, typing settings, lighting and the wireless timers. Your layer names, which live in this browser, go in it too.',
+      'Saving a backup only reads from the keyboard; nothing on it changes. Keep the file somewhere safe and make a new one after big changes.',
+    ],
+    example: 'Back up before flashing new firmware; afterwards, restore the file to get your layout back.',
+    docs: QMK + 'newbs_flashing',
+  },
+  restore: {
+    title: 'Restoring a backup',
+    body: [
+      'Restoring makes the keyboard match a backup file. The app first lists what is different and only writes that; everything else stays as it is.',
+      'A file from a different keyboard is refused. Macros, and the key that restarts the keyboard for a firmware update, can only be written while the keyboard is unlocked; the app says so first, and leaves them out if it stays locked.',
+      'The keys and knob can be put back afterwards with Undo; macros, settings and lighting can’t, so back up first if you might want them again.',
+    ],
+    example: 'Restore last week’s backup to undo an afternoon of experiments in one go.',
+  },
+  'vial-file': {
+    title: 'Vial files',
+    qmkName: '.vil',
+    body: [
+      'Vial, the app this firmware was made for, saves layouts in its own kind of file. Layerworks can save one for Vial to load, and restore from one Vial saved.',
+      'A Vial file holds the keys, knob, macros, the extras and typing settings, but not lighting, wireless timers or layer names. For a complete backup, use the Layerworks file.',
+    ],
+    example: 'Save a Vial file to share your layout with someone who uses Vial.',
+    docs: 'https://get.vial.today/manual/',
+  },
+  'lights-off-timer': {
+    title: 'Lights off after',
+    qmkName: 'Wireless backlight timeout',
+    body: [
+      'On Bluetooth or 2.4 GHz, the key lights turn off after this long without a key press, to save the battery. The first key you press turns them on again. On the cable they stay on.',
+      'It must be at least 5 seconds and shorter than the sleep time. The keyboard keeps it until you change it.',
+    ],
+    example: '30 seconds makes a charge last noticeably longer than the default 10 minutes.',
+  },
+  'sleep-timer': {
+    title: 'Sleep after',
+    qmkName: 'Wireless idle timeout',
+    body: [
+      'On Bluetooth or 2.4 GHz, the keyboard goes to sleep after this long without a key press. Pressing a key wakes it; the first press may be lost while it reconnects.',
+      'It must be at least a minute. Changing either timer while connected wirelessly makes the mouse pointer twitch once: the keyboard does that on purpose, to show the computer it is awake.',
+    ],
+    example: 'The default is 2 hours; 30 minutes saves battery if you often leave the keyboard on.',
+  },
+  firmware: {
+    title: 'Firmware',
+    qmkName: 'QMK, Vial',
+    body: [
+      'The firmware is the program inside the keyboard. This one is QMK with Vial added, which lets apps like this one change keys and settings without building new firmware.',
+      'The version numbers under Technical details say which commands the keyboard understands; they matter when asking for help or comparing with other apps.',
+    ],
+    docs: QMK + 'newbs',
+  },
 } satisfies Record<string, HelpTopic>
 
 export type HelpTopicId = keyof typeof topics

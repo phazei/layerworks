@@ -6,7 +6,8 @@ the browser (Chrome or Edge, over WebHID), on the cable or through the 2.4 GHz r
 
 The design is in the Alice-Keyboard project: `../docs/spec/layerworks.md`. What exists so far: the connection
 layer, the shell (sidebar, keyboard stage, status line, help panel, themes), the unlock flow and a page for every
-section; Home, Keys, Lighting, Test and Settings are built (see "The built pages"), the rest are still placeholders.
+section; Home, Keys, Lighting, Test, Device and Settings are built (see "The built pages"), the rest are still
+placeholders.
 
 ## Run it
 
@@ -30,6 +31,8 @@ Options in the URL, before the `#`:
 | `?layer=<n>` | Shows layer n on the stage instead of following the keyboard |
 | `?demo-effect=<id>` | Starts the demo keyboard on another lighting effect (VialRGB id, e.g. `25`), for screenshots |
 | `?demo-unlocked` | Starts the demo keyboard unlocked (the Test page reads every key) |
+| `?demo-wireless` | The demo keyboard is reached through the 2.4 GHz receiver, reports a battery level (76 %) and has the K15 Max's wireless timers and debounce, for screenshots of the wireless parts |
+| `?restore-sample` | The Device page opens a made-up backup of the connected keyboard (a few keys, a knob turn, a macro and the colour changed) once it is read, for screenshots of the restore review |
 | `?demo-press=2,2;2,3;0,1+3,14` | The demo presses keys (row,col) by itself from a second after connecting: each step in turn, keys joined by `+` together, the last step stays held |
 | `?unlock`, `?unlock=start` | Opens the unlock dialog once the lock state is read; `start` starts unlocking straight away (with `?demo-press=0,1+3,14` the demo holds Esc and Enter) |
 
@@ -59,6 +62,11 @@ src/
     matrix.ts          reading the switch matrix (which keys are down), and the picture's physical keys
     keycodes.ts        key names, the palette's groups, shortcut and layer-key builders
     fake-keyboard.ts   a HidLink with no hardware and a small Vial keyboard behind it (tests, demo)
+    backup.ts          the backup file: create, read back with checks, turn into contents to restore
+    restore.ts         restoring: whether a file fits the keyboard, the plan of writes (only what differs), in words
+    vil.ts             Vial's .vil files in and out (through the vendored vil-compat and macro code)
+    keyboard-file.ts   opens a file to restore from: a backup or a Vial file
+    wireless.ts        Keychron's wireless timers: limits, choices, durations in words
     useDevice.ts       the app's store and its React hook
     api.ts, index.ts   the public surface; pages, plugins and the shell import from here
   demo/              the demo keyboard: a K15 Max inside the page (k15-max.json, demo-link.ts)
@@ -70,6 +78,7 @@ src/
     Modal.tsx          a modal with its own buttons, which can refuse Esc (the unlock flow)
     ProgressBar.tsx    a filled bar
     display.tsx        Facts / Fact (label over value), ActionTile (large shortcut link), ExternalLink (new tab)
+    files.tsx          FileButton (opens the file picker), downloadText (saves text as a download), readText
     prefs.ts           what the app remembers in the browser (usePref)
     theme.ts           dark / light / system, applied as the `dark` class on <html>
     KeyboardPicture.tsx  the keyboard for one layer; wraps the vendored keyboard widget
@@ -90,7 +99,7 @@ src/
     layer-names.ts     layer names, kept in the browser per keyboard
     pressed-keys.ts    held keys, from the browser's key events
   pages/             the built-in sections, one file each, registered as the "core" plugin (index.ts);
-                     a page's own parts in a folder beside it (home/, keys/, settings/, lighting/, test/)
+                     a page's own parts in a folder beside it (home/, keys/, settings/, lighting/, test/, device/)
   plugins/api.ts     definePlugin: pages and panels, for built-in sections and plugins alike
   help/              help topics (topics.ts) and which one the help panel shows
   vendor/pipette/    code copied from Pipette, unmodified (VENDOR.md)
@@ -126,7 +135,9 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
 - **Theme**: dark by default; Settings offers dark, light and "Like the system". Stored with `prefs.ts`
   (`theme`); a small script in `index.html` applies it before the app loads, so nothing flashes.
 - Sized for 1280 × 800 and usable down to about 1000 px wide. When the stage itself is narrower than 768 px (a
-  container query; a window of about 1050 px), the layer stack becomes a row of chips above the picture.
+  container query; a window of about 1050 px), the layer stack becomes a row of chips above the picture. In a short
+  window the picture gives up height (no taller than the window less 30rem, at least 10rem) so the page under it
+  stays in view.
 
 ## Pages and plugins
 
@@ -153,13 +164,15 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
 ## The built pages
 
 - **Home** (`Home.tsx`, `home/`): the landing page. Under the stage: the keyboard's name with connection,
-  battery (on 2.4 GHz, when known), the active layer by name, firmware version and lock state; four shortcut
+  battery (on 2.4 GHz, when known), the active layer by name, firmware version and lock state (with Unlock… while
+  locked; the facts' "?" sit beside their labels); four shortcut
   tiles (keys, lighting, backup, test); and what the keyboard can do, from `capabilities`
   (`home/features.ts` gives each feature its friendly and QMK name), with the missing ones and their reasons
   behind a `Disclosure`. With no keyboard it shows the connect prompt and three lines on what the app is for.
 - **Keys** (`Keys.tsx`, `keys/`): click a key or one side of the knob on the stage; with nothing selected the
-  page says so. The inspector (`keys/Inspector.tsx`) is two columns when it is wide (a container query), one
-  when narrow. It asks "What should this key do?", says which layer it is on and, above the base layer, whether
+  page says so. The inspector (`keys/Inspector.tsx`) is two columns from 42rem (a container query), so in a small
+  window the palette starts at the top of the card; one column when narrower. It asks "What should this key
+  do?", says which layer it is on and, above the base layer, whether
   the key has its own assignment or falls through, and to what (`keys/describe.ts`, `fallThrough`: from a layer
   above the keyboard's base layer to the base layer, then layer 0; from any other layer straight to layer 0;
   worded "normally", since other layers held at the same time aren't counted). "Now" shows the current assignment as a keycap,
@@ -183,6 +196,7 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
 - **Settings** (`Settings.tsx`, `settings/`): theme; a name field per layer of the connected keyboard, with a
   reset to the default (the same names as the layer stack, `shell/layer-names.ts`); about: version from
   `package.json`, licence, and credits to Pipette (repo and commit from `vendor.json`), QMK, Vial and Lucide.
+  Appearance and layer names on the left, About on the right once the page is 56rem wide; one column below that.
 - **Lighting** (`Lighting.tsx`, `lighting/`): full height, no stage (the picture can't show the lighting yet).
   Left, the effects the keyboard lists (`capabilities.lighting.effects`) as tiles in groups (Steady, Moving, Rain
   and sparkles, Reacts to typing, Set per key or zone), each with a small moving preview in the chosen colour
@@ -203,7 +217,8 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     firmware that puts its own effect in a standard slot (the K15's ripple is Solid Splash, VialRGB id 41).
 - **Test** (`Test.tsx`, `test/`): full height, with its own picture (no layer stack; labels follow the active
   layer). "37 of 90 keys seen" with a bar and "Start again"; a key is lit while down and stays marked once seen
-  (`KeyboardPicture`'s `seen`, in `--key-bg-seen`). Total: the picture's physical keys (`matrixKeys`; the K15 Max
+  (`KeyboardPicture`'s `seen`, in `--key-bg-seen`; a held key is `--key-bg-pressed`, light in the light theme so the
+  widget's dark label reads on it). Total: the picture's physical keys (`matrixKeys`; the K15 Max
   has 90, plus two knob turns that no reading can see). Two sources, combined:
   - the browser's key events (`usePressedKeys`), always: only keys that type something, only while the window is
     in front (the page says so when it isn't). While the page is open it keeps keys without Ctrl or Win from
@@ -214,6 +229,27 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
 
   A note under the picture says which source is in use; locked, it names what can't be seen and offers "Unlock to
   see every key…". Seen keys survive a visit to another page (`test/seen.ts`), not another keyboard.
+- **Device** (`Device.tsx`, `device/`): full height, no stage; two columns from 56rem (like Settings).
+  - *Back up and restore* (`device/Backup.tsx`, `device/Restore.tsx`): "Save a backup" downloads the backup file
+    (see "Backups") once every part has been read, and says which parts are missing if some couldn't be read.
+    "Choose a backup file…" opens a backup or a Vial file and goes through the restore steps in place: a refusal
+    with the reason (another keyboard, keys wired differently, not a backup); or the file's name and date, any
+    warning (same model, other firmware), the list of what will change in words (`describePlan`), marked "needs
+    unlocking" where that applies with "Unlock first…", and what the file holds that this keyboard can't take.
+    "Restore…" asks in a danger `Dialog` that lists the same lines; then a progress bar, then what was restored,
+    what failed (with the error), what was left out because the keyboard is locked (with "Unlock…"), and that Undo
+    takes back the keys and knob. A file that already matches says so. *Vial files* (a `Disclosure`): "Save a
+    Vial file".
+  - *Wireless and sleep* (`device/Wireless.tsx`), only when `keychron.hasWireless`: the battery (through the
+    receiver), and "Lights off after" and "Sleep after" as choices (`BACKLIT_CHOICES`, `IDLE_CHOICES`, plus the
+    keyboard's own value if it is another); a choice that would put sleep before lights-off is disabled. A click
+    is `deviceStore.setWirelessTimers`.
+  - *About this keyboard* (`device/KeyboardInfo.tsx`): name and maker, connection, firmware version
+    (`device/firmware.ts`: "v1.1.2 1970-01-01-00:00:00" reads "1.1.2"; the date only when it is a real one),
+    layers, keys and knob, lock state, and how many macros, tap dances, combos, key overrides, alt-repeat rules and
+    QMK settings it has room for. *Technical details* (a `Disclosure`): USB IDs (and the receiver's), Vial keyboard
+    ID, protocol versions, Keychron feature bits, the raw firmware string, matrix size, layout options, feature
+    flags, macro memory, QMK setting IDs, lighting, and the transport's request counters, refreshed every second.
 
 ## Unlocking
 
@@ -271,7 +307,8 @@ pnpm shots --port=5197 /keys                 # own port and build folder, for tw
 
 `scripts/screenshot.mjs` builds, serves the build on port 5198, takes each page with headless Edge into
 `%TEMP%\opencode\layerworks-shots\` (`keys-dark.png`, `keys-offline-light.png`, ...) and stops the server.
-`EDGE=<path>` points it at another `msedge.exe`.
+Every picture gets a fresh browser profile in a temporary folder, removed at the end, so nothing remembered in
+one shot (theme, "More options" open) shows in another. `EDGE=<path>` points it at another `msedge.exe`.
 
 ## Changing things on the keyboard
 
@@ -280,7 +317,61 @@ pnpm shots --port=5197 /keys                 # own port and build folder, for tw
   `writeError` holds the last failure.
 - `deviceStore.setLighting(change)` sends the effect and its values at once and saves them to the keyboard 1.5 s
   after the last change.
-- `deviceStore.lock()` locks the keyboard (see "Unlocking"). Nothing else writes yet.
+- `deviceStore.lock()` locks the keyboard (see "Unlocking").
+- `deviceStore.restore(plan, onProgress)` writes a restore plan (see "Backups") as one change in the queue.
+- `deviceStore.setWirelessTimers({ backlitTime, idleTime })` sets Keychron's wireless timers (`0xA7 0x0C`); the
+  keyboard saves them itself. Pairs the firmware would refuse (lights-off under 5 s, sleep under 60 s) or that put
+  sleep before lights-off are not sent (`timersProblem`). Writing them while wirelessly connected makes the
+  firmware nudge the mouse pointer once.
+
+## Backups
+
+One JSON file, `<keyboard-name>-<date>.layerworks.json` (`device/backup.ts`):
+
+```
+{ "format": "layerworks-backup", "version": 1, "savedAt": "2026-11-15T10:30:00.000Z",
+  "keyboard": { name, vendorId, productId, uid, rows, cols, layers, knobs, viaProtocol, vialProtocol, firmware },
+  "layerNames": ["", "My Fn", ...],             one per layer, as stored in the browser ("" = default name)
+  "keymap": [[[keycode, ...] row] layer],        keymap[layer][row][col], every matrix position
+  "knobs": [[[left, right] knob] layer],         left = counter-clockwise (direction 0)
+  "layoutOptions": 0,
+  "macros": [byte, ...] | null,                  the macro buffer as the keyboard stores it
+  "entries": { tapDance, combo, keyOverride, altRepeatKey } | null,
+  "settings": { "<QMK setting id>": [byte, ...] } | null,
+  "lighting": { mode, speed, hue, sat, val } | null,       VialRGB effect id
+  "keychron": { wireless: { backlitTime, idleTime } | null, debounce: { type, time } | null, state } | null }
+```
+
+`null` is a part that couldn't be read (or the keyboard doesn't have). Keycodes are numbers. Vendor and product
+come from the keyboard's definition, else from the cable link (a receiver has its own IDs). `keychron.state` is
+everything else the Keychron commands returned, for reference; restore doesn't use it. `parseBackup` checks
+every part and throws a `BackupError` that says what is wrong ("The backup file is damaged: layer 1, row 0 of the
+keymap."); a higher `version` is refused with "made by a newer version of Layerworks".
+
+**Restore** (`device/restore.ts`, `DeviceStore.restore`):
+
+- `readKeyboardFile` tells a backup from a Vial file and turns either into `KeyboardContents`.
+- `checkFit` refuses a file for another keyboard (vendor and product differ, when both are known) or with a
+  different matrix size, and warns when the Vial keyboard ID differs (same model, other firmware; Vial's ID is
+  per firmware definition, not per keyboard).
+- `planRestore` compares with what the store holds and keeps only differences: keys and knob directions, layout
+  options, the macro buffer (whole, padded to the keyboard's size), entries by index, QMK settings by value
+  (whatever their width in the file), lighting, wireless timers, debounce, layer names. What the keyboard can't
+  take (more layers, more entries, unknown settings, an effect it lacks) is listed in `plan.ignored`.
+  `describePlan` puts the plan in words, one line per part.
+- `DeviceStore.restore` writes the plan through the store's change queue, part by part. Every write is tried; one
+  that fails is reported and the rest go on (each write stands alone, and restoring again retries only what still
+  differs). If the keyboard goes away it stops and says so. While the keyboard is locked, writes vial-qmk would
+  ignore or alter are skipped and reported, not attempted: the macro buffer (via.c ignores it), and QK_BOOT in a
+  knob direction or entry (vial.c turns it into nothing). QK_BOOT on a key is skipped too, as Vial asks first.
+  Lighting is saved at once. All key and knob writes become one undo step; macros, entries, settings, lighting and
+  timers are not undoable. Layer names are written by the page afterwards (they live in the browser,
+  `setLayerNames`).
+
+**Vial files** (`device/vil.ts`): `exportVil` writes vial-gui's format (keys and knob by QMK name, macros as
+action lists, settings as numbers, the uid as a bare number) through Pipette's vendored `vil-compat.ts`;
+`parseVil` reads one back, macros encoded for the connected keyboard's Vial protocol. A Vial file has no lighting,
+Keychron settings or layer names, so restoring one leaves those alone.
 
 ## Demo keyboard
 
@@ -295,6 +386,12 @@ demo key that sends the same key on its base layer, so holding Esc and Enter unl
 page sees those keys through the matrix too. It starts locked (`?demo-unlocked` for unlocked); `?demo-press=`
 presses keys by itself for screenshots. Unlocking, the matrix and the commands ignored while counting behave as
 vial-qmk's do (`fake-keyboard.ts`).
+
+It answers every write the app makes and keeps it: keys, knob, lighting, macros (only while unlocked), tap dance
+and the other entries, QMK settings, layout options, and Keychron's wireless timers and debounce; locked, QK_BOOT
+in knob and entry writes becomes 0, as in vial-qmk. On the cable its Keychron commands report the default layer
+only; `?demo-wireless` connects it through the receiver with the K15 Max's wireless features, timers (10 min,
+2 h), debounce, a battery of 76 % and the real firmware string (`v1.1.2 1970-01-01-00:00:00`).
 
 ## How it talks to the keyboard
 
@@ -328,7 +425,9 @@ pages / plugins → device store → vendored protocol code → transport (reque
 Unit tests sit in `__tests__/` beside the code. `src/device/fake-keyboard.ts` provides a `HidLink` with no
 hardware behind it and a small Vial keyboard to answer it, on the cable or through a receiver; its `held` set is
 the switch matrix, which unlocking checks. The unlock and matrix tests run on fake timers and check the poll
-spacing and that nothing else is sent while unlocking.
+spacing and that nothing else is sent while unlocking. The restore tests (`device/__tests__/restore.test.ts`) back
+up the fake keyboard, change it behind the store's back, restore and compare the fake's memory with the original,
+counting the writes sent; `vil.test.ts` also reads a real Vial save (Pipette's `bento-max.vil` fixture).
 
 ## Licence
 

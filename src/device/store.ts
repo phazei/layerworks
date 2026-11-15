@@ -3,7 +3,11 @@
 // ./useDevice; plugins get it through their device context.
 
 import * as protocol from '../vendor/pipette/tauri-shim/protocol'
-import { reloadKeychron } from '../vendor/pipette/tauri-shim/keychron-protocol'
+import {
+  reloadKeychron,
+  setKeychronDebounce,
+  setKeychronWirelessLpm,
+} from '../vendor/pipette/tauri-shim/keychron-protocol'
 import { setTransport } from '../vendor/pipette/tauri-shim/transport'
 import { runProbeSequence, type ProbeDecompress } from '../vendor/pipette/shared/hid/probe-sequence'
 import { parseDefinitionLayout } from '../vendor/pipette/shared/kle/definition-layout'
@@ -30,6 +34,16 @@ import { LAYER_PUSH, parseLayerReport, type LayerState } from './pushes'
 import { pollMatrix, type MatrixPoller } from './matrix'
 import { createTransport, TransportError, type Transport } from './transport'
 import { parseUnlockStatus, runUnlock, statusRequest, type UnlockProgress } from './unlock'
+import {
+  bootKeycode,
+  countOf,
+  ENTRY_KINDS,
+  entryNeedsUnlock,
+  type EntryChange,
+  type RestorePart,
+  type RestorePlan,
+} from './restore'
+import { timersProblem, type WirelessTimers } from './wireless'
 
 export interface LinkInfo {
   kind: LinkKind
@@ -116,10 +130,27 @@ export type Slot =
   | { kind: 'key'; layer: number; row: number; col: number }
   | { kind: 'knob'; layer: number; knob: number; direction: 0 | 1 }
 
+/** One step of undo: a single assignment, or every key and knob change of a restore. */
 interface Edit {
-  slot: Slot
-  from: number
-  to: number
+  changes: { slot: Slot; from: number; to: number }[]
+}
+
+export interface RestoreProgress {
+  done: number
+  total: number
+}
+
+/** What a restore did. Every write is tried in turn; one that fails doesn't stop the rest. */
+export interface RestoreReport {
+  /** Writes that reached the keyboard, per part. */
+  written: Partial<Record<RestorePart, number>>
+  failed: { part: RestorePart; what: string; error: string }[]
+  /** Writes not attempted because the keyboard is locked. */
+  skipped: { part: RestorePart; what: string }[]
+  /** The keyboard went away part-way: everything after `written` was not written. */
+  stopped: boolean
+  /** The key and knob changes can be taken back with one undo. */
+  undoable: boolean
 }
 
 const UNDO_LIMIT = 100
@@ -164,6 +195,14 @@ const DISCONNECTED: DeviceState = {
 /** Lighting changes reach the keyboard at once but only survive a restart once saved; save after this pause. */
 const LIGHTING_SAVE_DELAY_MS = 1500
 
+const NOT_CONNECTED = 'The keyboard is not connected'
+
+/** One write: what to send, and what to change in the state once it reached the keyboard. */
+interface WriteJob {
+  send: () => Promise<void>
+  applied: () => Partial<DeviceState>
+}
+
 const NO_ENTRIES: DynamicEntryCounts = { tapDance: 0, combo: 0, keyOverride: 0, altRepeatKey: 0, featureFlags: 0 }
 const KC_GET_LAYER = 0xa3
 const UNHANDLED = 0xff
@@ -189,6 +228,14 @@ export interface DeviceStore {
   unlock(): Promise<UnlockResult>
   /** Locks the keyboard again. */
   lock(): Promise<void>
+  /**
+   * Writes a restore plan (./restore) to the keyboard, part by part, as one change in the queue. Writes that need
+   * the keyboard unlocked are skipped while it is locked. Key and knob changes become one undo step. Layer names
+   * are the caller's: they live in the browser.
+   */
+  restore(plan: RestorePlan, onProgress?: (progress: RestoreProgress) => void): Promise<RestoreReport>
+  /** Sets Keychron's wireless timers (lights off, sleep). The keyboard saves them itself. */
+  setWirelessTimers(timers: WirelessTimers): Promise<void>
   /**
    * Reads every key straight from the keyboard while it is unlocked; `listener` gets the keys down ("row,col")
    * whenever they change. Polling runs while anyone watches and the keyboard is unlocked, and stops when the last
@@ -391,7 +438,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
   let changes: Promise<unknown> = Promise.resolve()
 
   /** Changes run one at a time, so each starts from the result of the one before, however fast they are asked for. */
-  function inOrder(change: () => Promise<void>): Promise<void> {
+  function inOrder<T>(change: () => Promise<T>): Promise<T> {
     const done = changes.then(change, change)
     changes = done.catch(() => undefined)
     return done
@@ -406,18 +453,23 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
 
   /** Runs one write, keeping `writing` and `writeError` in step. Resolves with whether it reached the keyboard. */
   async function write(send: () => Promise<void>, applied: () => Partial<DeviceState>): Promise<boolean> {
+    return (await writeOrError(send, applied)) === null
+  }
+
+  /** `write`, resolving with why it failed, or null when it reached the keyboard. */
+  async function writeOrError(send: () => Promise<void>, applied: () => Partial<DeviceState>): Promise<string | null> {
     const current = session
-    if (!current) return false
+    if (!current) return NOT_CONNECTED
     set({ writing: state.writing + 1 })
     try {
       await send()
-      if (session === current) set({ ...applied(), writing: state.writing - 1, writeError: null })
-      return session === current
+      if (session !== current) return NOT_CONNECTED
+      set({ ...applied(), writing: state.writing - 1, writeError: null })
+      return null
     } catch (error) {
-      if (session === current) {
-        set({ writing: state.writing - 1, writeError: error instanceof Error ? error.message : String(error) })
-      }
-      return false
+      const message = error instanceof Error ? error.message : String(error)
+      if (session === current) set({ writing: state.writing - 1, writeError: message })
+      return message
     }
   }
 
@@ -438,7 +490,11 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     const from = slotKeycode(state.keyboard, slot)
     if (from === keycode) return
     if (!(await writeKeycode(slot, keycode))) return
-    undoStack = [...undoStack, { slot, from, to: keycode }].slice(-UNDO_LIMIT)
+    remember({ changes: [{ slot, from, to: keycode }] })
+  }
+
+  function remember(edit: Edit): void {
+    undoStack = [...undoStack, edit].slice(-UNDO_LIMIT)
     redoStack = []
     set(history())
   }
@@ -446,7 +502,12 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
   async function step(from: 'undo' | 'redo'): Promise<void> {
     const edit = (from === 'undo' ? undoStack : redoStack).at(-1)
     if (!edit) return
-    if (!(await writeKeycode(edit.slot, from === 'undo' ? edit.from : edit.to))) return
+    // A group is taken back last change first. If a write fails the step stays, so it can be tried again; the
+    // writes that did go through are harmless to repeat.
+    const changes = from === 'undo' ? [...edit.changes].reverse() : edit.changes
+    for (const change of changes) {
+      if (!(await writeKeycode(change.slot, from === 'undo' ? change.from : change.to))) return
+    }
     if (from === 'undo') {
       undoStack = undoStack.filter((e) => e !== edit)
       redoStack = [...redoStack, edit]
@@ -519,6 +580,190 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     if (sent) set({ capabilities: capabilities() })
   }
 
+  async function restore(plan: RestorePlan, onProgress?: (progress: RestoreProgress) => void): Promise<RestoreReport> {
+    const report: RestoreReport = { written: {}, failed: [], skipped: [], stopped: false, undoable: false }
+    const current = session
+    if (!current || !state.keyboard) return { ...report, stopped: true }
+    // Locked, vial-qmk ignores macro writes and turns QK_BOOT into "nothing" in knob and entry writes (vial.c,
+    // via.c). Those are skipped rather than written wrong; keys with QK_BOOT too, as Vial itself asks first.
+    const unlocked = state.unlock?.unlocked === true
+    const boot = bootKeycode()
+
+    interface Step extends WriteJob {
+      part: RestorePart
+      what: string
+      needsUnlock: boolean
+    }
+    const steps: Step[] = []
+    const written: Edit['changes'] = []
+
+    for (const change of plan.keys) {
+      const { slot, to } = change
+      const part = slot.kind === 'key' ? 'keys' : 'knob'
+      const what =
+        slot.kind === 'key'
+          ? `layer ${slot.layer}, row ${slot.row}, column ${slot.col}`
+          : `layer ${slot.layer}, knob ${slot.knob} ${slot.direction === 0 ? 'left' : 'right'}`
+      steps.push({
+        part,
+        what,
+        needsUnlock: to === boot,
+        send: async () => {
+          const kb = state.keyboard
+          if (!kb) return
+          const from = slotKeycode(kb, slot)
+          if (from === to) return
+          await (slot.kind === 'key'
+            ? protocol.setKeycode(slot.layer, slot.row, slot.col, to)
+            : protocol.setEncoder(slot.layer, slot.knob, slot.direction, to))
+          written.push({ slot, from, to })
+        },
+        applied: () => (state.keyboard ? { keyboard: withKeycode(state.keyboard, slot, to) } : {}),
+      })
+    }
+
+    if (plan.layoutOptions !== null) {
+      const options = plan.layoutOptions
+      steps.push({
+        part: 'layoutOptions',
+        what: 'layout options',
+        needsUnlock: false,
+        send: () => protocol.setLayoutOptions(options),
+        applied: () => (state.keyboard ? { keyboard: { ...state.keyboard, layoutOptions: options } } : {}),
+      })
+    }
+
+    if (plan.macros) {
+      const buffer = plan.macros
+      steps.push({
+        part: 'macros',
+        what: 'macro memory',
+        needsUnlock: true,
+        send: () => protocol.setMacroBuffer(buffer),
+        applied: () => ({ macros: [...buffer] }),
+      })
+    }
+
+    const setters = {
+      tapDance: protocol.setTapDance,
+      combo: protocol.setCombo,
+      keyOverride: protocol.setKeyOverride,
+      altRepeatKey: protocol.setAltRepeatKey,
+    } as Record<(typeof ENTRY_KINDS)[number], (index: number, entry: object) => Promise<void>>
+    for (const kind of ENTRY_KINDS) {
+      for (const { index, entry } of plan[kind] as EntryChange<object>[]) {
+        steps.push({
+          part: kind,
+          what: `${countOf(kind, 1).replace(/^1 /, '')} ${index}`,
+          needsUnlock: entryNeedsUnlock(kind, entry, boot),
+          send: () => setters[kind](index, entry),
+          applied: () => {
+            if (!state.entries) return {}
+            const list = [...(state.entries[kind] as object[])]
+            list[index] = entry
+            return { entries: { ...state.entries, [kind]: list } }
+          },
+        })
+      }
+    }
+
+    for (const { qsid, value } of plan.settings) {
+      steps.push({
+        part: 'settings',
+        what: `setting ${qsid}`,
+        needsUnlock: false,
+        send: () => protocol.qmkSettingsSet(qsid, value),
+        applied: () => {
+          if (!state.settings) return {}
+          // Keep the stored form: the value's bytes, padded like a read.
+          const now = state.settings[qsid] ?? []
+          return { settings: { ...state.settings, [qsid]: now.map((_, i) => value[i] ?? 0) } }
+        },
+      })
+    }
+
+    if (plan.lighting) {
+      const { mode, speed, hue, sat, val } = plan.lighting
+      steps.push({
+        part: 'lighting',
+        what: 'lighting',
+        needsUnlock: false,
+        send: async () => {
+          await protocol.setVialRGBMode(mode, speed, hue, sat, val)
+          await protocol.saveLighting()
+        },
+        applied: () => (state.lighting ? { lighting: { ...state.lighting, mode, speed, hue, sat, val } } : {}),
+      })
+    }
+
+    if (plan.wireless) {
+      const timers = plan.wireless
+      steps.push({ part: 'wireless', what: 'wireless timers', needsUnlock: false, ...wirelessWrite(timers) })
+    }
+
+    if (plan.debounce) {
+      const { type, time } = plan.debounce
+      steps.push({
+        part: 'debounce',
+        what: 'debounce',
+        needsUnlock: false,
+        send: async () => {
+          if (!(await setKeychronDebounce(type, time))) throw new Error('The keyboard refused the debounce setting.')
+        },
+        applied: () => (state.keychron ? { keychron: { ...state.keychron, debounceType: type, debounceTime: time } } : {}),
+      })
+    }
+
+    const todo = steps.filter((s) => {
+      if (unlocked || !s.needsUnlock) return true
+      report.skipped.push({ part: s.part, what: s.what })
+      return false
+    })
+    onProgress?.({ done: 0, total: todo.length })
+    for (const [i, s] of todo.entries()) {
+      const error = await writeOrError(s.send, s.applied)
+      if (session !== current) {
+        report.stopped = true
+        break
+      }
+      if (error === null) report.written[s.part] = (report.written[s.part] ?? 0) + 1
+      else report.failed.push({ part: s.part, what: s.what, error })
+      onProgress?.({ done: i + 1, total: todo.length })
+    }
+
+    if (session === current) {
+      if (written.length > 0) {
+        remember({ changes: written })
+        report.undoable = true
+      }
+      set({ capabilities: capabilities() })
+    }
+    return report
+  }
+
+  /** The write of Keychron's wireless timers; the keyboard answers with a status and saves them itself. */
+  function wirelessWrite(timers: WirelessTimers): WriteJob {
+    return {
+      send: async () => {
+        const problem = timersProblem(timers)
+        if (problem) throw new Error(problem)
+        if (!(await setKeychronWirelessLpm(timers.backlitTime, timers.idleTime))) {
+          throw new Error('The keyboard refused these timers.')
+        }
+      },
+      applied: () =>
+        state.keychron
+          ? { keychron: { ...state.keychron, wirelessBacklitTime: timers.backlitTime, wirelessIdleTime: timers.idleTime } }
+          : {},
+    }
+  }
+
+  async function setWirelessTimers(timers: WirelessTimers): Promise<void> {
+    if (!state.keychron?.hasWireless) return
+    const { send, applied } = wirelessWrite(timers)
+    await write(send, applied)
+  }
+
   function watchMatrix(listener: (down: ReadonlySet<string>) => void): () => void {
     matrixWatchers.add(listener)
     syncMatrix()
@@ -557,6 +802,8 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     setLighting: (change) => inOrder(() => setLighting(change)),
     unlock,
     lock: () => inOrder(lock),
+    restore: (plan, onProgress) => inOrder(() => restore(plan, onProgress)),
+    setWirelessTimers: (timers) => inOrder(() => setWirelessTimers(timers)),
     watchMatrix,
 
     async connect(link) {

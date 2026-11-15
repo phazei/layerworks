@@ -16,12 +16,15 @@ licence headers, and their contents: **no vendored file is modified**.
 
 - `shared/keycodes`, `shared/kle`, `shared/constants`, `shared/hid`, and three `shared/types` files: keycode
   tables and names, layout parsing, protocol constants, the load sequence for definition and keymap.
+- `shared/{macro,vil-compat,qmk-settings-normalize}.ts` and `shared/qmk-settings-defs.json`: macro encoding,
+  Vial `.vil` files in and out, QMK setting widths (used by `src/device/vil.ts` and `restore.ts`).
 - `tauri-shim/{protocol,keychron-protocol,transport}.ts`: the VIA / Vial and Keychron commands.
 - `web/{lzma,lzma-browser}.ts`: decompression of the keyboard's definition.
 - `renderer/components/keyboard/*` with `hooks/useEffectiveTheme.ts` and `utils/chart-palette.ts`: the keyboard
   picture.
-- The upstream tests of those files (`__tests__/`), and the three fixtures they read, in
-  `src/vendor/e2e-tauri/fixtures/` (where the tests' relative paths point).
+- The upstream tests of those files (`__tests__/`), and the fixtures they read: three in
+  `src/vendor/e2e-tauri/fixtures/`, and a real Vial save, `renderer/hooks/__tests__/fixtures/bento-max.vil`
+  (where the tests' relative paths point; `src/device` tests read it too).
 
 Not vendored: Pipette's web transport (`web/hid-transport.ts`; replaced by `src/device/transport.ts` and
 `src/device/webhid.ts`), its hooks, shell, dialogs and key picker.

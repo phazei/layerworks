@@ -8,8 +8,26 @@ import type { HidLink } from '../device/link'
 import { usageOf } from '../shell/pressed-keys'
 import data from './k15-max.json'
 
-const FEATURE_DEFAULT_LAYER = 0x01
 const WINDOWS_LAYER = 2
+
+/** The plain demo's Keychron commands: the default layer only. */
+const DEMO_KEYCHRON = { protocol: 2, features: 0x01, firmware: 'demo' }
+
+/**
+ * `?demo-wireless`: the K15 Max's Keychron commands as far as the demo answers them: default layer, Bluetooth,
+ * 2.4 GHz, layer notices and debounce (`0xA2`), debounce and wireless timers in the misc group (`0xA7 0x01`), with
+ * the firmware's default timers, 10 min and 2 h, and a battery level (../docs/research/k15-firmware-capabilities.md
+ * section 3). Its version string is the real one's, with the date SKIP_VERSION leaves.
+ */
+const K15_KEYCHRON = {
+  protocol: 2,
+  features: 0x01 | 0x02 | 0x04 | 0x10 | 0x20,
+  firmware: 'v1.1.2 1970-01-01-00:00:00',
+  misc: 0x04 | 0x10,
+  lpm: { backlitTime: 600, idleTime: 7200 },
+  debounce: { type: 4, time: 5 },
+  battery: 76,
+}
 
 /**
  * The VialRGB effects the K15 Max's Vial build lists (Off left out): the animations its keyboard.json enables,
@@ -60,6 +78,9 @@ export interface DemoLink extends HidLink {
 }
 
 export function createDemoLink(): DemoLink {
+  // `?demo-wireless`: the demo is reached through the 2.4 GHz receiver and reports its battery, as the real one
+  // does only when wireless.
+  const wireless = params().has('demo-wireless')
   const config = fakeKeyboardConfig({
     name: `${data.definition.name} (demo)`,
     definition: data.definition,
@@ -71,7 +92,8 @@ export function createDemoLink(): DemoLink {
     counts: { tapDance: 16, combo: 16, keyOverride: 16, altRepeatKey: 16, featureFlags: 0x03 },
     macroCount: 16,
     macros: new Array<number>(926).fill(0),
-    keychron: { protocol: 2, features: FEATURE_DEFAULT_LAYER, firmware: 'demo' },
+    // A copy: the fake keyboard keeps what is written in it.
+    keychron: { ...(wireless ? K15_KEYCHRON : DEMO_KEYCHRON) },
     layer: { base: WINDOWS_LAYER, held: 0 },
     rgb: { ...K15_RGB, mode: startEffect() ?? K15_RGB.mode },
     rgbEffects: K15_RGB_EFFECTS,
@@ -80,7 +102,7 @@ export function createDemoLink(): DemoLink {
     // `?demo-unlocked` starts the demo unlocked, e.g. for screenshots of the Test page reading every key.
     unlocked: params().has('demo-unlocked'),
   })
-  const link = new FakeLink('cable')
+  const link = new FakeLink(wireless ? 'receiver' : 'cable')
   link.responder = fakeKeyboard(config)
 
   const setKey = (position: string, down: boolean) => {

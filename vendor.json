@@ -43,6 +43,9 @@
     "renderer/components/keyboard/types.ts",
     "renderer/hooks/useEffectiveTheme.ts",
     "renderer/utils/chart-palette.ts",
+    "shared/__tests__/macro.test.ts",
+    "shared/__tests__/qmk-settings-normalize.test.ts",
+    "shared/__tests__/vil-compat.test.ts",
     "shared/constants/bridge.ts",
     "shared/constants/index.ts",
     "shared/constants/keychron.ts",
@@ -81,9 +84,13 @@
     "shared/kle/rect-union.ts",
     "shared/kle/rotate-point.ts",
     "shared/kle/types.ts",
+    "shared/macro.ts",
+    "shared/qmk-settings-defs.json",
+    "shared/qmk-settings-normalize.ts",
     "shared/types/keychron.ts",
     "shared/types/protocol.ts",
     "shared/types/typing-analytics.ts",
+    "shared/vil-compat.ts",
     "tauri-shim/__tests__/keychron-protocol.test.ts",
     "tauri-shim/__tests__/protocol.test.ts",
     "tauri-shim/keychron-protocol.ts",
@@ -104,6 +111,10 @@
     {
       "to": "src/vendor/e2e-tauri/fixtures/e2e_test_decal_blocker.json",
       "from": "e2e-tauri/fixtures/e2e_test_decal_blocker.json"
+    },
+    {
+      "to": "src/vendor/pipette/renderer/hooks/__tests__/fixtures/bento-max.vil",
+      "from": "src/renderer/hooks/__tests__/fixtures/bento-max.vil"
     }
   ]
 }
