@@ -58,8 +58,9 @@ If the script leaves a server behind (it was killed half-way):
 - Pages and plugins import from `src/device` and `src/ui`, never from `src/vendor`.
 - Everything that talks to the keyboard goes through the transport's queue. Never call `sendReport` or add an
   `inputreport` listener anywhere but `src/device/webhid.ts`.
-- Ask before writing anything to the keyboard, and back up first (`..\tools\keyboard\keymap.py backup`).
-  `pnpm hardware` only reads. Code that writes is tested on the fake keyboard (`src/device/fake-keyboard.ts`) and
+- Ask before writing anything to the keyboard, and back up first:
+  `..\tools\keyboard\.venv\Scripts\python ..\tools\keyboard\keymap.py backup` (run it with that Python; the bare
+  `.py` path opens the file in an editor). `pnpm hardware` only reads. Code that writes is tested on the fake keyboard (`src/device/fake-keyboard.ts`) and
   tried in the browser on the demo keyboard; the first run on the real one is the user's.
 - Tests live in `__tests__/` beside the code, named `*.test.ts(x)`. Node environment by default; a component test
   starts with `// @vitest-environment jsdom`.

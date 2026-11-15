@@ -39,7 +39,9 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
 
 - Whether to create a GitHub repo for Layerworks, and whether it is private.
 - First real-keyboard check of writing (assign a key, undo, change lighting). Needs the user present and a fresh
-  `..\tools\keyboard\keymap.py backup` first. Until then writes are tested on the fake keyboard only.
+  keymap backup first: `..\tools\keyboard\.venv\Scripts\python ..\tools\keyboard\keymap.py backup`
+  (the bare `.py` path opens the file in an editor instead of running it). Until then writes are tested on the
+  fake keyboard only.
 - First real unlock, after that backup, on the cable: device card → **Unlock…** → **Start unlocking**, hold Esc
   and Enter. The bar should move steadily for about 6 s. If it keeps falling back to 0, the 120 ms pause between
   polls (`UNLOCK_POLL_MS` in `src/device/unlock.ts`) is too short; try 150. Then check **Lock** works, that the
