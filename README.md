@@ -33,16 +33,49 @@ src/
     transport.ts       the request queue: one request at a time, timeouts, resends, 2.4 GHz encoding
     pushes.ts          reports the keyboard sends unasked (layer changes), recognised by shape
     webhid.ts          HidLink over WebHID
-    store.ts           everything read from the keyboard, and the load sequence
+    store.ts           everything read from the keyboard, the load sequence, and the changes
+                       (assign / undo / redo for keys and knob, setLighting)
     capabilities.ts    what this keyboard can do, with a reason for what it can't
+    keycodes.ts        key names, the palette's groups, shortcut and layer-key builders
+    fake-keyboard.ts   a HidLink with no hardware and a small Vial keyboard behind it (tests, demo)
     useDevice.ts       the app's store and its React hook
-    index.ts           the public surface; pages and plugins import from here
-  ui/                shared components (KeyboardPicture wraps the vendored keyboard widget)
+    api.ts, index.ts   the public surface; pages, plugins and the shell import from here
+  demo/              the demo keyboard: a K15 Max inside the page (k15-max.json, demo-link.ts)
+  ui/                design tokens and shared components
+    tokens.css         every colour, radius and shadow, dark and light
+    controls.tsx       Button, IconButton, Toggle, Slider, Segmented, Badge
+    layout.tsx         Card, Disclosure ("More options"), Dialog, Notice, HelpButton
+    prefs.ts           what the app remembers in the browser (usePref)
+    KeyboardPicture.tsx  the keyboard for one layer; wraps the vendored keyboard widget
+  shell/             the frame around the pages
+    router.ts          pages by URL (#/keys)
+    session.ts         connect, connect the demo, disconnect
+    stage-store.ts     which layer and key the keyboard stage shows
+    layer-names.ts     layer names, kept in the browser per keyboard
+    pressed-keys.ts    held keys, from the browser's key events
+  plugins/api.ts     definePlugin: pages and panels, for built-in sections and plugins alike
+  help/              help topics (topics.ts) and which one the help panel shows
   vendor/pipette/    code copied from Pipette, unmodified (VENDOR.md)
-  App.tsx            the foundation's proof page
+  App.tsx            the foundation's proof page (to be replaced by the shell)
 hardware/            checks against the real keyboard (pnpm hardware)
-scripts/vendor.mjs   keeps src/vendor in step with the Pipette clone
+scripts/vendor.mjs     keeps src/vendor in step with the Pipette clone
+scripts/demo-data.mjs  rebuilds the demo keyboard from ../keyboards/.../vial.json and ../backups/keymap.json
 ```
+
+## Changing things on the keyboard
+
+- `deviceStore.assign(slot, keycode)` writes one key or knob direction, then updates the store. `undo()` and
+  `redo()` write the previous or next value back. `DeviceState.writing` counts changes on their way;
+  `writeError` holds the last failure.
+- `deviceStore.setLighting(change)` sends the effect and its values at once and saves them to the keyboard 1.5 s
+  after the last change.
+- Nothing else writes yet.
+
+## Demo keyboard
+
+`src/demo/` puts a K15 Max inside the page: the same requests get the same kind of answers, and changes last
+until the page is reloaded. It is for trying and screenshotting the app with nothing plugged in. Refresh its
+data with `node scripts/demo-data.mjs` after the firmware definition or the keymap backup changes.
 
 ## How it talks to the keyboard
 

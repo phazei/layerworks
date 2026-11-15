@@ -4,16 +4,23 @@
 
 import { useMemo } from 'react'
 import { KeyboardWidget } from '../vendor/pipette/renderer/components/keyboard'
-import { keycodeId, posKey, type KeyboardData } from '../device'
+import { keycodeId, posKey, type KeyboardData, type KleKey } from '../device/api'
+
+export type PictureSelection =
+  | { kind: 'key'; row: number; col: number }
+  | { kind: 'knob'; knob: number; direction: 0 | 1 }
 
 interface Props {
   keyboard: KeyboardData
   layer: number
   /** "row,col" of keys held down right now. */
   pressed?: Set<string>
+  selection?: PictureSelection | null
+  /** Makes keys and knob directions clickable. */
+  onSelect?: (selection: PictureSelection) => void
 }
 
-export function KeyboardPicture({ keyboard, layer, pressed }: Props) {
+export function KeyboardPicture({ keyboard, layer, pressed, selection, onSelect }: Props) {
   const keycodes = useMemo(() => {
     const map = new Map<string, string>()
     for (let row = 0; row < keyboard.rows; row++) {
@@ -37,12 +44,23 @@ export function KeyboardPicture({ keyboard, layer, pressed }: Props) {
 
   if (!keyboard.layout) return null
   return (
-    <KeyboardWidget
-      keys={keyboard.layout.keys}
-      keycodes={keycodes}
-      encoderKeycodes={knobKeycodes}
-      pressedKeys={pressed}
-      readOnly
-    />
+    // The widget draws at a fixed size; let it shrink to the space there is.
+    <div className="flex justify-center [&>svg]:h-auto [&>svg]:max-w-full">
+      <KeyboardWidget
+        keys={keyboard.layout.keys}
+        keycodes={keycodes}
+        encoderKeycodes={knobKeycodes}
+        pressedKeys={pressed}
+        selectedKey={selection?.kind === 'key' ? selection : null}
+        selectedEncoder={selection?.kind === 'knob' ? { idx: selection.knob, dir: selection.direction } : null}
+        onKeyClick={onSelect && ((key: KleKey) => onSelect({ kind: 'key', row: key.row, col: key.col }))}
+        onEncoderClick={
+          onSelect &&
+          ((key: KleKey, direction: number) =>
+            onSelect({ kind: 'knob', knob: key.encoderIdx, direction: direction === 1 ? 1 : 0 }))
+        }
+        readOnly={!onSelect}
+      />
+    </div>
   )
 }
