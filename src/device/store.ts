@@ -49,7 +49,7 @@ export interface KeyboardData {
   cols: number
   /** "layer,row,col" → keycode */
   keymap: Record<string, number>
-  /** "layer,knob,direction" → keycode; direction 0 is clockwise */
+  /** "layer,knob,direction" → keycode; direction 0 is counter-clockwise (left), 1 clockwise (right) */
   knobs: Record<string, number>
   knobCount: number
   layoutOptions: number
@@ -107,7 +107,7 @@ export interface DeviceState {
   canRedo: boolean
 }
 
-/** One place a keycode can be assigned: a key, or one direction of a knob (0 is clockwise). */
+/** One place a keycode can be assigned: a key, or one direction of a knob (0 is counter-clockwise). */
 export type Slot =
   | { kind: 'key'; layer: number; row: number; col: number }
   | { kind: 'knob'; layer: number; knob: number; direction: 0 | 1 }
@@ -333,6 +333,15 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
   let redoStack: Edit[] = []
   let lightingSaveTimer: ReturnType<typeof setTimeout> | null = null
 
+  let changes: Promise<unknown> = Promise.resolve()
+
+  /** Changes run one at a time, so each starts from the result of the one before, however fast they are asked for. */
+  function inOrder(change: () => Promise<void>): Promise<void> {
+    const done = changes.then(change, change)
+    changes = done.catch(() => undefined)
+    return done
+  }
+
   function forget(): void {
     undoStack = []
     redoStack = []
@@ -432,10 +441,10 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     },
 
     disconnect,
-    assign,
-    undo: () => step('undo'),
-    redo: () => step('redo'),
-    setLighting,
+    assign: (slot, keycode) => inOrder(() => assign(slot, keycode)),
+    undo: () => inOrder(() => step('undo')),
+    redo: () => inOrder(() => step('redo')),
+    setLighting: (change) => inOrder(() => setLighting(change)),
 
     async connect(link) {
       await disconnect()

@@ -51,6 +51,11 @@ export interface PluginDef {
   panels?: PanelDef[]
   /** Shapes of unsolicited reports the plugin listens for, so they are never taken for replies. */
   pushes?: PushShape[]
+  /**
+   * New names for lighting effects, by VialRGB effect id, for firmware that puts an effect of its own in a
+   * standard slot. The Lighting page shows them instead of the standard name while the plugin is active.
+   */
+  lightingEffects?: Record<number, { name: string; description?: string }>
 }
 
 const plugins: PluginDef[] = []

@@ -113,7 +113,12 @@ export function buildCapabilities(sources: CapabilitySources): Capabilities {
         return qmkSettings.size > 0 ? yes : no(NOT_IN_FIRMWARE)
       case 'lighting':
         if (!lighting) return no(STILL_LOADING)
-        return lighting.kind !== 'none' ? yes : no('This keyboard has no lighting the app can control.')
+        if (lighting.kind === 'none') return no('This keyboard has no lighting the app can control.')
+        if (lighting.kind !== 'vialrgb') {
+          return no('This keyboard’s lights work in an older way (not VialRGB) that the app can’t change yet.')
+        }
+        // The keyboard always lists Off (0); anything else is an effect to choose from.
+        return lighting.effects.size > 1 ? yes : no('The keyboard’s firmware doesn’t offer any lighting effects.')
       case 'perKeyLighting':
         return keychronOnly((kc) => kc.hasRgb)
       case 'liveLayer':

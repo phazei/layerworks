@@ -88,9 +88,13 @@ export interface FakeKeyboardConfig {
   definition?: object
   /** VialRGB state: effect number, speed, hue, saturation, brightness. */
   rgb: { mode: number; speed: number; hue: number; sat: number; val: number }
+  /** VialRGB effect numbers the keyboard lists (Off is implied). Default: RGB_EFFECTS. */
+  rgbEffects?: number[]
+  /** The brightness VialRGB reports as its maximum. Default: 200. */
+  rgbMaxBrightness?: number
   /** keymap[layer][row][col] */
   keymap: number[][][]
-  /** knob[layer] = [clockwise, counter-clockwise] */
+  /** knob[layer] = [counter-clockwise, clockwise] */
   knob: [number, number][]
   counts: { tapDance: number; combo: number; keyOverride: number; altRepeatKey: number; featureFlags: number }
   macroCount: number
@@ -245,14 +249,14 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
       case 0x09:
         return [0x09]
       case 0x08:
-        if (request[1] === 0x40) return [0x08, 0x40, 1, 0, 200]
+        if (request[1] === 0x40) return [0x08, 0x40, 1, 0, config.rgbMaxBrightness ?? 200]
         if (request[1] === 0x41) {
           const { mode, speed, hue, sat, val } = config.rgb
           return [0x08, 0x41, ...le16(mode), speed, hue, sat, val]
         }
         if (request[1] === 0x42) {
           const from = request[2] | (request[3] << 8)
-          const effects = RGB_EFFECTS.filter((e) => e > from).flatMap(le16)
+          const effects = (config.rgbEffects ?? RGB_EFFECTS).filter((e) => e > from).flatMap(le16)
           return [0x08, 0x42, ...effects, ...new Array<number>(REPORT_LEN).fill(0xff)].slice(0, REPORT_LEN)
         }
         return [0x08, request[1]]

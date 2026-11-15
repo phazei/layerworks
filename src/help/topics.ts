@@ -39,6 +39,16 @@ const topics = {
     ],
     example: 'Click Caps Lock, then pick Esc: the Caps Lock key now sends Esc.',
   },
+  'key-palette': {
+    title: 'Picking a key',
+    qmkName: 'Basic keycodes',
+    body: [
+      'The keys are grouped the way you would look for them: letters, numbers, editing, media, mouse, lighting and the keys only this keyboard has. Point at one to see what it does; click it and the selected key does that from then on.',
+      'The search looks at the names on the keys, what they do and their QMK names, so "volume", "esc" and "KC_MUTE" all work.',
+    ],
+    example: 'Search "play" and click Media Play: the key now plays and pauses music.',
+    docs: QMK + 'keycodes_basic',
+  },
   'shortcut-key': {
     title: 'A shortcut on one key',
     qmkName: 'Modifier + key',
@@ -94,6 +104,45 @@ const topics = {
       'Changes show on the keyboard at once and are saved to it after a moment.',
     ],
     docs: QMK + 'features/rgb_matrix',
+  },
+  'lighting-on': {
+    title: 'Lights on and off',
+    qmkName: 'RGB_TOG, effect 0',
+    body: [
+      'Turns the key lights off without forgetting the effect: turning them on again brings back the one you had, with its brightness, speed and colour.',
+      'Picking an effect while the lights are off turns them on.',
+    ],
+    example: 'Lights off for a film, on again afterwards: the same effect comes back.',
+    docs: QMK + 'features/rgb_matrix#keycodes',
+  },
+  'lighting-brightness': {
+    title: 'Brightness',
+    qmkName: 'Value (HSV)',
+    body: [
+      'How bright the lights are, from off to as bright as the keyboard allows. Dimmer lights also make the battery last longer on wireless.',
+    ],
+    example: 'Around 30 % is easy on the eyes in a dark room.',
+    docs: QMK + 'features/rgb_matrix#keycodes',
+  },
+  'lighting-speed': {
+    title: 'Speed',
+    qmkName: 'Speed',
+    body: [
+      'How fast a moving effect moves: how quickly a rainbow scrolls, or how quickly a key fades after you press it.',
+      'A few effects use it for something else, and say so under the slider. Effects that stand still ignore it.',
+    ],
+    example: 'Slow down "Breathing" for a calm, barely moving glow.',
+    docs: QMK + 'features/rgb_matrix#keycodes',
+  },
+  'lighting-colour': {
+    title: 'Colour',
+    qmkName: 'Hue and saturation (HSV)',
+    body: [
+      'Colour picks where on the rainbow the lights sit. Vividness goes from white or pastel at the left to the deepest colour at the right.',
+      'Effects that make their own colours, such as the rainbow ones, ignore the colour, and some still use vividness: low vividness gives a pastel rainbow.',
+    ],
+    example: 'Colour on blue with vividness halfway gives a soft sky blue.',
+    docs: QMK + 'features/rgb_matrix#keycodes',
   },
   unlock: {
     title: 'Locked and unlocked',

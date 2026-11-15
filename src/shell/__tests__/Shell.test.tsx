@@ -80,7 +80,7 @@ describe('the shell on the demo keyboard', () => {
     render(<Shell />)
     expect(screen.getByText(/Click a key/)).toBeInTheDocument()
     act(() => stage.select({ kind: 'key', row: 0, col: 1 }))
-    expect(screen.getByText(/This key does/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'What should this key do?' })).toBeInTheDocument()
   })
 
   it('choosing a layer stops following the keyboard', async () => {

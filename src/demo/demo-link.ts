@@ -9,6 +9,23 @@ import data from './k15-max.json'
 const FEATURE_DEFAULT_LAYER = 0x01
 const WINDOWS_LAYER = 2
 
+/**
+ * The VialRGB effects the K15 Max's Vial build lists (Off left out): the animations its keyboard.json enables,
+ * Solid Color, VialRGB Direct, and Keychron's Per-Key and Mixed RGB (../docs/research/k15-firmware-capabilities.md
+ * section 5.2).
+ */
+const K15_RGB_EFFECTS = [1, 2, 6, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 25, 29, 30, 31, 34, 38, 39, 41, 43, 48, 49]
+
+/** The firmware's defaults after a reset: Solid Splash in indigo (the ripple keymap's config.h). */
+const K15_RGB = { mode: 41, speed: 128, hue: 184, sat: 255, val: 255 }
+
+/** `?demo-effect=<VialRGB id>` starts the demo on another effect, e.g. for screenshots. */
+function startEffect(): number | null {
+  if (typeof location === 'undefined') return null
+  const value = Number(new URLSearchParams(location.search).get('demo-effect') ?? NaN)
+  return Number.isInteger(value) && value >= 0 ? value : null
+}
+
 export interface DemoLink extends HidLink {
   /** Pretends a layer key is held (0 for none), the way the keyboard reports it. */
   holdLayer(layer: number): void
@@ -28,6 +45,9 @@ export function createDemoLink(): DemoLink {
     macros: new Array<number>(926).fill(0),
     keychron: { protocol: 2, features: FEATURE_DEFAULT_LAYER, firmware: 'demo' },
     layer: { base: WINDOWS_LAYER, held: 0 },
+    rgb: { ...K15_RGB, mode: startEffect() ?? K15_RGB.mode },
+    rgbEffects: K15_RGB_EFFECTS,
+    rgbMaxBrightness: 255,
   })
   const link = new FakeLink('cable')
   link.responder = fakeKeyboard(config)

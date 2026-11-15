@@ -49,6 +49,14 @@ export function shownLayer(stageState: StageState, live: DeviceState['layer'], l
   return Math.min(layer, Math.max(0, layerCount - 1))
 }
 
+/** Reads a selection from the URL: "3,2" is the key at row 3, column 2; "knob,0,1" is knob 0 turned right. */
+export function parseSelection(text: string): Selection | null {
+  const knob = /^knob,(\d+),([01])$/.exec(text)
+  if (knob) return { kind: 'knob', knob: Number(knob[1]), direction: knob[2] === '1' ? 1 : 0 }
+  const key = /^(\d+),(\d+)$/.exec(text)
+  return key ? { kind: 'key', row: Number(key[1]), col: Number(key[2]) } : null
+}
+
 export function toSlot(selection: Selection, layer: number): Slot {
   return selection.kind === 'key'
     ? { kind: 'key', layer, row: selection.row, col: selection.col }

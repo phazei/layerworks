@@ -2,7 +2,7 @@
 // The small controls every page is built from. All colours and radii come from tokens.css.
 
 import { useId, type ButtonHTMLAttributes, type ComponentPropsWithRef, type InputHTMLAttributes, type ReactNode } from 'react'
-import { LoaderCircle } from 'lucide-react'
+import { Check, LoaderCircle, Search } from 'lucide-react'
 
 export function cx(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(' ')
@@ -115,31 +115,42 @@ interface SliderProps {
   disabled?: boolean
   /** CSS background for the track, e.g. a hue gradient. */
   track?: string
+  /** A line under the slider: what it does here, or why it is disabled. */
+  hint?: ReactNode
 }
 
-export function Slider({ label, value, min = 0, max, step = 1, onChange, format, disabled, track }: SliderProps) {
+export function Slider({ label, value, min = 0, max, step = 1, onChange, format, disabled, track, hint }: SliderProps) {
   const id = useId()
+  const hintId = useId()
   const filled = ((value - min) / (max - min)) * 100
   return (
-    <div className={cx('flex flex-col gap-1.5', disabled && 'opacity-50')}>
-      <div className="flex justify-between">
-        <label htmlFor={id}>{label}</label>
-        <span className="text-muted tabular-nums">{format ? format(value) : value}</span>
+    <div className="flex flex-col gap-1.5">
+      <div className={cx('flex flex-col gap-1.5', disabled && 'opacity-50')}>
+        <div className="flex justify-between">
+          <label htmlFor={id}>{label}</label>
+          <span className="text-muted tabular-nums">{format ? format(value) : value}</span>
+        </div>
+        <input
+          id={id}
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          disabled={disabled}
+          aria-describedby={hint ? hintId : undefined}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="lw-slider"
+          style={{
+            background: track ?? `linear-gradient(to right, var(--accent) ${filled}%, var(--edge-strong) ${filled}%)`,
+          }}
+        />
       </div>
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="lw-slider"
-        style={{
-          background: track ?? `linear-gradient(to right, var(--accent) ${filled}%, var(--edge-strong) ${filled}%)`,
-        }}
-      />
+      {hint && (
+        <p id={hintId} className="text-[13px] text-muted">
+          {hint}
+        </p>
+      )}
     </div>
   )
 }
@@ -202,4 +213,93 @@ export function Badge({ tone = 'neutral', children }: { tone?: 'neutral' | 'acce
     warning: 'bg-raised text-warning',
   }
   return <span className={cx('inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-xs font-medium', tones[tone])}>{children}</span>
+}
+
+interface CheckboxProps {
+  checked: boolean
+  onChange: (checked: boolean) => void
+  label: ReactNode
+  disabled?: boolean
+}
+
+export function Checkbox({ checked, onChange, label, disabled }: CheckboxProps) {
+  return (
+    <label className={cx('inline-flex items-center gap-2 select-none', disabled ? 'opacity-50' : 'cursor-pointer')}>
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden
+        className={cx(
+          'flex size-4.5 shrink-0 items-center justify-center rounded-[calc(var(--radius-control)/2)] border transition-colors duration-(--motion-fast)',
+          'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent',
+          checked ? 'border-accent bg-accent text-on-accent' : 'border-edge-strong bg-raised',
+        )}
+      >
+        {checked && <Check size={13} strokeWidth={3} />}
+      </span>
+      {label}
+    </label>
+  )
+}
+
+interface SearchFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'> {
+  value: string
+  onChange: (value: string) => void
+}
+
+/** A search box. Esc empties it. Give it an `aria-label`. */
+export function SearchField({ value, onChange, className, ...rest }: SearchFieldProps) {
+  return (
+    <div className={cx('relative flex items-center', className)}>
+      <Search size={14} aria-hidden className="pointer-events-none absolute left-2.5 text-muted" />
+      <input
+        type="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key !== 'Escape') return
+          if (value) onChange('')
+          else e.currentTarget.blur()
+        }}
+        className={cx(
+          'h-8 w-full min-w-0 rounded-pill border border-edge-strong bg-raised pr-3 pl-8 text-content placeholder:text-muted',
+          'focus:border-accent focus:outline-none [&::-webkit-search-cancel-button]:hidden',
+        )}
+        {...rest}
+      />
+    </div>
+  )
+}
+
+interface OptionButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** Shown as the current choice. */
+  selected?: boolean
+  /** A full-width row (the default), or a small pill. */
+  shape?: 'row' | 'chip'
+}
+
+/** One of several choices, marked when it is the current one. */
+export function OptionButton({ selected = false, shape = 'row', className, children, ...rest }: OptionButtonProps) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      className={cx(
+        'cursor-pointer border text-left transition-colors duration-(--motion-fast) disabled:cursor-default disabled:opacity-45',
+        shape === 'row'
+          ? 'flex w-full items-center gap-3 rounded-control px-3 py-2'
+          : 'inline-flex h-7 items-center gap-1.5 rounded-pill px-3 text-[13px] font-medium',
+        selected ? 'border-accent bg-accent-soft text-accent' : 'border-edge bg-raised text-content hover:bg-raised-hover',
+        className,
+      )}
+      {...rest}
+    >
+      {children}
+    </button>
+  )
 }

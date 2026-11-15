@@ -391,4 +391,24 @@ describe('changing the lighting', () => {
     vi.useRealTimers()
     expect(saves()).toBe(1)
   })
+
+  it('keeps changes asked for at the same moment, in order', async () => {
+    const { config, link } = connected()
+    await store.connect(link)
+    await loaded(store)
+    const key = { kind: 'key', layer: 1, row: 0, col: 2 } as const
+
+    await Promise.all([
+      store.setLighting({ mode: 13 }),
+      store.setLighting({ hue: 99 }),
+      store.setLighting({ val: 40 }),
+      store.assign(key, 0x29),
+      store.assign(key, 0x2a),
+      store.undo(),
+    ])
+    await store.disconnect()
+
+    expect(config.rgb).toMatchObject({ mode: 13, hue: 99, val: 40 })
+    expect(config.keymap[1][0][2]).toBe(0x29)
+  })
 })
