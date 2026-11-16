@@ -4,8 +4,12 @@
 
 import { useId, useMemo } from 'react'
 import { KeyboardWidget } from '../vendor/pipette/renderer/components/keyboard'
+import { KEY_UNIT } from '../vendor/pipette/renderer/components/keyboard/constants'
 import { cx } from './controls'
 import { keycodeId, posKey, type KeyboardData, type KleKey } from '../device/api'
+
+/** How many pixels the widget draws a 1u key at, in the picture's own size (before it is scaled to fit). */
+export const PICTURE_KEY_UNIT = KEY_UNIT
 
 export type PictureSelection =
   | { kind: 'key'; row: number; col: number }

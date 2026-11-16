@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The bar at the bottom: whether every change has reached the keyboard, what is still being read, and undo / redo.
 
-import { CircleAlert, CircleCheck, Redo2, TriangleAlert, Undo2 } from 'lucide-react'
+import { CircleAlert, CircleCheck, CircleDot, Redo2, TriangleAlert, Undo2 } from 'lucide-react'
 import { deviceStore, useDevice, type LoadPart } from '../device'
 import { Button, Spinner } from '../ui/controls'
 import { HelpButton } from '../ui/layout'
+import { describeUnsaved, useUnsaved } from './unsaved'
 
 /** What each background part is, in words. */
 export const PART_NAMES: Record<LoadPart, string> = {
@@ -21,6 +22,10 @@ const list = (parts: readonly LoadPart[]) => parts.map((part) => PART_NAMES[part
 function SaveState() {
   const writing = useDevice((s) => s.writing)
   const writeError = useDevice((s) => s.writeError)
+  const uid = useDevice((s) => s.keyboard?.uid)
+  const unsaved = useUnsaved()
+  // Only this keyboard's: drafts for another keyboard wait for it.
+  const pending = [...unsaved.values()].filter((item) => item.keyboard === undefined || item.keyboard === uid)
 
   if (writeError) {
     return (
@@ -36,6 +41,23 @@ function SaveState() {
         <Spinner />
         Saving…
       </span>
+    )
+  }
+  if (pending.length > 0) {
+    // Leads to the first piece of work that says where it is.
+    const href = pending.find((item) => item.href)?.href
+    const content = (
+      <>
+        <CircleDot size={15} aria-hidden className="shrink-0" />
+        <span className="truncate">{describeUnsaved(pending)}</span>
+      </>
+    )
+    return href ? (
+      <a href={href} className="flex min-w-0 items-center gap-2 rounded-control text-warning hover:underline">
+        {content}
+      </a>
+    ) : (
+      <span className="flex min-w-0 items-center gap-2 text-warning">{content}</span>
     )
   }
   return (

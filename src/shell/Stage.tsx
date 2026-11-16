@@ -13,7 +13,7 @@ import { useElementSize } from '../ui/useElementSize'
 import { useConnectedLayerNames } from './layer-names'
 import { LayerStack } from './LayerStack'
 import { usePressedKeys } from './pressed-keys'
-import { CAP, maxHeight, minHeight, naturalHeight, stageHeight, toFraction, type StageMeasures } from './stage-size'
+import { CAP, legibleHeight, maxHeight, minHeight, naturalHeight, stageHeight, toFraction, type StageMeasures } from './stage-size'
 import { shownLayer, stage, useStage } from './stage-store'
 
 /** The stage's chosen share of the space, null for automatic. One for all keyboards: it is about the window. */
@@ -80,7 +80,8 @@ export function Stage({ keyboard, selectable, space }: Props) {
   }, [selectable])
 
   // The stage's height comes from CSS: as tall as the picture wants at this width, or the chosen share of the
-  // space, with min-height (enough for the stack and a legible picture) winning over max-height (half the space).
+  // space, with min-height (room for the stack and a small picture) winning over max-height (half the space, or
+  // what a legible picture needs where half is less).
   // Percentages resolve against the shared space, so the cap holds even before anything is measured.
   const root = useRef<HTMLDivElement>(null)
   const drawn = useElementSize(root).height
@@ -89,16 +90,16 @@ export function Stage({ keyboard, selectable, space }: Props) {
     ? {
         height: dragged ?? (fraction !== null ? `${fraction * 100}%` : naturalHeight(m)),
         minHeight: minHeight(m),
-        maxHeight: `${CAP * 100}%`,
+        maxHeight: `max(${CAP * 100}%, ${legibleHeight(m)}px)`,
       }
     : undefined
   // The height as drawn, for the handle (worked out where nothing is drawn, as in tests).
   const height = dragged ?? (drawn > 0 ? drawn : m ? stageHeight(m, fraction) : 0)
 
   return (
-    <div ref={root} style={style} className="flex shrink-0 flex-col px-6">
-      <section aria-label="Keyboard and layers" className="@container flex min-h-0 flex-1 flex-col rounded-card bg-card p-4 shadow-card">
-        <div className="flex min-h-0 flex-1 flex-col gap-4 @3xl:flex-row @3xl:items-stretch @3xl:gap-6">
+    <div ref={root} style={style} className="@container/stage flex shrink-0 flex-col px-6">
+      <section aria-label="Keyboard and layers" className="@container flex min-h-0 flex-1 flex-col rounded-card bg-card px-4 py-3 shadow-card @3xl/stage:py-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 @3xl:flex-row @3xl:items-stretch @3xl:gap-6">
           {/* Beside the picture, the stack scrolls when the stage is made shorter than it; above it, it never has to. */}
           <div ref={stackBox} className="-m-1 shrink-0 p-1 @3xl:max-h-[calc(100%+0.5rem)] @3xl:self-center @3xl:overflow-y-auto">
             <LayerStack keyboard={keyboard} names={names} live={live} state={state} shown={shown} />

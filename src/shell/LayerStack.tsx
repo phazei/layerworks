@@ -77,21 +77,23 @@ function LayerRow({ index, name, uid, shown, active }: RowProps) {
         onClick={() => stage.showLayer(index)}
         ref={button}
         onDoubleClick={startEditing}
-        className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-2.5 pl-2.5 text-left"
+        className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-1.5 px-2 text-left @3xl:gap-2.5 @3xl:pr-0 @3xl:pl-2.5"
       >
-        <span className={cx('w-3 text-xs tabular-nums', shown ? 'text-accent' : 'text-muted')}>{index}</span>
+        <span className={cx('text-xs tabular-nums @3xl:w-3', shown ? 'text-accent' : 'text-muted')}>{index}</span>
         <span className={cx('truncate', shown ? 'font-medium' : 'text-content')}>{name}</span>
         {active && (
           <span className="ml-auto flex shrink-0 items-center gap-1.5 text-xs text-success">
             <span aria-hidden className="size-1.5 rounded-pill bg-success" />
-            Active
+            {/* In the row of chips the dot alone marks it (the button's name says it in words). */}
+            <span className="hidden @3xl:inline">Active</span>
           </span>
         )}
       </button>
       <IconButton
         label={`Rename ${name}`}
         onClick={startEditing}
-        className="size-7 shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+        // In the row of chips it takes no room until the chip is pointed at or focused, so the row stays short.
+        className="h-7 w-0 shrink-0 overflow-hidden opacity-0 group-focus-within:w-7 group-hover:w-7 group-hover:opacity-100 focus-visible:opacity-100 @3xl:w-7"
       >
         <Pencil size={13} />
       </IconButton>
@@ -109,8 +111,10 @@ interface Props {
 
 export function LayerStack({ keyboard, names, live, state, shown }: Props) {
   return (
-    <div className="flex shrink-0 flex-col gap-3 @3xl:w-54">
-      <div className="self-start text-[13px] @3xl:self-stretch">
+    // Beside the picture: the toggle above a column of layers. Above it: one row, the layers and the toggle at its
+    // right end, wrapping under them only when the row is too narrow.
+    <div className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-2 @3xl:w-54 @3xl:flex-col @3xl:flex-nowrap @3xl:items-stretch @3xl:gap-3">
+      <div className="order-last ml-auto text-[13px] @3xl:order-first @3xl:ml-0">
         <Toggle
           checked={state.follow && live !== null}
           disabled={live === null}
@@ -120,7 +124,7 @@ export function LayerStack({ keyboard, names, live, state, shown }: Props) {
           hint={live === null ? 'This keyboard doesn’t say which layer is on.' : undefined}
         />
       </div>
-      <ul aria-label="Layers" className="flex flex-wrap gap-1 @3xl:flex-col @3xl:flex-nowrap">
+      <ul aria-label="Layers" className="flex flex-wrap gap-0.5 @3xl:flex-col @3xl:flex-nowrap @3xl:gap-1">
         {names.map((name, i) => (
           <LayerRow
             key={i}

@@ -40,11 +40,11 @@ describe('the stage’s resize handle', () => {
     expect(getPref(STAGE_SIZE_PREF, null)).toBeNull()
   })
 
-  it('sizes the stage from the remembered share, kept under half the space', () => {
+  it('sizes the stage from the remembered share, kept under half the space unless the picture needs more', () => {
     setPref(STAGE_SIZE_PREF, 0.4)
     const { container } = render(<Stage keyboard={deviceStore.getState().keyboard!} selectable={false} space={SPACE} />)
     const box = container.firstElementChild as HTMLElement
     expect(box.style.height).toBe('40%')
-    expect(box.style.maxHeight).toBe('50%')
+    expect(box.style.maxHeight).toMatch(/^max\(50%, [\d.]+px\)$/)
   })
 })
