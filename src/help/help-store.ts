@@ -12,8 +12,14 @@ function set(topic: HelpTopicId | null): void {
   for (const listener of [...listeners]) listener()
 }
 
+/** The help panel's element id, for the "?" buttons' aria-controls. */
+export const HELP_PANEL_ID = 'help-panel'
+
 export const openHelp = (topic: HelpTopicId) => set(topic)
 export const closeHelp = () => set(null)
+/** A "?" pressed: opens its topic, or closes the panel when it already shows that topic. */
+export const toggleHelp = (topic: HelpTopicId) => set(current === topic ? null : topic)
+export const helpTopic = (): HelpTopicId | null => current
 
 export function useHelpTopic(): HelpTopicId | null {
   return useSyncExternalStore(

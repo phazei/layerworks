@@ -16,6 +16,7 @@ import { Sidebar } from './Sidebar'
 import { Stage } from './Stage'
 import { stage } from './stage-store'
 import { StatusLine } from './StatusLine'
+import { Tour } from './Tour'
 import { UnlockDialog } from './UnlockDialog'
 
 const HOME = 'home'
@@ -72,7 +73,11 @@ export function Shell() {
           {page && (
             <header className="flex shrink-0 items-center gap-1 px-6 pt-5 pb-4">
               <h1 className="text-xl font-semibold tracking-tight">{page.title}</h1>
-              {page.help && <HelpButton topic={page.help} />}
+              {page.help && (
+                <span data-tour="page-help" className="flex">
+                  <HelpButton topic={page.help} />
+                </span>
+              )}
             </header>
           )}
           <div ref={shared} className="flex min-h-0 flex-1 flex-col">
@@ -93,6 +98,7 @@ export function Shell() {
         {ready && <StatusLine />}
       </div>
       <UnlockDialog />
+      <Tour />
     </div>
   )
 }

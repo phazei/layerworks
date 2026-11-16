@@ -3,15 +3,22 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { ChevronRight, CircleHelp } from 'lucide-react'
-import { openHelp } from '../help/help-store'
+import { HELP_PANEL_ID, toggleHelp, useHelpTopic } from '../help/help-store'
 import type { HelpTopicId } from '../help/topics'
 import { Button, cx, IconButton } from './controls'
 import { usePref } from './prefs'
 
-/** A "?" that opens the help panel at one topic. */
+/** A "?" that opens the help panel at one topic, and closes it again when pressed a second time. */
 export function HelpButton({ topic }: { topic: HelpTopicId }) {
+  const shown = useHelpTopic() === topic
   return (
-    <IconButton label="Explain this" className="size-6" onClick={() => openHelp(topic)}>
+    <IconButton
+      label="Explain this"
+      aria-expanded={shown}
+      aria-controls={HELP_PANEL_ID}
+      className="size-6"
+      onClick={() => toggleHelp(topic)}
+    >
       <CircleHelp size={15} />
     </IconButton>
   )

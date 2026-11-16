@@ -17,7 +17,7 @@ const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   danger: 'bg-danger-soft text-danger hover:brightness-110 border border-danger/30',
 }
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends ComponentPropsWithRef<'button'> {
   variant?: ButtonVariant
   size?: 'md' | 'sm'
   icon?: ReactNode

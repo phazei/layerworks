@@ -63,7 +63,7 @@ export function LayerNames() {
   return (
     <Card
       title="Layer names"
-      help="layers"
+      help="layer-names"
       description={
         connected
           ? `What the layers of ${keyboard.name} are called here. The names are kept in this browser; leave one empty for the default.`

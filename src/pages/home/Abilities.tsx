@@ -36,7 +36,7 @@ export function Abilities() {
   const lacks = lines.filter((line) => !line.available)
 
   return (
-    <Card title="What this keyboard can do" description="Read from the keyboard when it connected.">
+    <Card title="What this keyboard can do" help="keyboard-features" description="Read from the keyboard when it connected.">
       <ul aria-label="Features" className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
         {has.map((line) => (
           <Line key={line.id} line={line} />

@@ -230,6 +230,12 @@ function KeyTest({ keyboard }: { keyboard: KeyboardData }) {
         <div className="-mb-1 flex items-center gap-1">
           How testing works
           <HelpButton topic="test-keys" />
+          {knobs.length > 0 && (
+            <>
+              <span className="ml-3">Testing the knob</span>
+              <HelpButton topic="test-knob" />
+            </>
+          )}
         </div>
       </div>
     </div>

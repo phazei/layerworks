@@ -52,6 +52,7 @@
 
   --knob: #ffffff; /* the moving part of a switch or slider */
   --backdrop: rgb(16 24 40 / 45%); /* behind a dialog */
+  --spotlight-dim: rgb(16 24 40 / 22%); /* around what a coach mark points at; light, the app stays usable */
 
   --shadow-card: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 8%);
   --shadow-pop: 0 10px 30px rgb(16 24 40 / 18%);
@@ -107,6 +108,7 @@
 
   --knob: #ffffff;
   --backdrop: rgb(0 0 0 / 60%);
+  --spotlight-dim: rgb(0 0 0 / 45%);
 
   --shadow-card: none;
   --shadow-pop: 0 12px 36px rgb(0 0 0 / 55%);
@@ -138,4 +140,6 @@
   --shadow-card: var(--shadow-card);
   --shadow-pop: var(--shadow-pop);
   --shadow-knob: var(--shadow-knob);
+  /* Dims everything outside the box that carries it (a coach mark's ring). */
+  --shadow-spotlight: 0 0 0 200vmax var(--spotlight-dim);
 }

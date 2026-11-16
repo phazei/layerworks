@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { Keyboard, Plug, Sparkles } from 'lucide-react'
 import { grantedDevices, isWebHidSupported, useDevice } from '../device'
 import { Button, Spinner } from '../ui/controls'
-import { Notice } from '../ui/layout'
+import { HelpButton, Notice } from '../ui/layout'
 import { connectChosen, connectDemo, connectTo, useConnectError } from './session'
 
 /** Devices the browser has already been allowed to open; looked up again whenever the connection changes. */
@@ -47,14 +47,17 @@ export function ConnectPrompt() {
 
   return (
     <div className="flex flex-1 items-center justify-center py-8">
-      <section aria-labelledby="connect-title" className="flex w-full max-w-md flex-col gap-5 rounded-card bg-card p-7 shadow-card">
+      <section aria-labelledby="connect-title" data-tour="connect" className="flex w-full max-w-md flex-col gap-5 rounded-card bg-card p-7 shadow-card">
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="flex size-12 items-center justify-center rounded-pill bg-accent-soft text-accent">
             <Keyboard size={24} aria-hidden />
           </span>
-          <h2 id="connect-title" className="text-lg font-semibold">
-            Connect your keyboard
-          </h2>
+          <div className="flex items-center gap-1">
+            <h2 id="connect-title" className="text-lg font-semibold">
+              Connect your keyboard
+            </h2>
+            <HelpButton topic="connecting" />
+          </div>
           <p className="text-muted">
             Plug the keyboard in with its cable, or plug in its Keychron Link receiver to use 2.4 GHz. Close Vial,
             Launcher and other keyboard apps first: only one can use the keyboard at a time.

@@ -98,7 +98,7 @@ export function Stage({ keyboard, selectable, space }: Props) {
 
   return (
     <div ref={root} style={style} className="@container/stage flex shrink-0 flex-col px-6">
-      <section aria-label="Keyboard and layers" className="@container flex min-h-0 flex-1 flex-col rounded-card bg-card px-4 py-3 shadow-card @3xl/stage:py-4">
+      <section aria-label="Keyboard and layers" data-tour="stage" className="@container flex min-h-0 flex-1 flex-col rounded-card bg-card px-4 py-3 shadow-card @3xl/stage:py-4">
         <div className="flex min-h-0 flex-1 flex-col gap-3 @3xl:flex-row @3xl:items-stretch @3xl:gap-6">
           {/* Beside the picture, the stack scrolls when the stage is made shorter than it; above it, it never has to. */}
           <div ref={stackBox} className="-m-1 shrink-0 p-1 @3xl:max-h-[calc(100%+0.5rem)] @3xl:self-center @3xl:overflow-y-auto">

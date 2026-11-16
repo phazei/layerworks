@@ -38,6 +38,7 @@ Options in the URL, before the `#`:
 | `?demo-press=2,2;2,3;0,1+3,14` | The demo presses keys (row,col) by itself from a second after connecting: each step in turn, keys joined by `+` together, the last step stays held |
 | `?demo-turn=1;0` | Turns the demo's knob by itself from a second after connecting (1 clockwise, 0 counter-clockwise): the page gets what the knob sends on the base layer as a browser event, as a real turn would |
 | `?unlock`, `?unlock=start` | Opens the unlock dialog once the lock state is read; `start` starts unlocking straight away (with `?demo-press=0,1+3,14` the demo holds Esc and Enter) |
+| `?tour`, `?tour=3` | Opens the first-run tour at once (at the third step, counted from 1), seen before or not, for screenshots. Without any option in the address the tour starts by itself the first time a keyboard is in on Home; any other option keeps it away |
 
 Example: `http://localhost:5199/?demo&theme=light#/keys`.
 
@@ -91,10 +92,13 @@ src/
     prefs.ts           what the app remembers in the browser (usePref)
     theme.ts           dark / light / system, applied as the `dark` class on <html>
     KeyboardPicture.tsx  the keyboard for one layer; wraps the vendored keyboard widget
-    picture-labels.ts  the picture's friendly labels: "Macro 1", "Multi-tap 1", a tap / hold key as hold over tap
+    picture-labels.ts  the picture's friendly labels: "Macro 1" (M1), "Multi-tap 1" (TD(1)), "Hold" over a layer's
+                       name, a tap / hold key as hold over tap
     KeyTile.tsx        KeyTile (a palette key drawn like a keycap; `empty` draws it faint) and KeyCap (one key)
     ChoiceGrid.tsx     one of a few choices like Segmented, as a grid, so four labels fit a narrow column
     PageLink.tsx       a link in running text to another page of the app ("#/typing")
+    Spotlight.tsx      a coach mark: a ring round a `data-tour` target, the rest dimmed, a card with Back / Next / Skip
+    coach-placement.ts where a coach mark's card goes beside its target
     ResizeHandle.tsx   a drag handle on a box's bottom edge (pointer and keyboard), and clamp
     Select.tsx         a drop-down choice (the browser's own list, styled)
     KeyCapture.tsx     "press a key": a button that takes the next key pressed as its value
@@ -114,6 +118,7 @@ src/
     StatusLine.tsx     saved / saving / write error / unsaved work, parts still loading or not readable, undo / redo
     unsaved.ts         work a page holds that hasn't reached the keyboard yet (setUnsaved, useUnsaved)
     HelpPanel.tsx      the help topic, sliding in from the right
+    Tour.tsx           the first-run tour on screen: goes to each step's page, waits for a keyboard, Esc skips
     ConnectPrompt.tsx  connect a keyboard / try the demo, and "reading the keyboard"
     router.ts          pages by URL (#/keys)
     session.ts         connect, connect the demo, disconnect
@@ -124,7 +129,9 @@ src/
                      a page's own parts in a folder beside it (home/, keys/, settings/, lighting/, test/, device/,
                      shortcuts/, typing/)
   plugins/api.ts     definePlugin: pages and panels, for built-in sections and plugins alike
-  help/              help topics (topics.ts) and which one the help panel shows
+  help/              the help: topics.ts (every explanation), guide.ts (groups and reading order), glossary.ts,
+                     search.ts, text.ts (layer names in texts), TopicBody.tsx and Highlight.tsx (shared by the
+                     panel and the Help page), help-store.ts (the panel's topic), tour.ts (the tour's steps and state)
   vendor/pipette/    code copied from Pipette, unmodified (VENDOR.md)
   main.tsx           registers the pages, reads the URL options, renders the shell
 hardware/            checks against the real keyboard (pnpm hardware)
@@ -152,14 +159,18 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
   keyboard…" while one connects. Pages with `offline: true` (Home, Help, Settings) always show.
 - **The status line** says "Saved on the keyboard", "Saving…" while `DeviceState.writing` is above 0, or the
   `writeError`. While a page holds work not yet on the keyboard (a macro or another shortcut being edited), it says
-  so instead ("Macro 3 has changes not yet saved to the keyboard", "2 macros have unsaved changes"), as a link to
+  so instead ("Macro 3 has changes not yet saved to the keyboard", or the macro's own name when it has one, "2
+  macros have unsaved changes"), as a link to
   the work: pages declare it with `setUnsaved(id, { label, group, href, keyboard })` (`shell/unsaved.ts`), the
   Shortcuts drafts for theirs. Beside it: the parts still being read in the background, or the ones that could not
   be read. Undo and redo call `deviceStore.undo` / `redo`.
 - **The help panel** slides in over the right edge of the page (not over the status line) when anything calls
-  `openHelp(topic)`, usually a `HelpButton`. Esc or the close button hides it; the page stays usable. A topic's
-  link says where it goes ("Read more in the QMK documentation", "… the Vial manual", "… Keychron’s guide";
-  `help/docs-site.ts`).
+  `openHelp(topic)`, usually a `HelpButton`. A `HelpButton` toggles (`toggleHelp`): pressed again while its topic
+  is shown, it closes the panel; another "?" switches topic. It carries `aria-expanded` and `aria-controls`
+  (`help-panel`). Esc or the close button hides it; the page stays usable. A topic's link says where it goes ("Read
+  more in the QMK documentation", "… the Vial manual", "… Keychron’s guide"; `help/docs-site.ts`). Under the text:
+  related topics (they open in the panel) and "Open on the Help page".
+- **The first-run tour** (see "Help and the tour") is mounted once in the shell (`shell/Tour.tsx`).
 - **Theme**: dark by default; Settings offers dark, light and "Like the system". Stored with `prefs.ts`
   (`theme`); a small script in `index.html` applies it before the app loads, so nothing flashes.
 - Sized for 1280 × 800 and usable down to about 1000 px wide. When the stage itself is narrower than 768 px (a
@@ -220,26 +231,31 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     names (a single character only matches a label, so "a" finds A); the line beside it says what the key under
     the pointer does. A click assigns. Macro and multi-tap tiles say what they are (`keys/shortcut-keys.ts`, from
     the keyboard's macros and tap dances and the macro names kept in the browser): the macro's name or "Macro 3",
-    "Multi-tap 1" (broken after the hyphen); the hover line and screen readers get the one-line summary ("Email: Types
+    "Multi-tap 1" (broken after the hyphen), by QMK's own number (M3, TD(1)), slot 0 last; the hover line and screen
+    readers get the one-line summary ("Email: Types
     “hello@example.com”"), and the search matches names and summaries. Slots with nothing set up stay in their
     place, drawn faint with a dashed edge, still pickable. Both groups have "Set up on Shortcuts & macros" beside
     their title. The palette does this itself, so the Shortcuts page's key pickers show the same tiles.
   - **A shortcut** (`keys/ShortcutChoice.tsx`): Ctrl, Shift, Alt, Win checkboxes and a palette of the keys that
     take modifiers (`canTakeModifiers`); nothing is written until "Use Ctrl + C", so trying doesn't fill undo.
+    Nothing is ticked to start with, and the key starts as the one the key holds now when the palette has it.
   - **Switch layer** (`keys/LayerChoice.tsx`): pick the layer, then one of the `LAYER_ACTIONS` sentences with
-    its name; a sentence assigns. "Hold for Fn2, or tap quickly to keep it on" is QMK's TT (how many taps is the
-    Tapping toggle setting). Folded under "With modifiers held too": the layer with modifiers held (QMK's LM,
-    layers 0-15), ticked and then used with its own button ("Use Fn2 + Ctrl").
+    its name; a sentence assigns. "Hold for Fn2, or tap it 5 times to keep it on" is QMK's TT; the count is the
+    keyboard's Tapping toggle (`keys/tapping-toggle.ts`: Vial's QMK setting 20 where the keyboard reports it, with a
+    line under the sentences linking to the Typing feel page; otherwise QMK's default, 5, said to be fixed in the
+    firmware). Folded under "With modifiers held too": the layer with modifiers held (QMK's LM, layers 0-15),
+    nothing ticked to start with, then used with its own button ("Use Fn2 + Ctrl").
   - **Tap or hold** (`keys/TapHoldChoice.tsx`): one thing when tapped, another while held. "When held" a modifier
-    (mod-tap, `LCTL_T(kc)` …: Ctrl, Shift, Alt, Win to tick) or a layer (layer-tap, `LT(layer, kc)`, the layers by
-    name; only 0-15 fit in the keycode); "Tap for" a key from a palette of plain keys (the shortcut palette's: the
-    firmware keeps 8 bits for the tap). Nothing is written until the button, named by the result ("Use Tap: Escape
-    · Hold: Ctrl"). A note under the palette (under it, so in a small window the palette starts high) points to
+    (mod-tap, `LCTL_T(kc)` …: Ctrl, Shift, Alt, Win to tick, none ticked to start with) or a layer (layer-tap,
+    `LT(layer, kc)`, the layers by name; only 0-15 fit in the keycode); "Tap for" a key from a palette of plain keys
+    (the shortcut palette's: the firmware keeps 8 bits for the tap), starting as the key's own tap, or the plain key
+    it holds now ("Z"), so only the hold needs picking. Nothing is written until the button, named by the result
+    ("Use Tap: Escape · Hold: Ctrl"). A note under the palette (under it, so in a small window the palette starts high) points to
     multi-tap keys for anything that isn't a plain key, and to the Typing feel page for how long counts as a hold. Under "Left- or right-hand modifier", the side
     (QMK can't mix sides in one key; opened by itself for a right-hand key).
   - *More options* (`keys/MoreOptions.tsx`): Nothing, Same as the layer below, a modifier for the next key only
-    (QMK's one-shot modifier, `OSM`: Ctrl, Shift, Alt, Win and Right-hand to tick, then "Use Shift for the next
-    key"), and a key-code field that shows what the typed code means (`parseKeycode`) before "Use this code". It
+    (QMK's one-shot modifier, `OSM`: Ctrl, Shift, Alt, Win and Right-hand to tick, none ticked unless the key holds
+    one, then "Use Shift for the next key"), and a key-code field that shows what the typed code means (`parseKeycode`) before "Use this code". It
     opens by itself when the current assignment lives there (nothing, transparent, a one-shot modifier, or a code
     no choice builds, which is put in the field), for that key only: `Disclosure`'s `forceOpen` leaves the
     remembered open/closed state alone.
@@ -253,10 +269,13 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
   Every assignment is `deviceStore.assign`, so it shows in the picture at once and Undo takes it back; the
   selection stays. A knob's direction 0 is counter-clockwise (left), 1 clockwise (right), as vial-qmk stores
   them. The palette's lighting keys are the shared `RGB_*` codes Keychron's keymaps use, not `RM_*`.
-- **Settings** (`Settings.tsx`, `settings/`): theme; a name field per layer of the connected keyboard, with a
+- **Settings** (`Settings.tsx`, `settings/`): theme; "Take the tour" and a link to Help (`settings/TourCard.tsx`);
+  a name field per layer of the connected keyboard, with a
   reset to the default (the same names as the layer stack, `shell/layer-names.ts`); about: version from
   `package.json`, licence, and credits to Pipette (repo and commit from `vendor.json`), QMK, Vial and Lucide.
-  Appearance and layer names on the left, About on the right once the page is 56rem wide; one column below that.
+  Appearance, the tour and layer names on the left, About on the right once the page is 56rem wide; one column
+  below that.
+- **Help** (`Help.tsx`, `help/`): see "Help and the tour".
 - **Lighting** (`Lighting.tsx`, `lighting/`): full height, no stage (the picture can't show the lighting yet).
   Left, the effects the keyboard lists (`capabilities.lighting.effects`) as tiles in groups (Steady, Moving, Rain
   and sparkles, Reacts to typing, Set per key or zone), each with a small moving preview in the chosen colour
@@ -279,8 +298,8 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     sliders show the value at once, from what is still on its way.
   - A plugin can rename effects with `lightingEffects: { 41: { name, description } }` in its `definePlugin`, for
     firmware that puts its own effect in a standard slot (the K15's ripple is Solid Splash, VialRGB id 41).
-  - Keychron's two effects ("Key by key", "Mixed zones") bring an editor above the grid, scrolled into view when
-    picked: `lighting/KeyColours.tsx` and `lighting/Zones.tsx` (see "Key colours and zones"). Their tiles only show
+  - Keychron's two effects ("Key by key", "Mixed zones") bring an editor below the grid, scrolled into view when
+    picked or from the button under the effect's settings: `lighting/KeyColours.tsx` and `lighting/Zones.tsx` (see "Key colours and zones"). Their tiles only show
     on keyboards with Keychron lighting (`perKeyLighting`, `lightingZones`); until the Keychron part is read they
     stay, so they don't flicker on keyboards that have them.
 - **Typing feel** (`Typing.tsx`, `typing/`): full height, no stage (no setting here needs the picture; Snap Click
@@ -351,9 +370,10 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     with the reason (another keyboard, keys wired differently, not a backup); or the file's name and date, any
     warning (same model, other firmware), the list of what will change in words (`describePlan`), marked "needs
     unlocking" where that applies with "Unlock first…", and what the file holds that this keyboard can't take.
-    "Restore…" asks in a danger `Dialog` that lists the same lines; then a progress bar, then what was restored,
-    what failed (with the error), what was left out because the keyboard is locked (with "Unlock…"), and that Undo
-    takes back the keys and knob. A file that already matches says so. *Vial files* (a `Disclosure`): "Save a
+    Once "Unlock first…" has unlocked the keyboard, the plan is worked out again; restoring still waits for
+    "Restore…". "Restore…" asks in a danger `Dialog` that lists the same lines; then a progress bar, then what was
+    restored, what failed (with the error), what was left out because the keyboard is locked (with "Unlock…", which
+    after unlocking goes back to the review of the same file), and that Undo takes back the keys and knob. A file that already matches says so. *Vial files* (a `Disclosure`): "Save a
     Vial file".
   - *Wireless and sleep* (`device/Wireless.tsx`), only when `keychron.hasWireless`: the battery (through the
     receiver), and "Lights off after" and "Sleep after" as choices (`BACKLIT_CHOICES`, `IDLE_CHOICES`, plus the
@@ -368,19 +388,29 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
 - **Shortcuts & macros** (`Shortcuts.tsx`, `shortcuts/`): full height, no stage (the editors need the room, and
   the keys a shortcut is on are listed and linked instead). A list on the left and the one picked on the right, two
   columns from 42rem; no tabs. The page's own addresses (`shortcuts/route.ts`): `#/shortcuts/macro/1` opens Macro 1,
-  likewise `multi-tap/N`, `chord/N`, `replacement/N` and `repeat/N`; numbers start at 1, as on screen.
-  - *The list* (`shortcuts/ShortcutList.tsx`): one section per kind: Macros, then under *More options* (open by
-    itself while any of them is in use or open) Multi-tap keys, Key chords, Shortcut replacements and Repeat rules.
+  likewise `multi-tap/N`, `chord/N`, `replacement/N` and `repeat/N`, with the number shown on screen.
+  - *Numbering*: macros and multi-tap keys carry QMK's own number: "Macro 1" is `M1` (Keychron keyboards map the
+    keys printed M1 – M5 to QMK's M1 – M5), "Macro 0" is `M0`, "Multi-tap key 1" is `TD(1)`; `macro/0` and
+    `multi-tap/0` address slot 0. Slot 0 comes last wherever they are listed (here, the Keys palette), and "Add"
+    takes the lowest free number from 1, slot 0 only when every other is taken (`numberedSlots`, `firstFreeSlot`,
+    `macroTitle`, `tapDanceTitle` in `device/keycodes.ts`; tests pin the rule). Macro names are kept per QMK index,
+    so a stored name or a backup's `macroNames` stays with its macro. Key chords, shortcut replacements and repeat
+    rules have no number of QMK's that shows anywhere: they count from 1 ("Key chord 1" is the first slot).
+  - *The list* (`shortcuts/ShortcutList.tsx`): one section per kind: Macros first; then, in the usual order, each
+    other kind (Multi-tap keys, Key chords, Shortcut replacements, Repeat rules) that has an entry in use or a draft
+    or whose editor is open; the kinds with none of that under *More options* (closed until opened, remembered). An
+    unused kind comes up when its editor opens (Add, or an address), so saving its first entry doesn't move the list.
     Each section has its name, help, QMK name and "2 of 16 used", and "Add", which opens the next free slot. It lists
     only the slots in use, being edited or open, so 80 slots stay a short list: each with its title ("Macro 1" or
-    the user's name, "Key chord 3"), QMK's name where it has one (M0, TD(0)), "Not saved" while it has a draft, how
+    the user's name, "Key chord 3"), QMK's name where it has one (M1, TD(1)), "Not saved" while it has a draft, how
     many keys run it (macros, multi-tap keys), and a one-line summary (`shortcuts/describe.ts`: "Types
     “hello@example.com”", "J + K together → Escape", "Shift + Backspace → Delete", "Tap: Escape · Double tap: Caps
     Lock", "After Ctrl + Z → Ctrl + Y", "(off)" for one turned off). Macros also show their shared space as a bar
     ("Room for about 863 more characters · 63 of 926 bytes used").
   - *The other editors* (`shortcuts/EntryEditor.tsx` with `ChordEditor`, `OverrideEditor`, `TapDanceEditor`,
     `RepeatEditor`): a title ("Key chord 3", "Combos"), saved or "Not saved yet" with Save to keyboard, Revert and
-    what stands in the way (`entryProblem`; "Unlock to save…" only when it holds QK_BOOT where the firmware checks;
+    what stands in the way (`entryProblem`; "Unlock to save…" only when it holds QK_BOOT where the firmware checks,
+    and it saves by itself once the unlock completes;
     `shortcuts/SaveBar.tsx`, shared with the macro editor; edits made while a save is on its way stay a draft),
     a sentence or two on the idea and a "Try: …" button that fills in a ready example, then the fields, More
     options, and "Clear this …". A key is keycaps, its name and "Change…" (the Keys page's palette with Ctrl, Shift,
@@ -400,9 +430,10 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
       the alternate repeat key (QK_AREP) is.
   - *The editor* (`shortcuts/MacroEditor.tsx`): the name (an inline field; names live in the browser per keyboard,
     `shell/layer-names.ts` `renameMacro`), whether it matches the keyboard or is "Not saved yet", and while it isn't:
-    "Save to keyboard" (or, locked, "Unlock to save…", which opens the unlock dialog and writes nothing), Revert,
+    "Save to keyboard" (or, locked, "Unlock to save…", which opens the unlock dialog and saves by itself once the
+    unlock completes; cancelled or not completed, nothing is saved and the draft stays), Revert,
     what stands in the way (steps to fix, no room, locked). "Runs when you press": the keys and knob turns with this
-    macro, as layer and key ("Windows Fn: the P key"); a click shows that key on the Keys page (`stage.showLayer`,
+    macro, as layer and key ("Windows: the M1 key"); a click shows that key on the Keys page (`stage.showLayer`,
     `stage.select`). None: how to put it on a key, and a button to the Keys page. Then the steps
     (`shortcuts/StepRow.tsx`), numbered, each edited in place, with move up, move down and remove: *Type text* (a
     field), *Tap a key* (keycaps and the key in words; "Change key…" opens the Keys page's palette with Ctrl, Shift,
@@ -420,6 +451,53 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     else stays hold and let go; keys still held at the end are let go. "Keep the pauses as waits" keeps gaps over
     150 ms. Stop with the mouse; leaving the window stops it too. Fn and layer keys, and shortcuts Windows or the
     browser keep (Alt + Tab, Ctrl + W, the Windows key), can't be recorded.
+
+## Help and the tour
+
+**Topics** (`help/topics.ts`): each has a title, QMK's name, one to three paragraphs, an example, a documentation
+link, `where` (the places in the app it is about, as addresses: `#/keys`, `#/shortcuts/chord/1`, `#/typing/tapHold`;
+the Typing feel page scrolls to the group named after `#/typing/`) and `related` topics. A layer named in a text is
+written `{layer:N|Generic name}` (`help/text.ts`): the connected keyboard's name for layer N, or the generic name
+with none, so the Help page reads right offline.
+
+**The guide** (`help/guide.ts`) puts every topic in exactly one group, in reading order: Getting started; Keys and
+layers; Shortcuts and macros; Lighting; Typing feel; Testing; Backing up and the keyboard; Firmware and QMK words.
+`GUIDE_ONLY` names the few topics no "?" opens (Caps Word, Layer Lock, "Two names for everything"); the tests check
+that every other topic is opened somewhere in the app and that every topic is in the guide. **The glossary**
+(`help/glossary.ts`) maps the words other apps and guides use (QMK, Vial, VIA, keycode, tap dance, combo,
+KC_TRNS, EEPROM, bootloader, N-key rollover …) to the app's name and topic.
+
+**The Help page** (`pages/Help.tsx`, `pages/help/`), offline as well: a list at the left (search, "Start here",
+the groups, the glossary) and the topic at the right, each column scrolling on its own; narrower than 42rem the
+list and the topic take turns ("All topics" goes back). Addresses: `#/help` (the overview: "Take the tour", "Read
+Getting started", the groups as tiles), `#/help/<topic>`, `#/help/glossary`, and `?q=…` after any of them to start
+with a search. A topic shows its text, "Where this is in the app" as links, related topics, and the previous and
+next topic in reading order; opening one moves the focus to its title. **The search** (`help/search.ts`) wants every
+word of the query in a topic's title, QMK name, text, example or a glossary line pointing to it; titles and QMK names
+weigh most, so "MO", "LT", "tap dance", "combo", "KC_TRNS" or "debounce" find the friendly topic first. Words of one
+or two letters only match whole words. Each result shows its group and the passage where the words are, marked
+(`help/Highlight.tsx`), and the topic opened from it is marked too. Nothing found: suggestions to click and the
+glossary.
+
+**The tour** (`help/tour.ts`, `shell/Tour.tsx`, `ui/Spotlight.tsx`): six steps, each on a page and pointing at a
+`data-tour` marker: the stage (`stage`, Home), the Keys page under it (`keys-page`), the status line (`status`), the
+page title's "?" (`page-help`), the sidebar's pages (`nav`), the backup card (`backup`, Device). The coach mark
+(`Spotlight`) draws an accent ring round the target and dims the rest lightly; clicks go through, so the app stays
+usable. Its card has the step count, a sentence or two, Skip tour, Back and Next (Done on the last), and sits beside
+the target where there is room (`ui/coach-placement.ts`); with no target found it is centred. It follows the target
+as the page scrolls or resizes (measured every 250 ms and on resize and scroll), and a target in the lower half is
+held by its distance from the bottom. Focus goes to Next at each step (to the card while Next waits); the arrow keys
+move back and forth inside the card; Esc skips, unless it is closing the help panel, a dialog or a text field; when
+the tour closes, the focus goes back where it was. There is no movement animation. With no keyboard connected
+the tour shows "First, a keyboard" at the connect prompt on Home, with Next disabled, and carries on when one is in.
+On the demo keyboard the first step says to click a layer instead of holding Fn.
+
+- It starts by itself once: `main.tsx` calls `armTour(params)`; with no option at all in the address and the tour not
+  yet seen, it waits until a keyboard is in while Home is shown. Taking it to the end or skipping it is remembered in
+  the browser (pref `tour-seen`). Any address option (`?demo`, `?theme` …, as screenshots and demo links have) keeps
+  it away, so screenshots of other pages never show it; `?tour` / `?tour=3` open it regardless.
+- Again from the Help page's overview and from Settings ("Take the tour").
+- Tests render `<Shell />` without `main.tsx`, so the tour never starts in them unless a test arms or starts it.
 
 ## Unlocking
 
@@ -446,7 +524,9 @@ restarts or changes connection mode.
   keyboard won't type and nothing can stop it once started; then the count as a bar ("Keep holding…", "The count
   started again…"), with no buttons, Esc ignored and the browser asking before the page is left; then done, or
   "disconnected" / "didn't start". The device card shows Locked with "Unlock…", Unlocking…, or Unlocked with
-  "Lock".
+  "Lock". `openUnlock` returns a promise for whoever asked: true as soon as the unlock completes (while the dialog
+  still says so), false when the dialog is closed without it; already unlocked, true at once with no dialog. The
+  macro and entry save bars await it and save by themselves; the restore review works its plan out again.
 
 ## The keyboard stage and selection
 
@@ -464,11 +544,14 @@ stage pages keeps the layer and selection:
   picture is not clickable and no selection is drawn, but the selection is kept for when the user comes back.
 - A different keyboard connecting (or none) resets the stage.
 - **Labels**: the picture (`ui/KeyboardPicture.tsx`, everywhere it is drawn) uses the keycode tables' labels, except
-  where those are only QMK's names (`ui/picture-labels.ts`): a macro reads "Macro 1" (M0), a multi-tap key
-  "Multi-tap 1" (TD(0)), each on two lines, and a tap / hold key is split as the widget draws such keys, the hold
-  above ("Ctrl", "Layer 3") and the tap below ("Esc"); a knob direction gets the same text, tap above hold. Keys
-  go to the widget's `labelOverrides`; for knobs, which have none, the text takes the keycode's place. Layer keys
-  keep QMK's names (MO(4)).
+  where those are only QMK's names (`ui/picture-labels.ts`): a macro reads "Macro 1" (M1), a multi-tap key
+  "Multi-tap 1" (TD(1)), each on two lines; a layer key reads its kind's short word over the layer's name, as the
+  Switch layer sentences say it ("Hold" over "Fn2" for MO, "Hold/tap" for TT, "Toggle", "Next key", "Switch to",
+  "Base"; "Hold +Ctrl" for LM; a long name on two lines); and a tap / hold key is split as the widget draws such
+  keys, the hold above ("Ctrl", "Fn2") and the tap below ("Esc"); a knob direction gets the same text, tap above
+  hold. Layer names are the connected keyboard's (`shell/layer-names.ts`; `KeyboardPicture`'s `layerNames` overrides
+  them), "Layer 4" where there is none. Keys go to the widget's `labelOverrides`; for knobs, which have none, the
+  text takes the keycode's place.
 - **Height** (`stage-size.ts`, applied as CSS in `Stage.tsx`): the stage shares the main area between the page
   title and the status line with the page. Left alone it is as tall as the picture wants at this width (the picture
   shrinks with the width and never grows past its own drawing size), at most half of that shared space, but never
@@ -492,7 +575,13 @@ pnpm shots --size=1000x700 --theme=dark /keys
 pnpm shots --query=help=layer-key /keys      # with the help panel open
 pnpm shots --no-build /keys                  # reuse the last build
 pnpm shots --port=5197 /keys                 # own port and build folder, for two runs side by side
+pnpm shots --query=tour=3 /home              # the tour at its third step
+pnpm shots "/help?q=tap%20dance"             # the Help page with a search
 ```
+
+Headless Edge runs the page in a smaller viewport than the picture (about 1250 × 705 for 1280 × 800) and enlarges
+it for the capture without running scripts again. What is placed by measuring, like the tour's ring and card, can
+therefore sit a little off in a screenshot when its target is in the middle of the page; in a browser it is exact.
 
 `scripts/screenshot.mjs` builds, serves the build on port 5198, takes each page with headless Edge into
 `%TEMP%\opencode\layerworks-shots\` (`keys-dark.png`, `keys-offline-light.png`, ...) and stops the server.
@@ -623,8 +712,9 @@ type MacroStep =
   macro writes until unlocked), `'too-big'`, `'invalid'` or `'failed'`. It writes only the 28-byte pieces of the
   buffer that change, through the store's change queue, and is one undo step.
 - `macroUses(keyboard, index)` lists the keys and knob turns whose keycode is that macro (`macroKeycode`: QMK's M0 …).
-- The names users give macros live in the browser per keyboard (`shell/layer-names.ts`: `useStoredMacroNames`,
-  `renameMacro`, `setMacroNames`), and travel in the backup file.
+- The names users give macros live in the browser per keyboard, by QMK index (`shell/layer-names.ts`:
+  `useStoredMacroNames`, `renameMacro`, `setMacroNames`), and travel in the backup file. On screen a macro is
+  called by QMK's number (`index` 1 is "Macro 1"; see "Numbering" under Shortcuts & macros).
 
 ## Tap dance, combos, key overrides, alt repeat
 
@@ -648,7 +738,8 @@ vendored types (vial.h's structs), which `device/entries.ts` builds on:
   fields it checks (a tap dance's four keys, a combo's output, an override's replacement, a repeat rule's two keys);
   such an entry resolves `'locked'` without sending anything, and undoing into one while locked sets `writeError` to
   `ENTRY_UNDO_LOCKED`. A saved entry is one undo step.
-- The Keys palette has two groups for them: *Multi-tap keys* (`TD(0)` …) and *Repeat keys* (Repeat, Alt Repeat).
+- The Keys palette has two groups for them: *Multi-tap keys* (`TD(1)` …, `TD(0)` last) and *Repeat keys* (Repeat,
+  Alt Repeat).
 
 ## Backups
 
@@ -727,12 +818,12 @@ from the real keyboard) and Snap Click (20 slots, one example pair: A and D, the
 `?demo-wireless` connects it through the receiver with those and the K15 Max's wireless features, timers (10 min,
 2 h), a battery of 76 % and the real firmware string (`v1.1.2 1970-01-01-00:00:00`).
 
-Its macro buffer starts with three examples (`DEMO_MACROS` in `demo-link.ts`): an e-mail address, Ctrl + A then
-Ctrl + C, and Win + R, wait, "notepad", Enter. Macro 1 is also on Fn + P on the Windows layers; the K15's own M1 –
-M5 keys already run macros 2 – 6.
+Its macro buffer has three examples (`DEMO_MACROS` in `demo-link.ts`) in M1 – M3, M0 left empty: an e-mail
+address, Ctrl + A then Ctrl + C, and Win + R, wait, "notepad", Enter. The K15's keys printed M1 – M5 are QMK's
+M1 – M5, so they run Macros 1 – 5, as on a real Keychron.
 
-It also has two of each other kind (`DEMO_ENTRIES`): multi-tap keys Esc / Caps Lock (on Fn + Caps Lock on the
-Windows layers) and Ctrl + C / Ctrl + V; key chords J + K → Esc and D + F → Tab; Shift + Backspace → Delete and
+It also has two of each other kind (`DEMO_ENTRIES`): multi-tap keys 1 and 2 (TD(0) left empty), Esc / Caps Lock
+(on Fn + Caps Lock on the Windows layers) and Ctrl + C / Ctrl + V; key chords J + K → Esc and D + F → Tab; Shift + Backspace → Delete and
 Shift + Esc → ~; after Ctrl + Z the repeat key sends Ctrl + Y, and Home ↔ End. The alternate repeat key is on Fn2 +
 Space.
 

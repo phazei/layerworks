@@ -10,11 +10,14 @@
 //                   ?demo-turn=1;0 turns its knob (what it sends reaches the page as a browser event);
 //                   ?demo-wireless connects the demo through the 2.4 GHz receiver, with a battery level
 //                   (all read in src/demo/demo-link.ts)
+//   ?tour, ?tour=3  opens the first-run tour (at the third step); without any option the tour starts by itself
+//                   the first time a keyboard is in on Home (src/help/tour.ts)
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { openHelp } from './help/help-store'
-import { HELP_TOPICS, type HelpTopicId } from './help/topics'
+import { isHelpTopic } from './help/topics'
+import { armTour } from './help/tour'
 import './pages'
 import { Shell } from './shell/Shell'
 import { connectDemo } from './shell/session'
@@ -26,7 +29,8 @@ import './styles.css'
 const params = new URLSearchParams(location.search)
 if (params.has('demo')) void connectDemo()
 const help = params.get('help')
-if (help && help in HELP_TOPICS) openHelp(help as HelpTopicId)
+if (help && isHelpTopic(help)) openHelp(help)
+armTour(params)
 const select = parseSelection(params.get('select') ?? '')
 const layer = params.get('layer')
 if (select || layer) {

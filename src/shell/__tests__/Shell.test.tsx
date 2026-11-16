@@ -151,7 +151,7 @@ describe('the shell with no keyboard', () => {
     await go('#/help')
     render(<Shell />)
     expect(screen.queryByRole('heading', { name: 'Connect your keyboard' })).toBeNull()
-    expect(screen.getByText('Explanations')).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Help topics' })).toBeInTheDocument()
   })
 
   it('goes to Home for the bare address and says so for an unknown one', async () => {

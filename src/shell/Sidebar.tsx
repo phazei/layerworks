@@ -59,7 +59,7 @@ export function Sidebar({ pages, current }: Props) {
         <span className="text-base font-semibold tracking-tight">Layerworks</span>
       </div>
       <DeviceCard />
-      <nav aria-label="Pages" className="flex flex-1 flex-col gap-4">
+      <nav aria-label="Pages" data-tour="nav" className="flex flex-1 flex-col gap-4">
         {nav('main')}
         {nav('plugins')}
         {nav('app')}

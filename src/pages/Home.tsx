@@ -61,6 +61,7 @@ export const homePage: PageDef = {
   title: 'Home',
   icon: House,
   stage: 'view',
+  help: 'welcome',
   // Shows its own welcome and the connect prompt while no keyboard is connected.
   offline: true,
   component: HomePage,

@@ -65,8 +65,9 @@ export function DeviceCard() {
       <div>
         <div className="leading-snug font-semibold">{keyboard?.name ?? link.productName}</div>
         {demoKeyboard() && (
-          <div className="mt-1.5">
+          <div className="mt-1.5 flex items-center gap-0.5">
             <Badge tone="accent">Demo keyboard</Badge>
+            <HelpButton topic="demo" />
           </div>
         )}
       </div>

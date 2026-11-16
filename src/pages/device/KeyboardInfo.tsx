@@ -101,7 +101,7 @@ export function KeyboardInfo() {
   const pending = (part: (typeof loading)[number]) => (loading.includes(part) ? 'Reading…' : 'Not reported')
 
   return (
-    <Card title="About this keyboard" description={maker ? `${kb.name}, made by ${maker}` : kb.name}>
+    <Card title="About this keyboard" help="keyboard-info" description={maker ? `${kb.name}, made by ${maker}` : kb.name}>
       <div className="flex flex-col gap-6">
         <Facts label="The keyboard">
           <Fact

@@ -5,7 +5,7 @@
 // narrows the cards; on a wide page a list of the groups stays beside them. Changes go to the keyboard as they are
 // made, the newest first while a slider is dragged (ui/latest.ts); the keyboard keeps them itself.
 
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Gauge } from 'lucide-react'
 import {
   deviceStore,
@@ -19,6 +19,7 @@ import {
   type SettingValues,
 } from '../device'
 import { activePanels, type PageDef } from '../plugins/api'
+import { usePath } from '../shell/router'
 import { SearchField, Spinner } from '../ui/controls'
 import { useLatestQueue } from '../ui/latest'
 import { Card, Notice } from '../ui/layout'
@@ -78,6 +79,14 @@ function TypingPage() {
   const values = { ...stored, ...pending } as SettingValues
   const searching = query.trim() !== ''
   const onChange = (qsid: number, value: number) => change({ [qsid]: value })
+
+  // #/typing/<group> (from a help topic) scrolls to that group once it is there.
+  const group = usePath().split(/[/?]/)[2]
+  const settingsIn = settings !== null
+  const keychronIn = keychron !== null
+  useEffect(() => {
+    if (group && settingsIn) document.getElementById(groupAnchor(group))?.scrollIntoView?.({ block: 'start' })
+  }, [group, settingsIn, keychronIn])
 
   let sections: Section[] = []
   const reported = (qsid: number) => settings !== null && settings[qsid] !== undefined

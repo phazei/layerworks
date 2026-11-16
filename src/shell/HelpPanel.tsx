@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The help panel: slides in from the right with the topic a "?" asked for. It sits over the edge of the page
-// without blocking it, so the page stays usable while it is open.
+// without blocking it, so the page stays usable while it is open. Related topics open in the panel; the Help
+// page has the topic with everything around it.
 
 import { useEffect, useRef, useState } from 'react'
-import { ExternalLink, X } from 'lucide-react'
-import { docsSite } from '../help/docs-site'
-import { closeHelp, useHelpTopic } from '../help/help-store'
+import { BookOpen, X } from 'lucide-react'
+import { relatedTopics, topicHref } from '../help/guide'
+import { closeHelp, HELP_PANEL_ID, openHelp, useHelpTopic } from '../help/help-store'
+import { QmkName, TopicBody } from '../help/TopicBody'
 import { HELP_TOPICS, type HelpTopicId } from '../help/topics'
 import { cx, IconButton } from '../ui/controls'
+import { useConnectedLayerNames } from './layer-names'
 
 export function HelpPanel() {
   const topicId = useHelpTopic()
@@ -17,6 +20,7 @@ export function HelpPanel() {
   if (topicId && topicId !== shownId) setShownId(topicId)
   const topic = shownId ? HELP_TOPICS[shownId] : null
   const panel = useRef<HTMLElement>(null)
+  const names = useConnectedLayerNames()
 
   useEffect(() => {
     if (!open) return
@@ -29,9 +33,12 @@ export function HelpPanel() {
     return () => window.removeEventListener('keydown', onKey)
   }, [open, topicId])
 
+  const related = shownId ? relatedTopics(shownId) : []
+
   return (
     <aside
       ref={panel}
+      id={HELP_PANEL_ID}
       tabIndex={-1}
       aria-label="Help"
       aria-hidden={!open}
@@ -48,39 +55,39 @@ export function HelpPanel() {
           <X size={17} />
         </IconButton>
       </header>
-      {topic && (
+      {topic && shownId && (
         <div className="flex flex-col gap-4 overflow-y-auto px-6 py-5">
           <div>
             <h2 className="text-lg leading-snug font-semibold">{topic.title}</h2>
-            {topic.qmkName && (
-              <p className="mt-1 text-[13px] text-muted">
-                In QMK: <span className="rounded-control bg-raised px-1.5 py-0.5 font-mono text-xs">{topic.qmkName}</span>
-              </p>
-            )}
+            <QmkName id={shownId} />
           </div>
-          {topic.body.map((paragraph, i) => (
-            <p key={i} className="leading-relaxed">
-              {paragraph}
-            </p>
-          ))}
-          {topic.example && (
-            <div className="rounded-control bg-raised p-3.5">
-              <div className="mb-1 text-xs font-medium text-muted">Example</div>
-              <p className="leading-relaxed">{topic.example}</p>
+          <TopicBody id={shownId} layerNames={names} />
+          {related.length > 0 && (
+            <div className="border-t border-edge pt-4">
+              <h3 className="mb-2 text-xs font-medium text-muted">Related</h3>
+              <ul className="flex flex-wrap gap-1.5">
+                {related.map((id) => (
+                  <li key={id}>
+                    <button
+                      type="button"
+                      onClick={() => openHelp(id)}
+                      className="inline-flex h-7 cursor-pointer items-center rounded-pill border border-edge bg-raised px-3 text-[13px] font-medium hover:bg-raised-hover"
+                    >
+                      {HELP_TOPICS[id].title}
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
-          {topic.docs && (
-            <a
-              href={topic.docs}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 self-start text-[13px] font-medium text-accent hover:underline"
-            >
-              Read more in {docsSite(topic.docs)}
-              <ExternalLink size={13} aria-hidden />
-              <span className="sr-only">(opens in a new tab)</span>
-            </a>
-          )}
+          <a
+            href={topicHref(shownId)}
+            onClick={closeHelp}
+            className="inline-flex items-center gap-1.5 self-start text-[13px] font-medium text-accent hover:underline"
+          >
+            <BookOpen size={14} aria-hidden />
+            Open on the Help page
+          </a>
         </div>
       )}
     </aside>

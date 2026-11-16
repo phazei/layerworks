@@ -9,6 +9,7 @@ import { Card } from '../ui/layout'
 import { useThemeChoice, type ThemeChoice } from '../ui/theme'
 import { About } from './settings/About'
 import { LayerNames } from './settings/LayerNames'
+import { TourCard } from './settings/TourCard'
 
 const THEMES: { value: ThemeChoice; label: ReactNode }[] = [
   { value: 'dark', label: <span className="inline-flex items-center gap-1.5"><Moon size={14} aria-hidden />Dark</span> },
@@ -29,6 +30,7 @@ function SettingsPage() {
               <Segmented label="Theme" value={theme} options={THEMES} onChange={setTheme} />
             </div>
           </Card>
+          <TourCard />
           <LayerNames />
         </div>
         <About />
