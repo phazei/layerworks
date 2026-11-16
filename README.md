@@ -6,8 +6,8 @@ the browser (Chrome or Edge, over WebHID), on the cable or through the 2.4 GHz r
 
 The design is in the Alice-Keyboard project: `../docs/spec/layerworks.md`. What exists so far: the connection
 layer, the shell (sidebar, keyboard stage, status line, help panel, themes), the unlock flow and a page for every
-section; Home, Keys, Shortcuts & macros, Lighting, Test, Device and Settings are built (see "The built pages"), the rest are still
-placeholders.
+section; Home, Keys, Shortcuts & macros, Lighting, Typing feel, Test, Device and Settings are built (see "The built
+pages"), the rest are still placeholders.
 
 ## Run it
 
@@ -62,7 +62,8 @@ src/
     capabilities.ts    what this keyboard can do, with a reason for what it can't
     unlock.ts          the Vial unlock flow: one poll loop with the queue held
     matrix.ts          reading the switch matrix (which keys are down), and the picture's physical keys
-    keycodes.ts        key names, the palette's groups, shortcut and layer-key builders
+    keycodes.ts        key names, the palette's groups, builders and readers for shortcuts, layer keys and
+                       tap / hold keys (mod-tap, layer-tap, one-shot modifiers, layer + modifiers)
     fake-keyboard.ts   a HidLink with no hardware and a small Vial keyboard behind it (tests, demo)
     backup.ts          the backup file: create, read back with checks, turn into contents to restore
     restore.ts         restoring: whether a file fits the keyboard, the plan of writes (only what differs), in words
@@ -71,6 +72,8 @@ src/
     wireless.ts        Keychron's wireless timers: limits, choices, durations in words
     macros.ts          macros as steps: to and from the shared macro buffer, sizes, problems, recording
     entries.ts         tap dance, combos, key overrides, alt repeat: defaults, problems, option bits, modifiers
+    settings.ts        the QMK settings catalogue: names, explanations, controls, groups; values in and out
+    keychron-typing.ts Keychron's key bounce filter types and Snap Click rules in words, pair checks
     useDevice.ts       the app's store and its React hook
     api.ts, index.ts   the public surface; pages, plugins and the shell import from here
   demo/              the demo keyboard: a K15 Max inside the page (k15-max.json, demo-link.ts)
@@ -86,8 +89,13 @@ src/
     prefs.ts           what the app remembers in the browser (usePref)
     theme.ts           dark / light / system, applied as the `dark` class on <html>
     KeyboardPicture.tsx  the keyboard for one layer; wraps the vendored keyboard widget
-    KeyTile.tsx        KeyTile (a palette key drawn like a keycap) and KeyCap (one key, not clickable)
+    KeyTile.tsx        KeyTile (a palette key drawn like a keycap; `empty` draws it faint) and KeyCap (one key)
+    ChoiceGrid.tsx     one of a few choices like Segmented, as a grid, so four labels fit a narrow column
+    PageLink.tsx       a link in running text to another page of the app ("#/typing")
     ResizeHandle.tsx   a drag handle on a box's bottom edge (pointer and keyboard), and clamp
+    Select.tsx         a drop-down choice (the browser's own list, styled)
+    KeyCapture.tsx     "press a key": a button that takes the next key pressed as its value
+    latest.ts          sends changes one at a time, only the newest waiting (dragged sliders)
     useElementSize.ts  an element's size as it changes (ResizeObserver)
   shell/             the frame around the pages
     Shell.tsx          the frame: sidebar, page title, stage, page, status line, help panel; picks the page
@@ -108,7 +116,7 @@ src/
     pressed-keys.ts    held keys, from the browser's key events
   pages/             the built-in sections, one file each, registered as the "core" plugin (index.ts);
                      a page's own parts in a folder beside it (home/, keys/, settings/, lighting/, test/, device/,
-                     shortcuts/)
+                     shortcuts/, typing/)
   plugins/api.ts     definePlugin: pages and panels, for built-in sections and plugins alike
   help/              help topics (topics.ts) and which one the help panel shows
   vendor/pipette/    code copied from Pipette, unmodified (VENDOR.md)
@@ -193,19 +201,46 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
   the key has its own assignment or falls through, and to what (`keys/describe.ts`, `fallThrough`: from a layer
   above the keyboard's base layer to the base layer, then layer 0; from any other layer straight to layer 0;
   worded "normally", since other layers held at the same time aren't counted). "Now" shows the current assignment as a keycap,
-  in words, and its QMK name. Then one `Segmented` choice, opened on the one that matches the current assignment:
+  in words, and its QMK name; a key that does two things has a two-line cap, tap above hold ("Esc" over "Ctrl",
+  `capLabel`), and reads "Tap: Escape · Hold: Ctrl". A macro or multi-tap key shows its name and summary
+  ("Macro 1 · Types “hello@example.com”", "Multi-tap key 1 · Tap: Escape · Double tap: Caps Lock") with "Open on
+  Shortcuts & macros" (or "Set it up …" for an empty one) linking to that slot. Then the choice, a `ChoiceGrid`
+  (`ui/ChoiceGrid.tsx`: two by two in the 18rem column, one row of four in a one-column card from 32rem), opened
+  on the one that matches the current assignment:
   - **A key** (`keys/KeyPalette.tsx`): `keyPalette()` groups as key tiles in a box that scrolls and fills the
     space left; the current key is marked and scrolled into view. The search matches label, description and QMK
     names (a single character only matches a label, so "a" finds A); the line beside it says what the key under
-    the pointer does. A click assigns.
+    the pointer does. A click assigns. Macro and multi-tap tiles say what they are (`keys/shortcut-keys.ts`, from
+    the keyboard's macros and tap dances and the macro names kept in the browser): the macro's name or "Macro 3",
+    "Multi-tap 1" (broken after the hyphen); the hover line and screen readers get the one-line summary ("Email: Types
+    “hello@example.com”"), and the search matches names and summaries. Slots with nothing set up stay in their
+    place, drawn faint with a dashed edge, still pickable. Both groups have "Set up on Shortcuts & macros" beside
+    their title. The palette does this itself, so the Shortcuts page's key pickers show the same tiles.
   - **A shortcut** (`keys/ShortcutChoice.tsx`): Ctrl, Shift, Alt, Win checkboxes and a palette of the keys that
     take modifiers (`canTakeModifiers`); nothing is written until "Use Ctrl + C", so trying doesn't fill undo.
   - **Switch layer** (`keys/LayerChoice.tsx`): pick the layer, then one of the `LAYER_ACTIONS` sentences with
-    its name; a sentence assigns.
-  - *More options* (`keys/MoreOptions.tsx`): Nothing, Same as the layer below, and a key-code field that shows
-    what the typed code means (`parseKeycode`) before "Use this code". It opens by itself when the current
-    assignment lives there (nothing, transparent, or a code no choice builds, which is put in the field), for
-    that key only: `Disclosure`'s `forceOpen` leaves the remembered open/closed state alone.
+    its name; a sentence assigns. "Hold for Fn2, or tap quickly to keep it on" is QMK's TT (how many taps is the
+    Tapping toggle setting). Folded under "With modifiers held too": the layer with modifiers held (QMK's LM,
+    layers 0-15), ticked and then used with its own button ("Use Fn2 + Ctrl").
+  - **Tap or hold** (`keys/TapHoldChoice.tsx`): one thing when tapped, another while held. "When held" a modifier
+    (mod-tap, `LCTL_T(kc)` …: Ctrl, Shift, Alt, Win to tick) or a layer (layer-tap, `LT(layer, kc)`, the layers by
+    name; only 0-15 fit in the keycode); "Tap for" a key from a palette of plain keys (the shortcut palette's: the
+    firmware keeps 8 bits for the tap). Nothing is written until the button, named by the result ("Use Tap: Escape
+    · Hold: Ctrl"). A line links to the Typing feel page for how long counts as a hold, and one under the palette
+    points to multi-tap keys for anything that isn't a plain key. Under "Left- or right-hand modifier", the side
+    (QMK can't mix sides in one key; opened by itself for a right-hand key).
+  - *More options* (`keys/MoreOptions.tsx`): Nothing, Same as the layer below, a modifier for the next key only
+    (QMK's one-shot modifier, `OSM`: Ctrl, Shift, Alt, Win and Right-hand to tick, then "Use Shift for the next
+    key"), and a key-code field that shows what the typed code means (`parseKeycode`) before "Use this code". It
+    opens by itself when the current assignment lives there (nothing, transparent, a one-shot modifier, or a code
+    no choice builds, which is put in the field), for that key only: `Disclosure`'s `forceOpen` leaves the
+    remembered open/closed state alone.
+
+  The builders and readers are in `device/keycodes.ts`: `modTapKeycode` / `readModTap`, `layerTapKeycode` /
+  `readLayerTap` (both `readTapHold`), `oneShotModKeycode` / `readOneShotMod`, `layerModKeycode` / `readLayerMod`,
+  all with a 5-bit modifier mask (Ctrl, Shift, Alt, Win in bits 0-3, `RIGHT_HAND` for bit 4); they return null for
+  what the firmware can't hold (no modifier, a layer over 15, a tap key that isn't a basic one, `canBeTapped`).
+  `keycodeName` reads such keys as "Esc / Ctrl", "Space / Layer 4", "Ctrl+C"; `keycodeCap` gives the two-line form.
 
   Every assignment is `deviceStore.assign`, so it shows in the picture at once and Undo takes it back; the
   selection stays. A knob's direction 0 is counter-clockwise (left), 1 clockwise (right), as vial-qmk stores
@@ -230,11 +265,42 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     colour, vividness and speed, or the reason it doesn't, read from the firmware's effect code (sources in the
     file). A slider the current effect ignores is disabled with that reason under it; when colour and
     vividness are off for the same reason, it is said once under both and describes both.
-  - Changes go through `lighting/latest.ts`: one `setLighting` at a time; while one is on its way only the newest
+  - Changes go through `ui/latest.ts` (`lighting/latest.ts` passes it on): one `setLighting` at a time; while one
+    is on its way only the newest
     of the rest waits, so a dragged slider never floods the keyboard and always ends on its last value. The
     sliders show the value at once, from what is still on its way.
   - A plugin can rename effects with `lightingEffects: { 41: { name, description } }` in its `definePlugin`, for
     firmware that puts its own effect in a standard slot (the K15's ripple is Solid Splash, VialRGB id 41).
+- **Typing feel** (`Typing.tsx`, `typing/`): full height, no stage (no setting here needs the picture; Snap Click
+  keys are pressed on the keyboard instead). A sentence on what the page is for and a search field, then one `Card`
+  per group, each with its QMK name small beside the title, a one-sentence description and a help topic. On a wide
+  page (from 56rem) a list of the groups sits beside the cards and scrolls to one. Only settings the keyboard reports
+  are shown; a group with none is left out.
+  - The QMK settings come from `device/settings.ts` (see "Typing settings"), grouped by what a person wants rather
+    than how QMK files them: *Tap or hold*, *Key chords*, *Capitals by holding* (Auto Shift), *One-tap modifiers*,
+    *Mouse keys*, *Swapped and disabled keys* (Magic), then Keychron's *Key bounce filter* and *Snap Click*, then the
+    rarely needed *Esc and ` key* (Grave Escape), and *Other settings* for ids the app doesn't know (shown as sent,
+    read only). Everyday settings are visible, the rest under *More options*.
+  - A time or number is a `Slider` with its value in plain units ("200 ms", "5 s", "8 notches"), quick choices as
+    chips where they help ("Quick 150 ms · Usual 200 ms · Relaxed 250 ms · Slow 300 ms" for the hold time), and the
+    explanation under it; mouse-key values add what they come to ("About 1,250 pixels a second at top speed").
+    Anything on or off is a `Toggle`, one per bit for settings made of bits. A setting that does nothing because of
+    another is greyed out with the reason (Auto Shift's settings while it is off; `typing/rules.ts`).
+  - *Tap or hold* has a "Try it here" box to type in while changing the hold time; *Key chords* links to the chords
+    on Shortcuts & macros.
+  - The search (`typing/rules.ts`) matches every word against the friendly name, QMK name, explanation and group;
+    while searching, only matching settings show, those under More options included, and the plugin panels and the
+    reset are hidden. "No setting matches …" when nothing does.
+  - Changes go through `ui/latest.ts`, one queue for the page's QMK settings (`deviceStore.setSetting`) and one for
+    the bounce filter (`setDebounce`): sliders show their value at once and the keyboard gets the newest.
+  - *Key bounce filter* (`typing/Debounce.tsx`, when `keychron.hasDebounce`): the wait in ms and how it waits, "React
+    at once" or "Wait until steady" (the other five types under More options), each with what it does.
+  - *Snap Click* (`typing/SnapClick.tsx`, when `keychron.hasSnapClick`): the pairs in use as two keycaps with the
+    rule as a `Select` ("The last one pressed wins", "Both down cancel out", "A always wins" …) and its explanation,
+    and a remove button; then "Add a pair" with ready-made pairs (A and D, W and S, the arrows) and "Other keys…",
+    where each key is pressed on the keyboard (`ui/KeyCapture.tsx`; ordinary keys only).
+  - Plugin panels for `'typing'` follow, one `Card` each. Last, "Reset all typing settings…"
+    (`typing/ResetSettings.tsx`) asks in a danger `Dialog` and calls `deviceStore.resetSettings`.
 - **Test** (`Test.tsx`, `test/`): full height, with its own picture (no layer stack; labels follow the active
   layer). "37 of 90 keys seen" with a bar and "Start again"; a key is lit while down and stays marked once seen
   (`KeyboardPicture`'s `seen`, in `--key-bg-seen`; a held key is `--key-bg-pressed`, light in the light theme so the
@@ -438,6 +504,42 @@ one shot (theme, "More options" open) shows in another. `EDGE=<path>` points it 
   keyboard saves them itself. Pairs the firmware would refuse (lights-off under 5 s, sleep under 60 s) or that put
   sleep before lights-off are not sent (`timersProblem`). Writing them while wirelessly connected makes the
   firmware nudge the mouse pointer once.
+- `deviceStore.setSetting(qsid, value)`, `setDebounce({ type, time })` and `setSnapClick(index, entry)` change one
+  typing setting (see "Typing settings"); `resetSettings()` puts every QMK setting back to the firmware's defaults.
+
+## Typing settings
+
+Vial's "QMK Settings" are numbered (`qsid`) and the keyboard lists the ones its firmware has: 26 on the K15 Max
+(1-7, 9-17 because mouse keys are on, 18-27; `../vial_qmk/quantum/qmk_settings.c`). The store reads them at load
+(`DeviceState.settings`, each as the bytes the keyboard sent).
+
+- **The catalogue** (`device/settings.ts`): `SETTING_FIELDS` has one entry per control, for every id vial-qmk
+  declares plus 8 (the tap-hold bits of older vial-qmk): a stable `key`, the `qsid`, the friendly name, QMK's name,
+  a one- or two-sentence explanation of what it feels like, its group, whether it is advanced, and its control: a
+  `number` (unit, range, step, presets, what 0 means), a `switch` (the whole value 0 or 1), or a `flag` (one bit,
+  `inverted` for QMK's "don't …" bits, so Auto Shift's "Letters" is on when `NO_AUTO_SHIFT_ALPHA` is clear). Mouse-key
+  fields have `describe`, a sentence worked out from the other settings. `SETTING_GROUP_INFO` names the groups.
+- **Values**: `SETTING_WIDTHS` gives each id's size (1, 2 or 4 bytes; the single-bit ids 22-24 and 26 are one byte,
+  0 or 1). `settingValues` decodes what the keyboard sent (little-endian; bytes past the width are leftovers of the
+  request and ignored); `encodeSetting`, `withSettingValue`, `flagOn` and `withFlag` go the other way. Ids the app
+  doesn't know have no width and are never written.
+- **Writing**: `deviceStore.setSetting(qsid, value)` sends Vial's `0xFE 0x0B` with the value as wide as the
+  setting; the firmware saves it to its EEPROM at once and no unlocking is needed. The store shows the new value once
+  the keyboard has taken it. A change is one undo step; changes to the same setting less than a second apart, with
+  nothing to redo, merge into that step (a dragged slider is one step, and one that ends where it started is none).
+  The bounce filter and Snap Click pairs are undone the same way.
+- **Reset**: `deviceStore.resetSettings()` sends Vial's `0xFE 0x0C` (`qmk_settings_reset`), then reads every
+  setting again, since only the keyboard knows its defaults. It also clears the swapped and disabled keys and N-key
+  rollover (Magic's bits), and is not undoable. Keychron's bounce filter and Snap Click are not part of it.
+- **Key bounce filter** (`setDebounce`, Keychron `0xA7 0x06`): a type (`DEBOUNCE_TYPES` in
+  `device/keychron-typing.ts`, Keychron's numbering 0-6) and a time in ms (0-255; the asymmetric type keeps at most
+  127). Saved by the keyboard at once.
+- **Snap Click** (`setSnapClick`, `0xA7 0x09`, then `0xA7 0x0A` to save, since a set only changes the running
+  table): 20 slots on the K15 Max, each a rule (`SNAP_CLICK_RULES`: 1 last pressed wins once, 2 last pressed wins, 3
+  first key wins, 4 second key wins, 5 cancel out; 0 an empty slot) and two plain keys (8-bit keycodes).
+  `snapClickProblem` refuses a pair the firmware would (a rule without both keys) and one with the same key twice.
+- Keychron's N-key rollover command isn't used: on the K15 Max it reports adaptive N-key rollover and refuses to be
+  set; Magic's bit 7 is the switch that works. Its report rate isn't offered either: the K15 Max doesn't have it.
 
 ## Macros
 
@@ -557,10 +659,13 @@ presses keys by itself for screenshots. Unlocking, the matrix and the commands i
 vial-qmk's do (`fake-keyboard.ts`).
 
 It answers every write the app makes and keeps it: keys, knob, lighting, macros (only while unlocked), tap dance
-and the other entries, QMK settings, layout options, and Keychron's wireless timers and debounce; locked, QK_BOOT
-in knob and entry writes becomes 0, as in vial-qmk. On the cable its Keychron commands report the default layer
-only; `?demo-wireless` connects it through the receiver with the K15 Max's wireless features, timers (10 min,
-2 h), debounce, a battery of 76 % and the real firmware string (`v1.1.2 1970-01-01-00:00:00`).
+and the other entries, QMK settings and their reset, layout options, and Keychron's wireless timers, debounce and
+Snap Click; locked, QK_BOOT in knob and entry writes becomes 0, as in vial-qmk. It reports the K15 Max's 26 QMK
+settings with the values the real keyboard has (its firmware defaults, `K15_SETTINGS`), which the reset puts back.
+On the cable its Keychron commands report the default layer, the key bounce filter (react at once, 50 ms, as read
+from the real keyboard) and Snap Click (20 slots, one example pair: A and D, the last one pressed wins);
+`?demo-wireless` connects it through the receiver with those and the K15 Max's wireless features, timers (10 min,
+2 h), a battery of 76 % and the real firmware string (`v1.1.2 1970-01-01-00:00:00`).
 
 Its macro buffer starts with three examples (`DEMO_MACROS` in `demo-link.ts`): an e-mail address, Ctrl + A then
 Ctrl + C, and Win + R, wait, "notepad", Enter. Macro 1 is also on Fn + P on the Windows layers; the K15's own M1 –

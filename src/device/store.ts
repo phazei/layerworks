@@ -5,7 +5,9 @@
 import * as protocol from '../vendor/pipette/tauri-shim/protocol'
 import {
   reloadKeychron,
+  saveKeychronSnapClick,
   setKeychronDebounce,
+  setKeychronSnapClick,
   setKeychronWirelessLpm,
 } from '../vendor/pipette/tauri-shim/keychron-protocol'
 import { setTransport } from '../vendor/pipette/tauri-shim/transport'
@@ -47,6 +49,8 @@ import { timersProblem, type WirelessTimers } from './wireless'
 import { encodeMacro, rawMacros, replaceMacro, stepProblem, type MacroStep } from './macros'
 import { entryProblem, sameEntry, type AnyEntry, type EntryOf } from './entries'
 import type { EntryKind } from './restore'
+import { decodeSetting, largestValue, settingWidth, withSettingValue } from './settings'
+import { debounceMax, snapClickProblem, type Debounce, type SnapClickEntry } from './keychron-typing'
 
 export interface LinkInfo {
   kind: LinkKind
@@ -140,7 +144,23 @@ interface Edit {
   macros?: { from: number[]; to: number[] }
   /** A saved tap dance, combo, key override or alt repeat entry, before and after. */
   entry?: { kind: EntryKind; index: number; from: AnyEntry; to: AnyEntry }
+  /** A typing setting (QMK setting, debounce, a Snap Click pair), before and after. */
+  value?: ValueEdit
 }
+
+/** One setting's change, with how to write either value back. */
+interface ValueEdit {
+  /** Which setting: changes to the same one in quick succession (a slider drag) merge into one step. */
+  key: string
+  /** When it last changed (ms), for merging. */
+  at: number
+  from: unknown
+  to: unknown
+  write: (value: unknown) => Promise<boolean>
+}
+
+/** Changes to one setting less than this apart are one undo step: a dragged slider is undone in one go. */
+const MERGE_MS = 1000
 
 /** How saving a tap dance, combo, key override or alt repeat entry went. */
 export type EntrySaveResult =
@@ -294,6 +314,21 @@ export interface DeviceStore {
   restore(plan: RestorePlan, onProgress?: (progress: RestoreProgress) => void): Promise<RestoreReport>
   /** Sets Keychron's wireless timers (lights off, sleep). The keyboard saves them itself. */
   setWirelessTimers(timers: WirelessTimers): Promise<void>
+  /**
+   * Sets one QMK setting to `value` (decoded: a number, or the setting's bits together). The keyboard saves it
+   * itself; no unlocking needed. One undo step; quick changes to the same setting (a slider drag) merge into one.
+   * Resolves false when it wasn't written: unknown or unreported setting, or the write failed (`writeError`).
+   */
+  setSetting(qsid: number, value: number): Promise<boolean>
+  /**
+   * Puts every QMK setting back to the firmware's defaults (Vial's reset command), then reads them again. Includes
+   * the swapped and disabled keys and N-key rollover. Not undoable.
+   */
+  resetSettings(): Promise<boolean>
+  /** Sets Keychron's key bounce filter. The keyboard saves it itself. One undo step, merged like `setSetting`. */
+  setDebounce(debounce: Debounce): Promise<boolean>
+  /** Sets one Snap Click pair (type 0 empties the slot) and saves the table on the keyboard. One undo step. */
+  setSnapClick(index: number, entry: SnapClickEntry): Promise<boolean>
   /**
    * Reads every key straight from the keyboard while it is unlocked; `listener` gets the keys down ("row,col")
    * whenever they change. Polling runs while anyone watches and the keyboard is unlocked, and stops when the last
@@ -578,6 +613,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       }
       if (!(await writeEntry(kind, index, value))) return
     }
+    if (edit.value && !(await edit.value.write(from === 'undo' ? edit.value.from : edit.value.to))) return
     // A group is taken back last change first. If a write fails the step stays, so it can be tried again; the
     // writes that did go through are harmless to repeat.
     const changes = from === 'undo' ? [...edit.changes].reverse() : edit.changes
@@ -931,6 +967,111 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     await write(send, applied)
   }
 
+  const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+
+  /**
+   * Remembers a setting's change for undo. A change to the same setting soon after the last one, with nothing to
+   * redo, extends that step instead; one that ends where the step began removes it.
+   */
+  function rememberValue(key: string, from: unknown, to: unknown, writeValue: (value: unknown) => Promise<boolean>): void {
+    const top = undoStack.at(-1)
+    const now = Date.now()
+    if (top?.value?.key === key && top.changes.length === 0 && redoStack.length === 0 && now - top.value.at < MERGE_MS) {
+      const merged = { ...top, value: { ...top.value, to, at: now } }
+      undoStack = same(merged.value.from, to) ? undoStack.slice(0, -1) : [...undoStack.slice(0, -1), merged]
+      set(history())
+      return
+    }
+    remember({ changes: [], value: { key, at: now, from, to, write: writeValue } })
+  }
+
+  function writeSetting(qsid: number, value: number): Promise<boolean> {
+    const width = settingWidth(qsid) ?? 0
+    return write(
+      () => protocol.qmkSettingsSet(qsid, withSettingValue([], value, width)),
+      () => {
+        if (!state.settings) return {}
+        return { settings: { ...state.settings, [qsid]: withSettingValue(state.settings[qsid] ?? [], value, width) } }
+      },
+    )
+  }
+
+  async function setSetting(qsid: number, value: number): Promise<boolean> {
+    const stored = state.settings?.[qsid]
+    const width = settingWidth(qsid)
+    if (!stored || width === undefined) return false
+    if (!Number.isInteger(value) || value < 0 || value > largestValue(width)) return false
+    const from = decodeSetting(stored, width)
+    if (from === value) return true
+    if (!(await writeSetting(qsid, value))) return false
+    rememberValue(`setting:${qsid}`, from, value, (v) => writeSetting(qsid, v as number))
+    return true
+  }
+
+  async function resetSettings(): Promise<boolean> {
+    if (!state.settings) return false
+    const ids = Object.keys(state.settings).map(Number)
+    const fresh: Record<number, number[]> = {}
+    return write(
+      async () => {
+        await protocol.qmkSettingsReset()
+        // The firmware's defaults are only known by reading them back.
+        for (const id of ids) fresh[id] = await protocol.qmkSettingsGet(id)
+      },
+      () => ({ settings: fresh }),
+    )
+  }
+
+  function writeDebounce({ type, time }: Debounce): Promise<boolean> {
+    return write(
+      async () => {
+        if (!(await setKeychronDebounce(type, time))) throw new Error('The keyboard refused the debounce setting.')
+      },
+      () => (state.keychron ? { keychron: { ...state.keychron, debounceType: type, debounceTime: time } } : {}),
+    )
+  }
+
+  async function setDebounce(debounce: Debounce): Promise<boolean> {
+    const kc = state.keychron
+    if (!kc?.hasDebounce) return false
+    const to = { type: debounce.type, time: Math.max(0, Math.min(Math.round(debounce.time), debounceMax(debounce.type))) }
+    const from = { type: kc.debounceType, time: kc.debounceTime }
+    if (same(from, to)) return true
+    if (!(await writeDebounce(to))) return false
+    rememberValue('debounce', from, to, (v) => writeDebounce(v as Debounce))
+    return true
+  }
+
+  function writeSnapClick(index: number, entry: SnapClickEntry): Promise<boolean> {
+    return write(
+      async () => {
+        if (!(await setKeychronSnapClick(index, entry.type, entry.key1, entry.key2))) {
+          throw new Error('The keyboard refused this Snap Click pair.')
+        }
+        // Set only changes the running table; save keeps it over a restart.
+        if (!(await saveKeychronSnapClick())) throw new Error('The keyboard didn’t save Snap Click.')
+      },
+      () => {
+        if (!state.keychron) return {}
+        const entries = [...state.keychron.snapClickEntries]
+        entries[index] = { ...entry }
+        return { keychron: { ...state.keychron, snapClickEntries: entries } }
+      },
+    )
+  }
+
+  async function setSnapClick(index: number, entry: SnapClickEntry): Promise<boolean> {
+    const kc = state.keychron
+    const now = kc?.snapClickEntries[index]
+    if (!kc?.hasSnapClick || !now || snapClickProblem(entry) !== null) return false
+    const to = entry.type === 0 ? { type: 0, key1: 0, key2: 0 } : { type: entry.type, key1: entry.key1, key2: entry.key2 }
+    const from = { type: now.type, key1: now.key1, key2: now.key2 }
+    if (same(from, to)) return true
+    if (!(await writeSnapClick(index, to))) return false
+    rememberValue(`snap-click:${index}`, from, to, (v) => writeSnapClick(index, v as SnapClickEntry))
+    return true
+  }
+
   function watchMatrix(listener: (down: ReadonlySet<string>) => void): () => void {
     matrixWatchers.add(listener)
     syncMatrix()
@@ -974,6 +1115,10 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     saveEntry: (kind, index, entry) => inOrder(() => saveEntry(kind, index, entry)),
     restore: (plan, onProgress) => inOrder(() => restore(plan, onProgress)),
     setWirelessTimers: (timers) => inOrder(() => setWirelessTimers(timers)),
+    setSetting: (qsid, value) => inOrder(() => setSetting(qsid, value)),
+    resetSettings: () => inOrder(resetSettings),
+    setDebounce: (debounce) => inOrder(() => setDebounce(debounce)),
+    setSnapClick: (index, entry) => inOrder(() => setSnapClick(index, entry)),
     watchMatrix,
 
     async connect(link) {

@@ -107,6 +107,45 @@ export {
   withChordKeys,
 } from './entries'
 export type { AltRepeatKeyEntry, AnyEntry, ComboEntry, EntryOf, KeyOverrideEntry, TapDanceEntry } from './entries'
+export {
+  decodeSetting,
+  encodeSetting,
+  fieldRange,
+  fieldSearchText,
+  fieldsOf,
+  flagOn,
+  formatMs,
+  formatSetting,
+  isKnownSetting,
+  SETTING_FIELDS,
+  SETTING_GROUP_INFO,
+  SETTING_GROUPS,
+  SETTING_WIDTHS,
+  settingValues,
+  settingWidth,
+  withFlag,
+} from './settings'
+export type {
+  SettingControl,
+  SettingField,
+  SettingGroup,
+  SettingGroupId,
+  SettingPreset,
+  SettingUnit,
+  SettingValues,
+} from './settings'
+export {
+  DEBOUNCE_TYPES,
+  debounceMax,
+  debounceType,
+  EMPTY_SNAP_CLICK,
+  isSnapClickKey,
+  SNAP_CLICK_PRESETS,
+  SNAP_CLICK_RULES,
+  snapClickProblem,
+  snapClickRule,
+} from './keychron-typing'
+export type { Debounce, DebounceType, SnapClickEntry, SnapClickRule } from './keychron-typing'
 
 export { posKey } from '../vendor/pipette/shared/kle/pos-key'
 export type { KleKey, KeyboardLayout } from '../vendor/pipette/shared/kle/types'

@@ -58,12 +58,64 @@ const topics = {
   },
   'layer-key': {
     title: 'Layer keys',
-    qmkName: 'MO, TG, TO, OSL, DF',
+    qmkName: 'MO, TT, TG, TO, OSL, DF',
     body: [
       'A layer key switches to another layer. The usual kind works while held, like Fn. Others switch a layer on until pressed again, or just for the next key.',
+      '“Hold for a layer, or tap quickly to keep it on” (TT) works while held too, but a few quick taps leave the layer on until you tap it again. How many taps is a typing setting (Tapping toggle, five unless changed).',
       'The key that takes you to a layer should be empty ("same as the layer below") on that layer, or you can get stuck there.',
     ],
     example: '"While held → Fn2" on the right B key: holding B turns the keys around J into a number pad.',
+    docs: QMK + 'feature_layers#switching-and-toggling-layers',
+  },
+  'tap-hold': {
+    title: 'Tap or hold',
+    qmkName: 'Mod-tap, layer-tap',
+    body: [
+      'One key that does one thing when you tap it and another while you hold it down: a modifier such as Ctrl, or a layer. Tapped, it sends a plain key.',
+      'The keyboard waits to see which it is, so a tap is sent when you let go rather than when you press. How long counts as a hold is a typing setting (Typing feel page).',
+      'Only plain keys can be the tap: letters, numbers, editing keys, F-keys. For a media key or a shortcut on a tap, use a multi-tap key (Shortcuts & macros).',
+    ],
+    example: 'Caps Lock as “Tap: Escape · Hold: Ctrl”: Esc where it is easy to reach, and Ctrl under your little finger.',
+    docs: QMK + 'mod_tap',
+  },
+  'mod-tap': {
+    title: 'Tap for a key, hold for a modifier',
+    qmkName: 'Mod-tap, MT(mod, kc), LCTL_T(kc) …',
+    body: [
+      'Tapped, the key sends a plain key; held, it is Ctrl, Shift, Alt or the Windows key (or several at once) for as long as you hold it.',
+      'Left-hand or right-hand modifier: most programs don’t mind. On many keyboard layouts the right Alt is AltGr, which types extra characters.',
+    ],
+    example: 'Tap: Escape · Hold: Ctrl on Caps Lock. Or Tap: Space · Hold: Shift on the space bar.',
+    docs: QMK + 'mod_tap',
+  },
+  'layer-tap': {
+    title: 'Tap for a key, hold for a layer',
+    qmkName: 'Layer-tap, LT(layer, kc)',
+    body: [
+      'Tapped, the key sends a plain key; held, another layer is on for as long as you hold it, like Fn.',
+      'It can reach the first 16 layers (0 to 15), and only plain keys can be the tap.',
+    ],
+    example: 'Tap: Space · Hold: Fn2 on the space bar: your thumb types spaces and, held, brings up the number pad.',
+    docs: QMK + 'feature_layers#switching-and-toggling-layers',
+  },
+  'one-shot-mod': {
+    title: 'Modifier for the next key only',
+    qmkName: 'One-shot modifier, OSM(mod)',
+    body: [
+      'Tap it and let go: the next key you press comes with that modifier, as if you had held it. Handy for capitals without holding Shift, or Ctrl shortcuts with one hand.',
+      'Held down, it works like the ordinary modifier. How long it waits for the next key is a typing setting.',
+    ],
+    example: 'Shift for the next key only: tap it, then tap A, and you get a capital A.',
+    docs: QMK + 'one_shot_keys',
+  },
+  'layer-mod': {
+    title: 'A layer with modifiers held',
+    qmkName: 'LM(layer, mod)',
+    body: [
+      'While held, another layer is on and the modifiers you ticked are held too, so every key on that layer comes with them.',
+      'It can reach the first 16 layers (0 to 15).',
+    ],
+    example: 'While held, use Fn2 with Ctrl: the arrow keys on Fn2 then jump a word at a time.',
     docs: QMK + 'feature_layers#switching-and-toggling-layers',
   },
   transparent: {
@@ -350,6 +402,126 @@ const topics = {
       '“Fallback for every other key”: after any key that no rule covers, the alternate repeat key sends this rule’s key.',
     ],
     docs: QMK + 'features/repeat_key',
+  },
+  'typing-feel': {
+    title: 'Typing feel',
+    qmkName: 'QMK Settings',
+    body: [
+      'How the keyboard reads your presses: how long a press counts as a hold, how close together keys must go down to count as a chord, how the mouse keys speed up, which modifier keys are swapped. Each change goes to the keyboard at once and stays there, on any computer.',
+      'Most people only ever touch the first few. If something feels wrong, “Reset all typing settings” at the bottom puts every one back to how the firmware came.',
+    ],
+    example: 'If a key that is A when tapped and Ctrl when held keeps giving Ctrl by accident, make “How long counts as a hold” longer.',
+    docs: 'https://get.vial.today/manual/qmk-settings.html',
+  },
+  'typing-tap-hold': {
+    title: 'Tap or hold',
+    qmkName: 'Tap-Hold, tapping term',
+    body: [
+      'A key can do one thing when tapped and another when held: A when tapped and Ctrl when held, or Space when tapped and a layer when held. The keyboard can’t know which you mean until you let go, or until enough time has passed.',
+      '“How long counts as a hold” is that time. Under More options are ways to decide sooner when you press another key in the meantime; try one at a time, in the box on this card.',
+      'Multi-tap keys each have their own time, set on Shortcuts & macros.',
+    ],
+    example: 'Home-row Ctrl on F: at 200 ms, a quick “f” types f; F held while you press C gives Ctrl + C.',
+    docs: QMK + 'tap_hold',
+  },
+  'typing-hold-decision': {
+    title: 'Deciding sooner between tap and hold',
+    qmkName: 'Permissive Hold, Hold On Other Key Press, Chordal Hold',
+    body: [
+      'Normally a tap-or-hold key only counts as held once its time is up. These options let another key press decide sooner.',
+      'Hold when another key is tapped inside it: holding the key and tapping another (down and up) makes it a hold. Hold as soon as another key goes down: any other key pressed makes it a hold at once, quickest but easiest to trigger by accident. Holds only with a key on the other hand: on top of either, a key on the same half of the keyboard keeps it a tap, so rolling letters on one hand stays letters.',
+    ],
+    example: 'With “Hold when another key is tapped inside it”, holding F (Ctrl when held) and tapping C gives Ctrl + C even if you are quick.',
+    docs: QMK + 'tap_hold#permissive-hold',
+  },
+  'typing-chords': {
+    title: 'Key chord timing',
+    qmkName: 'Combo term',
+    body: [
+      'The keys of a key chord must all go down within this time. Pressed further apart, they type as usual.',
+      'Short times suit fast typists, who would otherwise set chords off while typing; longer times are easier to hit on purpose. The chords themselves are on Shortcuts & macros.',
+    ],
+    example: 'With J + K → Esc and 50 ms, pressing J and K together gives Esc; typing “jk” normally types jk.',
+    docs: QMK + 'features/combo#combo-term',
+  },
+  'typing-auto-shift': {
+    title: 'Capitals by holding',
+    qmkName: 'Auto Shift',
+    body: [
+      'With this on, a key held a little longer than a normal tap types its shifted version: a capital letter, or the symbol above a number. A normal tap types as before.',
+      'Under More options: which keys it works on, whether it still works with Ctrl or Alt held, and what a held key does instead of repeating.',
+    ],
+    example: 'Tap 1 for 1, hold it for !; tap a for a, hold it for A.',
+    docs: QMK + 'features/auto_shift',
+  },
+  'typing-one-shot': {
+    title: 'One-tap modifiers',
+    qmkName: 'One Shot Keys',
+    body: [
+      'A one-tap modifier is a Shift, Ctrl, Alt or Win key (or a layer key) that you tap instead of holding: it stays on for the next key you press, then lets go. Easier on the hands, and handy with one hand.',
+      'They only work once such a key is on the keyboard: on the Keys page, under Switch layer for layers, or under More options for modifiers. Tapping one several times locks it on until you tap it again.',
+    ],
+    example: 'Tap the one-tap Shift, then a: you get A, and the next letter is small again.',
+    docs: QMK + 'one_shot_keys',
+  },
+  'typing-mouse-keys': {
+    title: 'Mouse keys',
+    qmkName: 'Mouse Keys',
+    body: [
+      'Keys can move the mouse pointer, click and scroll. A press moves the pointer one small step; held, it starts moving and speeds up until it reaches top speed.',
+      'Top speed is how far it moves at once at full speed, and how long it takes to get there is counted in moves. The line under each says what that means in pixels a second. Scrolling works the same way, in wheel notches.',
+    ],
+    example: 'On the K15 Max, hold Fn2 (right B) and use the arrows: a tap nudges the pointer, holding sweeps it across the screen.',
+    docs: QMK + 'features/mouse_keys',
+  },
+  'typing-magic': {
+    title: 'Swapped and disabled keys',
+    qmkName: 'Magic keycodes',
+    body: [
+      'Switches that change what modifier keys do on every layer at once, without editing each key: swap Caps Lock and Ctrl, swap Alt and Win for a Mac, or switch the Windows keys off for games.',
+      'The keys still show their own names on the Keys page; the swap happens in the keyboard after that. Turn the switch off to undo it.',
+    ],
+    example: 'Turn on “Windows keys do nothing” before a game, and off again afterwards.',
+    docs: QMK + 'keycodes_magic',
+  },
+  'typing-grave-esc': {
+    title: 'The combined Esc and ` key',
+    qmkName: 'Grave Escape, QK_GESC',
+    body: [
+      'On small keyboards one key often does both Esc and `: it sends Esc, or ` while Shift or Win is held (so Shift gives ~). You can put it on any key from the Keys page (search “Grave Escape”).',
+      'These switches make it send Esc in some of those cases, for shortcuts that need Esc with a modifier.',
+    ],
+    example: 'Turn on “Esc while Ctrl is held” so that Ctrl + Shift + the key opens the Task Manager.',
+    docs: QMK + 'features/grave_esc',
+  },
+  'typing-debounce': {
+    title: 'Key bounce filter',
+    qmkName: 'Debounce',
+    body: [
+      'When a switch closes, its contacts flicker for a few milliseconds before they settle. The keyboard waits this long to be sure a press is real, so one press never types twice.',
+      'If a key sometimes types twice (chatter, common on worn switches), raise the time. Lower times react a little sooner, which only matters in fast games. “React at once” counts a press straight away and only ignores the flicker after it; “Wait until steady” waits first.',
+    ],
+    example: 'An E that sometimes types “ee”: raise the time in steps of 5 ms until it stops.',
+    docs: QMK + 'feature_debounce_type',
+  },
+  'typing-snap-click': {
+    title: 'Snap Click',
+    qmkName: 'SOCD (simultaneous opposite cardinal directions)',
+    body: [
+      'For games: when you hold two opposite keys, A and D for left and right, the game normally gets both and your character stops. Snap Click decides which one counts, so a quick change of direction is instant.',
+      'Each pair has a rule: usually the last one pressed wins, and letting it go brings the other back. Some games and tournaments don’t allow this; check before you use it in competition.',
+    ],
+    example: 'Pair A and D with “The last one pressed wins”: holding A and tapping D strafes right, then left again.',
+    docs: 'https://www.keychron.com/blogs/news/how-to-set-snap-click-on-launcher',
+  },
+  'typing-reset': {
+    title: 'Resetting the typing settings',
+    qmkName: 'QMK Settings reset',
+    body: [
+      'Puts every setting on this page back to how the firmware came, in one go: the timings, Capitals by holding, the mouse keys, and the swapped and disabled keys. The key bounce filter and Snap Click are Keychron’s and stay as they are.',
+      'It can’t be undone with Undo, so make a backup first (Device page) if you might want your settings back.',
+    ],
+    docs: 'https://get.vial.today/manual/qmk-settings.html',
   },
 } satisfies Record<string, HelpTopic>
 

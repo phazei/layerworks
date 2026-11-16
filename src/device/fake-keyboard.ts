@@ -108,6 +108,11 @@ export interface FakeKeyboardConfig {
   /** QMK setting values written so far, by ID; a setting not written reads as its own ID in the first byte. */
   settingValues?: Record<number, number[]>
   /**
+   * What Vial's settings reset (`0xFE 0x0C`) puts back, by ID. Without it, the reset forgets every value written,
+   * so each setting reads as its own ID again.
+   */
+  settingDefaults?: Record<number, number[]>
+  /**
    * Tap dance, combo, key override and alt repeat entries written so far, as the bytes after the status byte. An
    * entry not written reads as its number + 1 in the first byte, so tests can tell them apart.
    */
@@ -138,6 +143,10 @@ export interface FakeKeychron {
   battery?: number
   /** Debounce (`0xA7 0x05/0x06`). */
   debounce?: { type: number; time: number }
+  /** Snap Click pairs (`0xA7 0x07` – `0x0A`): the running table; its length is the number of slots. */
+  snapClick?: { type: number; key1: number; key2: number }[]
+  /** The Snap Click table as last saved (`0xA7 0x0A`). */
+  snapClickSaved?: { type: number; key1: number; key2: number }[]
 }
 
 /** QK_BOOT in Vial protocol 6: the firmware turns it into 0 in knob and entry writes while locked. */
@@ -210,7 +219,8 @@ export async function plainDefinition(bytes: number[]): Promise<string> {
 
 /**
  * Answers the requests the device layer makes, from the given config. Writes (keys, knob, lighting, macros, tap
- * dance and the other entries, QMK settings, layout options, Keychron timers and debounce) change the config, so
+ * dance and the other entries, QMK settings and their reset, layout options, Keychron timers, debounce and Snap
+ * Click) change the config, so
  * later reads see them. Locked, macro writes are ignored and QK_BOOT in knob and entry writes becomes 0, as in
  * vial-qmk.
  */
@@ -308,6 +318,10 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
         config.settingValues = { ...config.settingValues, [qsid]: Array.from(request.subarray(4)) }
         return [0]
       }
+      case 0x0c:
+        // qmk_settings_reset: every setting back to the firmware's defaults; the request comes back unchanged.
+        config.settingValues = structuredClone(config.settingDefaults ?? {})
+        return Array.from(request)
       case 0x0d: {
         if (request[2] === 0x00) {
           const { tapDance, combo, keyOverride, altRepeatKey, featureFlags } = config.counts
@@ -349,6 +363,30 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
       case 0x06:
         if (!kc.debounce) return fail
         kc.debounce = { type: request[2], time: request[3] }
+        return ok()
+      case 0x07:
+        return kc.snapClick ? ok(kc.snapClick.length) : fail
+      case 0x08: {
+        // snap_click.c: start, count (at most 9), then type, key 1, key 2 per pair.
+        const [start, count] = [request[2], request[3]]
+        if (!kc.snapClick || count > 9 || start + count > kc.snapClick.length) return fail
+        return ok(...kc.snapClick.slice(start, start + count).flatMap((p) => [p.type, p.key1, p.key2]))
+      }
+      case 0x09: {
+        // Checked as the firmware does (a type it knows; both keys for a used pair), then changed in RAM only.
+        const [start, count] = [request[2], request[3]]
+        if (!kc.snapClick || count > 9 || start + count > kc.snapClick.length) return fail
+        const pairs = Array.from({ length: count }, (_, i) => {
+          const [type, key1, key2] = request.subarray(4 + i * 3, 7 + i * 3)
+          return { type, key1, key2 }
+        })
+        if (pairs.some((p) => p.type > 5 || (p.type !== 0 && (p.key1 === 0 || p.key2 === 0)))) return fail
+        kc.snapClick.splice(start, count, ...pairs)
+        return ok()
+      }
+      case 0x0a:
+        if (!kc.snapClick) return fail
+        kc.snapClickSaved = structuredClone(kc.snapClick)
         return ok()
       case 0x0b:
         return kc.lpm ? ok(...le16(kc.lpm.backlitTime), ...le16(kc.lpm.idleTime)) : fail

@@ -28,15 +28,21 @@ function demoMacros(): number[] {
 
 /**
  * Vial protocol 6 keycodes put on the demo's keymap so the Shortcuts page shows its examples in use: M0 on Fn + P,
- * TD(0) on Fn + Caps Lock (Windows layers), and the alternate repeat key on Fn2 + Space.
+ * TD(0) on Fn + Caps Lock (Windows layers), and the alternate repeat key on Fn2 + Space. For the Keys page's tap /
+ * hold choice: on Fn2, Caps Lock is "tap: Esc, hold: Ctrl" (LCTL_T(KC_ESCAPE)) and Tab "tap: Tab, hold: Windows Fn"
+ * (LT3(KC_TAB)).
  */
 const M0 = 0x7700
 const TD0 = 0x5700
 const ALT_REPEAT = 0x7c7a
+const CTRL_ESC = 0x2129
+const WINFN_TAB = 0x432b
 function withMacroKey(keymap: number[][][]): number[][][] {
   keymap[WINDOWS_LAYER + 1][2][11] = M0
   keymap[WINDOWS_LAYER + 1][3][1] = TD0
   keymap[4][5][5] = ALT_REPEAT
+  keymap[4][3][1] = CTRL_ESC
+  keymap[4][2][1] = WINFN_TAB
   return keymap
 }
 
@@ -78,24 +84,64 @@ const demoEntries = () =>
     ]),
   )
 
-/** The plain demo's Keychron commands: the default layer only. */
-const DEMO_KEYCHRON = { protocol: 2, features: 0x01, firmware: 'demo' }
+/**
+ * The K15 Max's Snap Click table: 20 empty slots (snap_click/eeconfig_snap_click.h), here with one example pair,
+ * A and D, the last one pressed winning.
+ */
+const demoSnapClick = () => [
+  { type: 2, key1: 0x04, key2: 0x07 },
+  ...Array.from({ length: 19 }, () => ({ type: 0, key1: 0, key2: 0 })),
+]
+
+/** The K15 Max's key bounce filter as read from the real keyboard: react at once, 50 ms (its info.json default). */
+const K15_DEBOUNCE = { type: 4, time: 50 }
+
+/**
+ * The plain demo's Keychron commands: the default layer, and the typing settings the Typing feel page shows (key
+ * bounce filter and Snap Click, `0xA2` bits 0x20 and 0x40, misc bits 0x04 and 0x08). No wireless features.
+ */
+const DEMO_KEYCHRON = {
+  protocol: 2,
+  features: 0x01 | 0x20 | 0x40,
+  firmware: 'demo',
+  misc: 0x04 | 0x08,
+  debounce: K15_DEBOUNCE,
+  snapClick: demoSnapClick(),
+}
 
 /**
  * `?demo-wireless`: the K15 Max's Keychron commands as far as the demo answers them: default layer, Bluetooth,
- * 2.4 GHz, layer notices and debounce (`0xA2`), debounce and wireless timers in the misc group (`0xA7 0x01`), with
- * the firmware's default timers, 10 min and 2 h, and a battery level (../docs/research/k15-firmware-capabilities.md
- * section 3). Its version string is the real one's, with the date SKIP_VERSION leaves.
+ * 2.4 GHz, layer notices, debounce and Snap Click (`0xA2`), debounce, Snap Click and wireless timers in the misc
+ * group (`0xA7 0x01`), with the firmware's default timers, 10 min and 2 h, and a battery level
+ * (../docs/research/k15-firmware-capabilities.md section 3). Its version string is the real one's, with the date
+ * SKIP_VERSION leaves.
  */
 const K15_KEYCHRON = {
   protocol: 2,
-  features: 0x01 | 0x02 | 0x04 | 0x10 | 0x20,
+  features: 0x01 | 0x02 | 0x04 | 0x10 | 0x20 | 0x40,
   firmware: 'v1.1.2 1970-01-01-00:00:00',
-  misc: 0x04 | 0x10,
+  misc: 0x04 | 0x08 | 0x10,
   lpm: { backlitTime: 600, idleTime: 7200 },
-  debounce: { type: 4, time: 5 },
+  debounce: K15_DEBOUNCE,
+  snapClick: demoSnapClick(),
   battery: 76,
 }
+
+/**
+ * The QMK settings the K15 Max's Vial build reports (vial-qmk quantum/qmk_settings.c: 1-7, 9-17 with mouse keys
+ * on, 18-27; 26 in all) with the values read from the real keyboard, which are its firmware defaults: QMK's timings
+ * (tapping term 200 ms, combo 50 ms, Auto Shift 175 ms, one-shot 5 s and 5 taps) and the ripple keymap's mouse keys
+ * (config.h). Also what the settings reset puts back.
+ */
+const le = (width: number, value: number) => Array.from({ length: width }, (_, i) => (value >> (8 * i)) & 0xff)
+const K15_SETTINGS: Record<number, number[]> = {
+  1: le(1, 0), 2: le(2, 50), 3: le(1, 0), 4: le(2, 175), 5: le(1, 5), 6: le(2, 5000), 7: le(2, 200),
+  9: le(2, 100), 10: le(2, 16), 11: le(2, 1), 12: le(2, 20), 13: le(2, 75),
+  14: le(2, 10), 15: le(2, 80), 16: le(2, 8), 17: le(2, 40),
+  18: le(2, 0), 19: le(2, 80), 20: le(1, 5), 21: le(4, 0),
+  22: le(1, 0), 23: le(1, 0), 24: le(1, 0), 25: le(2, 200), 26: le(1, 0), 27: le(2, 0),
+}
+const K15_QSIDS = Object.keys(K15_SETTINGS).map(Number)
 
 /**
  * The VialRGB effects the K15 Max's Vial build lists (Off left out): the animations its keyboard.json enables,
@@ -161,8 +207,11 @@ export function createDemoLink(): DemoLink {
     entryBytes: demoEntries(),
     macroCount: 16,
     macros: demoMacros(),
-    // A copy: the fake keyboard keeps what is written in it.
-    keychron: { ...(wireless ? K15_KEYCHRON : DEMO_KEYCHRON) },
+    // Copies: the fake keyboard keeps what is written in them.
+    keychron: structuredClone(wireless ? K15_KEYCHRON : DEMO_KEYCHRON),
+    qsids: K15_QSIDS,
+    settingValues: structuredClone(K15_SETTINGS),
+    settingDefaults: K15_SETTINGS,
     layer: { base: WINDOWS_LAYER, held: 0 },
     rgb: { ...K15_RGB, mode: startEffect() ?? K15_RGB.mode },
     rgbEffects: K15_RGB_EFFECTS,
