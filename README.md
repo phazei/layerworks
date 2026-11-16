@@ -30,6 +30,7 @@ Options in the URL, before the `#`:
 | `?select=3,2`, `?select=knob,0,1` | Selects a key (row, column) or a knob direction once a keyboard is in, for screenshots of the Keys inspector |
 | `?layer=<n>` | Shows layer n on the stage instead of following the keyboard |
 | `?choice=tapHold` | The Keys inspector opens on that choice (`key`, `shortcut`, `layer`, `tapHold`) rather than the one the key's assignment belongs to, for screenshots; with `?select=` |
+| `?key-search=magic` | The key palette opens with that search typed, for screenshots; with `?select=` |
 | `?demo-effect=<id>` | Starts the demo keyboard on another lighting effect (VialRGB id, e.g. `25`), for screenshots |
 | `?demo-unlocked` | Starts the demo keyboard unlocked (the Test page reads every key) |
 | `?demo-wireless` | The demo keyboard is reached through the 2.4 GHz receiver, reports a battery level (76 %) and has the K15 Max's wireless timers and debounce, for screenshots of the wireless parts |
@@ -236,6 +237,27 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     “hello@example.com”"), and the search matches names and summaries. Slots with nothing set up stay in their
     place, drawn faint with a dashed edge, still pickable. Both groups have "Set up on Shortcuts & macros" beside
     their title. The palette does this itself, so the Shortcuts page's key pickers show the same tiles.
+
+    After the everyday groups the Keys page (`keyPalette(features)`; the Shortcuts page's pickers call it without,
+    and get the everyday groups only) adds, each with its own "?" and, where it helps, a short note under its title:
+    *Typing helpers* (Caps Word, the Esc and ` key, the seven Space Cadet keys, Layer Lock), *Swapped and disabled
+    keys* (QMK's Magic keycodes, worded like the Typing feel switches they change, with a link there; NKRO on / off
+    included, the split-keyboard ones left out) and *International keys* (ISO, Japanese and the language keys); then,
+    under a closed "More keys" fold (remembered; open by itself when the edited key is one of them; a search looks
+    everywhere), *Features on and off* (Capitals by holding, key chords, shortcut replacements, one-tap modifiers)
+    and *Restart and firmware update*. Their tiles and words come from `FRIENDLY` in `device/keycodes.ts` (every
+    description unique, as it names the tile for screen readers; the picture uses the same labels). A few keys
+    vial-qmk has and the vendored tables lack or never register (Esc / Caps Lock swap, the Caps / Ctrl and \ /
+    Backspace toggles, NKRO) are `EXTRA_KEYS` there, for Vial protocol 6: named, typed and offered like the rest.
+    What the keyboard can be asked about is used: Caps Word and Layer Lock show only with Vial's feature flags for
+    them, the chord, replacement and Capitals by holding switches only when the keyboard has chord or replacement
+    slots or reports the Auto Shift setting. Nothing else about the firmware can be known, so the notes speak
+    generally. Putting the firmware update key on a key or knob turn asks to unlock first (`openUnlock`), as Vial
+    does; vial-qmk turns it into nothing in a knob turn written while locked. Families most firmware lacks
+    (joystick and programmable buttons, MIDI, audio, haptic, steno, backlight, underglow, dynamic macros, swap hands,
+    Unicode …) are left out, with a line and a help topic at the end of the fold; a key holding one is named by its
+    family ("MIDI", "A MIDI music key …") in the picture, the "Now" line and the key-code field rather than as a
+    number. `?key-search=magic` opens the palette with a search, for screenshots.
   - **A shortcut** (`keys/ShortcutChoice.tsx`): Ctrl, Shift, Alt, Win checkboxes and a palette of the keys that
     take modifiers (`canTakeModifiers`); nothing is written until "Use Ctrl + C", so trying doesn't fill undo.
     Nothing is ticked to start with, and the key starts as the one the key holds now when the palette has it.
@@ -825,7 +847,8 @@ M1 – M5, so they run Macros 1 – 5, as on a real Keychron.
 It also has two of each other kind (`DEMO_ENTRIES`): multi-tap keys 1 and 2 (TD(0) left empty), Esc / Caps Lock
 (on Fn + Caps Lock on the Windows layers) and Ctrl + C / Ctrl + V; key chords J + K → Esc and D + F → Tab; Shift + Backspace → Delete and
 Shift + Esc → ~; after Ctrl + Z the repeat key sends Ctrl + Y, and Home ↔ End. The alternate repeat key is on Fn2 +
-Space.
+Space. Fn2 also holds the Keys page's examples: Caps Lock tap Esc / hold Ctrl, Tab tap Tab / hold Windows Fn, the
+left Windows key "Windows keys off, or on again" (GU_TOGG) and Esc "Restart" (QK_REBOOT).
 
 ## How it talks to the keyboard
 

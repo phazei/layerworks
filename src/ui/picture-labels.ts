@@ -6,6 +6,8 @@
 
 import { keycodeLabel } from '../vendor/pipette/shared/keycodes/keycodes-utils'
 import {
+  friendlyKey,
+  keycodeCap,
   keycodeId,
   LAYER_ACTIONS,
   modifierShort,
@@ -42,6 +44,11 @@ export function pictureLabel(code: number, layerNames?: readonly string[]): Pict
   if (macro !== null) return { outer: `Macro\n${macro}`, inner: '', masked: false }
   const tapDance = readTapDanceKey(code)
   if (tapDance !== null) return { outer: `Multi-\ntap ${tapDance}`, inner: '', masked: false }
+  // The palette's extra groups (Swapped and disabled keys, typing helpers …), with the tiles' labels.
+  const friendly = friendlyKey(code)
+  if (friendly) return { outer: friendly.label, inner: '', masked: false }
+  // A keycode no table names (MIDI, steno, Unicode …): its family rather than a bare number.
+  if (/^0x/i.test(keycodeId(code))) return { outer: keycodeCap(code), inner: '', masked: false }
   const layerKey = readLayerKey(code)
   const action = layerKey && LAYER_ACTIONS.find((a) => a.op === layerKey.op)
   if (layerKey && action) return { outer: `${action.short}\n${fold(nameOf(layerKey.layer, layerNames))}`, inner: '', masked: false }

@@ -41,6 +41,12 @@ export const GUIDE: GuideGroup[] = [
       'layer-names',
       'caps-word',
       'layer-lock',
+      'helper-keys',
+      'magic-keys',
+      'international-keys',
+      'switch-keys',
+      'restart-keys',
+      'left-out-keys',
     ],
   },
   {

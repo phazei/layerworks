@@ -17,6 +17,7 @@ import {
   extractModMask,
   findKeycode,
   getMacroIndex,
+  getProtocol,
   getTapDanceIndex,
   isLMKeycode,
   isLTKeycode,
@@ -33,10 +34,16 @@ export const KC_NOTHING = 0x0000
 export const KC_SAME_AS_BELOW = 0x0001
 
 /** QMK's name for a keycode, e.g. "KC_A" or "MO(1)". */
-export const keycodeId = (code: number): string => serialize(code)
+export const keycodeId = (code: number): string => extraByCode(code)?.id ?? serialize(code)
 
-/** The label the tables give a keycode, on one line. */
-const tableName = (code: number): string => keycodeLabel(serialize(code)).replace(/\n/g, ' ').trim()
+/** The label the tables give a keycode, on one line; the friendly one for the extra groups' keys. */
+function tableName(code: number): string {
+  const friendly = friendlyKey(code)
+  if (friendly) return friendly.label.replace(/\n/g, ' ')
+  const family = unnamedFamily(code)
+  if (family) return family.short.replace(/\n/g, ' ')
+  return keycodeLabel(serialize(code)).replace(/\n/g, ' ').trim()
+}
 
 /**
  * The short text shown on a key, on one line: "A", "Ctrl+C", and for keys that do two things the tap and the
@@ -86,6 +93,9 @@ export function parseKeycode(text: string): number | null {
     const code = Number(trimmed)
     return code >= 0 && code <= 0xffff ? code : null
   }
+  const upper = trimmed.toUpperCase()
+  const extra = extraKeys().find((key) => key.id === upper || key.long === upper)
+  if (extra) return extra.code
   try {
     const code = deserialize(trimmed.toUpperCase().replace(/\s+/g, ''))
     // The parser returns 0 for names it doesn't know; only KC_NO really is 0.
@@ -170,7 +180,154 @@ const PLAIN: Record<string, string> = {
 /** The lighting keys that work on an RGB matrix keyboard, without the underglow-only effect keys. */
 const SHARED_LIGHTING = new Set(['RGB_TOG', 'RGB_MOD', 'RGB_RMOD', 'RGB_HUI', 'RGB_HUD', 'RGB_SAI', 'RGB_SAD', 'RGB_VAI', 'RGB_VAD', 'RGB_SPI', 'RGB_SPD'])
 
+// --- The keys of the extra groups ----------------------------------------------------------------------------------
+//
+// The tables' labels for these are QMK shorthand ("Swap\nCtrl\nCaps", "LS\n("); the palette, the "Now" line and the
+// keyboard picture use these instead. Every description is unique: it is the tile's name for screen readers.
+
+/** A key's tile label (up to three short lines) and what it does in words. */
+interface Friendly {
+  label: string
+  description: string
+}
+
+const F = (label: string, description: string): Friendly => ({ label, description })
+
+const FRIENDLY: Record<string, Friendly> = {
+  // Typing helpers (Caps Word, Grave Escape, Space Cadet, Layer Lock).
+  QK_CAPS_WORD_TOGGLE: F('Caps\nWord', 'Capitals for one word (Caps Word)'),
+  KC_GESC: F('Esc\n` ~', 'Esc, or ` while Shift or Win is held (Grave Escape)'),
+  KC_LSPO: F('LShift\n(', 'Left Shift when held, ( when tapped (Space Cadet)'),
+  KC_RSPC: F('RShift\n)', 'Right Shift when held, ) when tapped (Space Cadet)'),
+  KC_LCPO: F('LCtrl\n(', 'Left Ctrl when held, ( when tapped (Space Cadet)'),
+  KC_RCPC: F('RCtrl\n)', 'Right Ctrl when held, ) when tapped (Space Cadet)'),
+  KC_LAPO: F('LAlt\n(', 'Left Alt when held, ( when tapped (Space Cadet)'),
+  KC_RAPC: F('RAlt\n)', 'Right Alt when held, ) when tapped (Space Cadet)'),
+  KC_SFTENT: F('RShift\nEnter', 'Right Shift when held, Enter when tapped (Space Cadet)'),
+  QK_LAYER_LOCK: F('Layer\nLock', 'Keep the held layer on after letting go (Layer Lock)'),
+  // Swapped and disabled keys (QMK's Magic keycodes), worded like the Typing feel switches they change.
+  MAGIC_SWAP_CONTROL_CAPSLOCK: F('Swap\nCaps Ctrl', 'Swap Caps Lock and left Ctrl'),
+  MAGIC_UNSWAP_CONTROL_CAPSLOCK: F('Unswap\nCaps Ctrl', 'Caps Lock and left Ctrl back to normal'),
+  MAGIC_CAPSLOCK_TO_CONTROL: F('Caps\nis Ctrl', 'Caps Lock works as Ctrl'),
+  MAGIC_UNCAPSLOCK_TO_CONTROL: F('Caps\nis Caps', 'Caps Lock works as Caps Lock again'),
+  MAGIC_SWAP_LALT_LGUI: F('Swap\nLAlt LWin', 'Swap left Alt and left Win'),
+  MAGIC_UNSWAP_LALT_LGUI: F('Unswap\nLAlt LWin', 'Left Alt and left Win back to normal'),
+  MAGIC_SWAP_RALT_RGUI: F('Swap\nRAlt RWin', 'Swap right Alt and right Win'),
+  MAGIC_UNSWAP_RALT_RGUI: F('Unswap\nRAlt RWin', 'Right Alt and right Win back to normal'),
+  MAGIC_SWAP_ALT_GUI: F('Swap\nAlt Win', 'Swap Alt and Win on both sides'),
+  MAGIC_UNSWAP_ALT_GUI: F('Unswap\nAlt Win', 'Alt and Win back to normal on both sides'),
+  MAGIC_TOGGLE_ALT_GUI: F('Toggle\nAlt Win', 'Swap Alt and Win on both sides, or back'),
+  MAGIC_SWAP_LCTL_LGUI: F('Swap\nLCtrl LWin', 'Swap left Ctrl and left Win'),
+  MAGIC_UNSWAP_LCTL_LGUI: F('Unswap\nLCtrl LWin', 'Left Ctrl and left Win back to normal'),
+  MAGIC_SWAP_RCTL_RGUI: F('Swap\nRCtrl RWin', 'Swap right Ctrl and right Win'),
+  MAGIC_UNSWAP_RCTL_RGUI: F('Unswap\nRCtrl RWin', 'Right Ctrl and right Win back to normal'),
+  MAGIC_SWAP_CTL_GUI: F('Swap\nCtrl Win', 'Swap Ctrl and Win on both sides'),
+  MAGIC_UNSWAP_CTL_GUI: F('Unswap\nCtrl Win', 'Ctrl and Win back to normal on both sides'),
+  MAGIC_TOGGLE_CTL_GUI: F('Toggle\nCtrl Win', 'Swap Ctrl and Win on both sides, or back'),
+  MAGIC_NO_GUI: F('Win\nOff', 'Windows keys do nothing'),
+  MAGIC_UNNO_GUI: F('Win\nOn', 'Windows keys work again'),
+  MAGIC_TOGGLE_GUI: F('Win\nOff / On', 'Windows keys off, or on again'),
+  MAGIC_SWAP_GRAVE_ESC: F('Swap\n` Esc', 'Swap ` and Esc'),
+  MAGIC_UNSWAP_GRAVE_ESC: F('Unswap\n` Esc', '` and Esc back to normal'),
+  MAGIC_SWAP_BACKSLASH_BACKSPACE: F('Swap\n\\ Bksp', 'Swap \\ and Backspace'),
+  MAGIC_UNSWAP_BACKSLASH_BACKSPACE: F('Unswap\n\\ Bksp', '\\ and Backspace back to normal'),
+  // International keys. The JIS keys share their codes with QMK's KC_INT1 - 5 (their aliases), so those aren't
+  // listed twice.
+  KC_NONUS_HASH: F('~\n#', 'Key beside Enter on ISO keyboards (# and ~ in the UK)'),
+  KC_NONUS_BSLASH: F('|\n\\', 'Key beside left Shift on ISO keyboards (\\ and | in the UK, < and > in Germany)'),
+  KC_RO: F('_\n\\', 'Japanese \\ and _ key (Ro)'),
+  KC_KANA: F('カナ', 'Japanese Katakana / Hiragana key'),
+  KC_JYEN: F('|\n¥', 'Japanese ¥ key (Yen)'),
+  KC_HENK: F('変換', 'Japanese Henkan key (convert)'),
+  KC_MHEN: F('無変換', 'Japanese Muhenkan key (don’t convert)'),
+  KC_LANG1: F('Lang\n1', 'Language 1: Hangul / English (Korean), Kana (Mac)'),
+  KC_LANG2: F('Lang\n2', 'Language 2: Hanja (Korean), Eisu (Mac)'),
+  KC_LANG3: F('Lang\n3', 'Language 3: Katakana (Japanese)'),
+  KC_LANG4: F('Lang\n4', 'Language 4: Hiragana (Japanese)'),
+  KC_LANG5: F('Lang\n5', 'Language 5: Zenkaku / Hankaku (Japanese)'),
+  // Features on and off.
+  KC_ASON: F('Auto\nShift\nOn', 'Capitals by holding: on'),
+  KC_ASOFF: F('Auto\nShift\nOff', 'Capitals by holding: off'),
+  KC_ASTG: F('Auto\nShift\nOn / Off', 'Capitals by holding: on or off'),
+  CMB_ON: F('Chords\nOn', 'Key chords: on'),
+  CMB_OFF: F('Chords\nOff', 'Key chords: off'),
+  CMB_TOG: F('Chords\nOn / Off', 'Key chords: on or off'),
+  QK_KEY_OVERRIDE_ON: F('Replace\nOn', 'Shortcut replacements: on'),
+  QK_KEY_OVERRIDE_OFF: F('Replace\nOff', 'Shortcut replacements: off'),
+  QK_KEY_OVERRIDE_TOGGLE: F('Replace\nOn / Off', 'Shortcut replacements: on or off'),
+  QK_ONE_SHOT_ON: F('One-tap\nOn', 'One-tap modifiers: on'),
+  QK_ONE_SHOT_OFF: F('One-tap\nOff', 'One-tap modifiers: off'),
+  QK_ONE_SHOT_TOGGLE: F('One-tap\nOn / Off', 'One-tap modifiers: on or off'),
+  // Restart and firmware update.
+  QK_BOOT: F('Firmware\nupdate', 'Firmware update mode: the keyboard stops typing until it is updated or unplugged (bootloader)'),
+  QK_REBOOT: F('Restart', 'Restart the keyboard'),
+}
+
+/**
+ * Keys vial-qmk has that the vendored tables lack (QMK's keycodes.h, Vial protocol 6), named here so a key holding
+ * one isn't shown as a bare number, and offered with the rest of their group.
+ */
+interface ExtraKey extends Friendly {
+  code: number
+  /** QMK's short name. */
+  id: string
+  /** QMK's long name, for searching and typing. */
+  long: string
+}
+
+const EXTRA_KEYS: ExtraKey[] = [
+  { code: 0x7002, id: 'CL_TOGG', long: 'QK_MAGIC_TOGGLE_CONTROL_CAPS_LOCK', ...F('Toggle\nCaps Ctrl', 'Swap Caps Lock and left Ctrl, or back') },
+  { code: 0x7010, id: 'BS_TOGG', long: 'QK_MAGIC_TOGGLE_BACKSLASH_BACKSPACE', ...F('Toggle\n\\ Bksp', 'Swap \\ and Backspace, or back') },
+  { code: 0x7020, id: 'EC_SWAP', long: 'QK_MAGIC_SWAP_ESCAPE_CAPS_LOCK', ...F('Swap\nEsc Caps', 'Swap Esc and Caps Lock') },
+  { code: 0x7021, id: 'EC_NORM', long: 'QK_MAGIC_UNSWAP_ESCAPE_CAPS_LOCK', ...F('Unswap\nEsc Caps', 'Esc and Caps Lock back to normal') },
+  { code: 0x7022, id: 'EC_TOGG', long: 'QK_MAGIC_TOGGLE_ESCAPE_CAPS_LOCK', ...F('Toggle\nEsc Caps', 'Swap Esc and Caps Lock, or back') },
+  // The tables list these (KEYCODES_BEHAVIOR_MODE) but never register them, so they would read as numbers.
+  { code: 0x7011, id: 'NK_ON', long: 'QK_MAGIC_NKRO_ON', ...F('NKRO\nOn', 'Any number of keys at once: on (N-key rollover)') },
+  { code: 0x7012, id: 'NK_OFF', long: 'QK_MAGIC_NKRO_OFF', ...F('NKRO\nOff', 'Any number of keys at once: off, six at most') },
+  { code: 0x7013, id: 'NK_TOGG', long: 'QK_MAGIC_TOGGLE_NKRO', ...F('NKRO\nOn / Off', 'Any number of keys at once: on or off') },
+]
+
+/** The extra keys apply to Vial protocol 6 only: older protocols number QMK's keycodes differently. */
+const extraKeys = (): ExtraKey[] => (getProtocol() === 6 ? EXTRA_KEYS : [])
+const extraByCode = (code: number): ExtraKey | undefined => extraKeys().find((key) => key.code === code)
+
+/**
+ * Keycode families no table names on this keyboard (left out of the palette, or not compiled into the tables:
+ * MIDI without the definition asking for it, steno, Unicode …), by their range in vial-qmk's keycodes.h (Vial
+ * protocol 6). A key holding one is named by its family rather than shown as a bare number.
+ */
+const FAMILIES: { from: number; to: number; short: string; title: string }[] = [
+  { from: 0x7000, to: 0x70ff, short: 'Magic', title: 'A key that swaps or switches off other keys (Magic)' },
+  { from: 0x7100, to: 0x71ff, short: 'MIDI', title: 'A MIDI music key (needs MIDI in the firmware)' },
+  { from: 0x7200, to: 0x73ff, short: 'Seq.', title: 'A step sequencer key (needs the sequencer in the firmware)' },
+  { from: 0x7400, to: 0x743f, short: 'Joystick', title: 'A joystick button (needs joystick support in the firmware)' },
+  { from: 0x7440, to: 0x747f, short: 'Prog.\nbutton', title: 'A programmable button (needs them in the firmware)' },
+  { from: 0x7480, to: 0x74bf, short: 'Audio', title: 'A sound key (needs a speaker and audio in the firmware)' },
+  { from: 0x74c0, to: 0x74ff, short: 'Steno', title: 'A stenography key (needs steno in the firmware)' },
+  { from: 0x7780, to: 0x77bf, short: 'Output', title: 'A connection key: USB or Bluetooth output' },
+  { from: 0x77c0, to: 0x77ff, short: 'Module', title: 'A key from a firmware community module' },
+  { from: 0x7800, to: 0x78ff, short: 'Light', title: 'A lighting key' },
+  { from: 0x7c00, to: 0x7dff, short: 'QMK', title: 'A special QMK key' },
+  { from: 0x7e00, to: 0x7fff, short: 'Custom', title: 'A key this keyboard’s firmware defines' },
+  { from: 0x8000, to: 0xffff, short: 'Unicode', title: 'Types a Unicode character (needs Unicode in the firmware)' },
+]
+
+/** The family of a keycode no table names, or null. */
+function unnamedFamily(code: number): { short: string; title: string } | null {
+  if (getProtocol() !== 6 || !/^0x/.test(serialize(code))) return null
+  return FAMILIES.find((family) => code >= family.from && code <= family.to) ?? null
+}
+
+/** The friendly tile label and description of a key of the extra groups, or null for any other key. */
+export function friendlyKey(code: number): { label: string; description: string } | null {
+  const extra = extraByCode(code)
+  if (extra) return { label: extra.label, description: extra.description }
+  const friendly = FRIENDLY[serialize(code)]
+  return friendly ?? null
+}
+
 function plainDescription(keycode: tables.Keycode): string | undefined {
+  if (FRIENDLY[keycode.qmkId]) return FRIENDLY[keycode.qmkId].description
   if (PLAIN[keycode.qmkId]) return PLAIN[keycode.qmkId]
   if (keycode.qmkId.startsWith('KC_KP_')) return `Number pad ${keycode.label.replace(/\n/g, ' ')}`
   return keycode.tooltip
@@ -182,6 +339,10 @@ export interface PaletteGroup {
   keys: PaletteKey[]
   /** A link beside the group's title, e.g. to where its keys are set up. */
   link?: { label: string; href: string }
+  /** One short sentence under the title: what the keys are for, or what they need. */
+  note?: string
+  /** Rarely needed: listed under the palette's closed "More keys" fold. */
+  more?: boolean
 }
 
 function entries(list: readonly tables.Keycode[]): PaletteKey[] {
@@ -193,13 +354,115 @@ function entries(list: readonly tables.Keycode[]): PaletteKey[] {
       code,
       // Shifted symbols are stored as Shift + key: "~" is LSFT(KC_GRAVE), whatever the table calls it.
       id: serialize(code),
-      label: keycode.label,
+      label: FRIENDLY[keycode.qmkId]?.label ?? keycode.label,
       description: plainDescription(keycode),
-      aliases: keycode.alias,
+      // The table's own name too, when it differs from the one shown (KC_LSPO for SC_LSPO …).
+      aliases: [...(keycode.alias ?? []), ...(keycode.cExportId ? [keycode.cExportId] : [])],
     })
   }
   return out
 }
+
+/** Keys of one table by QMK name, in the order given. */
+function pick(list: readonly tables.Keycode[], ids: readonly string[]): tables.Keycode[] {
+  return ids.map((id) => list.find((keycode) => keycode.qmkId === id)).filter((keycode): keycode is tables.Keycode => !!keycode)
+}
+
+/** The extra keys (EXTRA_KEYS) among `ids`, as palette keys, where the protocol has them. */
+function extras(ids: readonly string[]): Map<string, PaletteKey> {
+  return new Map(
+    extraKeys()
+      .filter((key) => ids.includes(key.id))
+      .map((key) => [key.id, { code: key.code, id: key.id, label: key.label, description: key.description, aliases: [key.long] }]),
+  )
+}
+
+/** The Magic keys in a sensible order: Caps Lock and Ctrl, Esc and Caps Lock, Alt and Win, Ctrl and Win, Win, the rest. */
+const MAGIC_ORDER = [
+  'MAGIC_SWAP_CONTROL_CAPSLOCK', 'MAGIC_UNSWAP_CONTROL_CAPSLOCK', 'CL_TOGG', 'MAGIC_CAPSLOCK_TO_CONTROL', 'MAGIC_UNCAPSLOCK_TO_CONTROL',
+  'EC_SWAP', 'EC_NORM', 'EC_TOGG',
+  'MAGIC_SWAP_LALT_LGUI', 'MAGIC_UNSWAP_LALT_LGUI', 'MAGIC_SWAP_RALT_RGUI', 'MAGIC_UNSWAP_RALT_RGUI', 'MAGIC_SWAP_ALT_GUI', 'MAGIC_UNSWAP_ALT_GUI', 'MAGIC_TOGGLE_ALT_GUI',
+  'MAGIC_SWAP_LCTL_LGUI', 'MAGIC_UNSWAP_LCTL_LGUI', 'MAGIC_SWAP_RCTL_RGUI', 'MAGIC_UNSWAP_RCTL_RGUI', 'MAGIC_SWAP_CTL_GUI', 'MAGIC_UNSWAP_CTL_GUI', 'MAGIC_TOGGLE_CTL_GUI',
+  'MAGIC_NO_GUI', 'MAGIC_UNNO_GUI', 'MAGIC_TOGGLE_GUI',
+  'MAGIC_SWAP_GRAVE_ESC', 'MAGIC_UNSWAP_GRAVE_ESC', 'MAGIC_SWAP_BACKSLASH_BACKSPACE', 'MAGIC_UNSWAP_BACKSLASH_BACKSPACE', 'BS_TOGG',
+  'NK_ON', 'NK_OFF', 'NK_TOGG',
+]
+
+/** Table keys and extra keys by QMK name, in the order given; names neither has are left out. */
+function ordered(list: readonly tables.Keycode[], ids: readonly string[]): PaletteKey[] {
+  const fromTables = new Map(entries(pick(list, ids)).map((key) => [key.id, key]))
+  const fromExtras = extras(ids)
+  return ids.map((id) => fromTables.get(id) ?? fromExtras.get(id)).filter((key): key is PaletteKey => !!key)
+}
+
+/** What the connected keyboard is known to have, for the groups whose keys only work with a feature. */
+export interface PaletteFeatures {
+  /** Key chords (combos) have slots. */
+  combos: boolean
+  /** Shortcut replacements (key overrides) have slots. */
+  keyOverrides: boolean
+  /** The keyboard reports Auto Shift's settings (Vial's QMK settings, id 3). */
+  autoShift: boolean
+}
+
+/**
+ * The groups the Keys page adds after the everyday ones (PALETTE_EXTRA_GROUPS): typing helpers, swapped and disabled
+ * keys, international keys, and under "More keys" the switches for features and the restart keys. Keys a firmware
+ * feature flag says are missing (Caps Word, Layer Lock) are already hidden by the tables; switches for features the
+ * keyboard reports no room for are left out.
+ */
+function extraGroups(features: PaletteFeatures): PaletteGroup[] {
+  const switches = [
+    ...(features.autoShift ? ['KC_ASON', 'KC_ASOFF', 'KC_ASTG'] : []),
+    ...(features.combos ? ['CMB_ON', 'CMB_OFF', 'CMB_TOG'] : []),
+    ...(features.keyOverrides ? ['QK_KEY_OVERRIDE_ON', 'QK_KEY_OVERRIDE_OFF', 'QK_KEY_OVERRIDE_TOGGLE'] : []),
+    'QK_ONE_SHOT_ON',
+    'QK_ONE_SHOT_OFF',
+    'QK_ONE_SHOT_TOGGLE',
+  ]
+  return [
+    {
+      id: 'helpers',
+      title: 'Typing helpers',
+      keys: [
+        ...entries(tables.KEYCODES_BEHAVIOR_CAPS_WORD),
+        ...entries(pick(tables.KEYCODES_MOD_SPECIAL, ['KC_GESC', 'KC_LSPO', 'KC_RSPC', 'KC_LCPO', 'KC_RCPC', 'KC_LAPO', 'KC_RAPC', 'KC_SFTENT'])),
+        ...entries(pick(tables.KEYCODES_LAYERS_SPECIAL, ['QK_LAYER_LOCK'])),
+      ],
+    },
+    {
+      id: 'magic',
+      title: 'Swapped and disabled keys',
+      note: 'Each press changes a switch the keyboard remembers; the same switches are on the Typing feel page.',
+      link: { label: 'Typing feel', href: '#/typing/magic' },
+      keys: ordered(tables.KEYCODES_BEHAVIOR_MAGIC, MAGIC_ORDER),
+    },
+    {
+      id: 'international',
+      title: 'International keys',
+      note: 'Keys of ISO, Japanese and Korean keyboards. What they type depends on the computer’s keyboard layout.',
+      keys: entries([...tables.KEYCODES_ISO, ...tables.KEYCODES_JIS, ...tables.KEYCODES_LANGUAGE]),
+    },
+    {
+      id: 'switches',
+      title: 'Features on and off',
+      // vial-qmk: combos, key overrides and Auto Shift switch a flag in memory; one-shot keys save theirs (oneshot_set).
+      note: 'Chords, replacements and Capitals by holding are back on after a restart; the one-tap switch is kept. Capitals by holding also needs its Typing feel switch on.',
+      more: true,
+      keys: ordered([...tables.KEYCODES_BEHAVIOR_AUTOSHIFT, ...tables.KEYCODES_BEHAVIOR_COMBO, ...tables.KEYCODES_BEHAVIOR_KEY_OVERRIDE, ...tables.KEYCODES_MOD_ONESHOT_CTRL], switches),
+    },
+    {
+      id: 'restart',
+      title: 'Restart and firmware update',
+      note: 'Putting the firmware update key on a key needs the keyboard unlocked.',
+      more: true,
+      keys: entries(pick(tables.KEYCODES_BOOT, ['QK_BOOT', 'QK_REBOOT'])),
+    },
+  ]
+}
+
+/** The ids of the groups only the Keys page offers (keyPalette with `features`). */
+export const PALETTE_EXTRA_GROUPS = ['helpers', 'magic', 'international', 'switches', 'restart'] as const
 
 /** A list of slots 0, 1, 2 … as 1, 2 … 0 (see numberedSlots). */
 const zeroLast = <T>(list: T[]): T[] => (list.length > 1 ? [...list.slice(1), list[0]] : list)
@@ -228,8 +491,17 @@ export const macroTitle = (index: number): string => `Macro ${index}`
 /** "Multi-tap key 3" for TD(3). */
 export const tapDanceTitle = (index: number): string => `Multi-tap key ${index}`
 
-/** The keys offered in the palette, grouped the way a person would look for them. */
-export function keyPalette(): PaletteGroup[] {
+/**
+ * The keys offered in the palette, grouped the way a person would look for them. With `features` (the Keys page),
+ * the extra groups follow the everyday ones (extraGroups); without (the Shortcuts page's pickers, where a macro step
+ * or a replacement can't run most of them), the everyday groups only.
+ */
+export function keyPalette(features?: PaletteFeatures): PaletteGroup[] {
+  const groups = everydayGroups()
+  return [...groups, ...(features ? extraGroups(features) : [])].filter((group) => group.keys.length > 0)
+}
+
+function everydayGroups(): PaletteGroup[] {
   const groups: PaletteGroup[] = [
     { id: 'letters', title: 'Letters', keys: entries(tables.KEYCODES_BASIC_LETTERS) },
     { id: 'numbers', title: 'Numbers and symbols', keys: entries([...tables.KEYCODES_BASIC_NUMBERS, ...tables.KEYCODES_BASIC_SYMBOLS]) },
@@ -248,7 +520,7 @@ export function keyPalette(): PaletteGroup[] {
     { id: 'tapDance', title: 'Multi-tap keys', keys: zeroLast(entries(tables.KEYCODES_TAP_DANCE)) },
     { id: 'repeat', title: 'Repeat keys', keys: entries(tables.KEYCODES_BEHAVIOR_REPEAT) },
   ]
-  return groups.filter((group) => group.keys.length > 0)
+  return groups
 }
 
 /** The modifiers a shortcut key can hold, as bits of a modifier mask. */
@@ -317,7 +589,7 @@ export function readLayerKey(code: number): { op: LayerAction['op']; layer: numb
 }
 
 /** True when the tables know this keycode by name (it is not shown as a bare number). */
-export const isKnownKeycode = (code: number): boolean => findKeycode(serialize(code)) !== undefined
+export const isKnownKeycode = (code: number): boolean => findKeycode(serialize(code)) !== undefined || extraByCode(code) !== undefined
 
 /** True for a key a shortcut can be built on: a typing key, not media, mouse or a modifier itself. */
 export const canTakeModifiers = (code: number): boolean => isBasicKey(code) && code < 0xa5
@@ -326,6 +598,10 @@ export const canTakeModifiers = (code: number): boolean => isBasicKey(code) && c
 export function keycodeTitle(code: number): string {
   if (code === KC_NOTHING) return 'Nothing'
   if (code === KC_SAME_AS_BELOW) return 'Same as the layer below'
+  const extra = extraByCode(code)
+  if (extra) return extra.description
+  const family = unnamedFamily(code)
+  if (family) return family.title
   const id = serialize(code)
   const keycode = id.includes('(') ? tables.KEYCODES_SHIFTED.find((k) => deserialize(k.qmkId) === code) : findKeycode(id)
   if (keycode) {

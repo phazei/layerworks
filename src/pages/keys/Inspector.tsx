@@ -5,16 +5,19 @@
 
 import { useMemo, useState } from 'react'
 import {
+  bootKeycode,
   canTakeModifiers,
   deviceStore,
   KC_SAME_AS_BELOW,
   keycodeId,
   keyPalette,
   slotKeycode,
+  useDevice,
   type KeyboardData,
   type Slot,
 } from '../../device'
 import type { HelpTopicId } from '../../help/topics'
+import { openUnlock } from '../../shell/unlock-dialog'
 import { ChoiceGrid } from '../../ui/ChoiceGrid'
 import { cx } from '../../ui/controls'
 import { KeyCap } from '../../ui/KeyTile'
@@ -30,6 +33,11 @@ import { useTappingToggle } from './tapping-toggle'
 import { TapHoldChoice } from './TapHoldChoice'
 
 const MORE_OPTIONS = 'keys-more'
+
+/** Vial's QMK setting id for Auto Shift on or off: reported only by firmware with Auto Shift. */
+const AUTO_SHIFT_QSID = 3
+
+const BOOT_UNLOCK_REASON = 'The firmware update key only goes on a key while the keyboard is unlocked.'
 
 const CHOICES: { value: Choice; label: string; help: HelpTopicId }[] = [
   { value: 'key', label: 'A key', help: 'key-palette' },
@@ -90,8 +98,13 @@ function Whereabouts({ keyboard, slot, names, base }: Props) {
 
 export function Inspector({ keyboard, slot, names, base }: Props) {
   const current = slotKeycode(keyboard, slot)
-  // The tables behind the palette describe the connected keyboard; rebuild them when it changes.
-  const palette = useMemo(() => keyPalette(), [keyboard.uid])
+  // The tables behind the palette describe the connected keyboard; rebuild them when it changes. The extra groups
+  // leave out switches for features the keyboard reports no room for.
+  const autoShift = useDevice((s) => s.settings?.[AUTO_SHIFT_QSID] !== undefined)
+  const palette = useMemo(
+    () => keyPalette({ combos: keyboard.counts.combo > 0, keyOverrides: keyboard.counts.keyOverride > 0, autoShift }),
+    [keyboard.uid, keyboard.counts.combo, keyboard.counts.keyOverride, autoShift],
+  )
   const paletteCodes = useMemo(() => new Set(palette.flatMap((group) => group.keys.map((key) => key.code))), [palette])
   const shortcutKeys = useMemo(
     () =>
@@ -109,7 +122,13 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
   const found = shortcutKey(current)
   const taps = useTappingToggle().taps
 
-  const assign = (code: number) => void deviceStore.assign(slot, code)
+  // The firmware update key goes on only while unlocked, as Vial asks: the firmware turns it into nothing in a knob
+  // turn written while locked (vial.c), and the restore leaves it out then too.
+  const assign = (code: number) =>
+    void (async () => {
+      if (code === bootKeycode() && !(await openUnlock(BOOT_UNLOCK_REASON))) return
+      await deviceStore.assign(slot, code)
+    })()
   // Vial stores a knob's counter-clockwise turn as direction 0 and the clockwise one as 1.
   const question =
     slot.kind === 'knob' ? `What should turning ${slot.direction === 1 ? 'right' : 'left'} do?` : 'What should this key do?'

@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { matchRanges, queryWords, searchHelp } from '../search'
+import { HELP_TOPICS } from '../topics'
 
 const first = (query: string) => searchHelp(query)[0]?.id
 
@@ -16,6 +17,23 @@ describe('searching the help', () => {
     expect(first('EEPROM')).toBe('saving')
     expect(first('NKRO')).toBe('typing-magic')
     expect(first('key override')).toBe('key-overrides')
+  })
+
+  it('finds "magic" where it is in the app: the keys and the Typing feel switches', () => {
+    const hits = searchHelp('magic').slice(0, 2).map((hit) => hit.id)
+    expect(hits).toEqual(expect.arrayContaining(['typing-magic', 'magic-keys']))
+    for (const id of hits) {
+      const places = (HELP_TOPICS[id].where ?? []).map((place) => place.href)
+      expect(places, id).toEqual(expect.arrayContaining(['#/keys', '#/typing/magic']))
+    }
+  })
+
+  it('finds the new key groups by the names other apps use', () => {
+    expect(first('space cadet')).toBe('helper-keys')
+    expect(first('programmable button')).toBe('left-out-keys')
+    expect(first('joystick')).toBe('left-out-keys')
+    expect(first('ISO')).toBe('international-keys')
+    expect(first('QK_BOOT')).toBe('restart-keys')
   })
 
   it('finds friendly words too, case and quotes aside', () => {

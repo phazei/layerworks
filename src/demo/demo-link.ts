@@ -34,17 +34,23 @@ function demoMacros(): number[] {
  * Vial protocol 6 keycodes put on the demo's keymap so the Shortcuts page shows its examples in use (the macros are
  * on the printed M1 - M5 keys already): TD(1) on Fn + Caps Lock (Windows layers), and the alternate repeat key on
  * Fn2 + Space. For the Keys page's tap / hold choice: on Fn2, Caps Lock is "tap: Esc, hold: Ctrl"
- * (LCTL_T(KC_ESCAPE)) and Tab "tap: Tab, hold: Windows Fn" (LT3(KC_TAB)).
+ * (LCTL_T(KC_ESCAPE)) and Tab "tap: Tab, hold: Windows Fn" (LT3(KC_TAB)). For the palette's swapped and disabled
+ * keys: on Fn2, the left Windows key switches the Windows keys off and on (GU_TOGG), and Esc restarts the keyboard
+ * (QK_REBOOT, under "More keys").
  */
 const TD1 = 0x5701
 const ALT_REPEAT = 0x7c7a
 const CTRL_ESC = 0x2129
 const WINFN_TAB = 0x432b
+const GUI_TOGGLE = 0x700b
+const REBOOT = 0x7c01
 function withMacroKey(keymap: number[][][]): number[][][] {
+  keymap[4][0][1] = REBOOT
   keymap[WINDOWS_LAYER + 1][3][1] = TD1
   keymap[4][5][5] = ALT_REPEAT
   keymap[4][3][1] = CTRL_ESC
   keymap[4][2][1] = WINFN_TAB
+  keymap[4][5][2] = GUI_TOGGLE
   return keymap
 }
 

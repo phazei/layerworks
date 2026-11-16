@@ -325,6 +325,82 @@ const topics = {
     where: [{ label: 'Keys page, “A key”', href: '#/keys' }],
     related: ['layer-key'],
   },
+  'helper-keys': {
+    title: 'Typing helpers',
+    qmkName: 'Caps Word, Grave Escape, Space Cadet, Layer Lock',
+    body: [
+      'Keys that make everyday typing a little easier. Capitals for one word types a word in capitals without holding Shift. The Esc and ` key is Esc, or ` while Shift or Win is held, for keyboards without a ` key. Layer Lock keeps a held layer on.',
+      'The Space Cadet keys are a Shift (or Ctrl, or Alt) when held and a bracket when tapped: tap left Shift for (, right Shift for ). The last one taps Enter instead.',
+      'They work on most Vial keyboards; Capitals for one word and Layer Lock only show when the keyboard says it has them.',
+    ],
+    example: 'Put “Left Shift when held, ( when tapped” on the left Shift key: Shift works as before, and a quick tap types (.',
+    docs: QMK + 'features/space_cadet',
+    where: [{ label: 'Keys page, “A key”, Typing helpers', href: '#/keys' }],
+    related: ['caps-word', 'layer-lock', 'typing-grave-esc'],
+  },
+  'magic-keys': {
+    title: 'Keys that swap or switch off keys',
+    qmkName: 'Magic keycodes, CL_SWAP, GU_TOGG, NK_TOGG …',
+    body: [
+      'A press changes one of the keyboard’s switches for swapped and disabled keys: swap Caps Lock and Ctrl, swap Alt and Win for a Mac, switch the Windows keys off for a game, or let the computer see any number of keys at once (N-key rollover). The keyboard remembers the switch until it is changed again.',
+      'The same switches are on the Typing feel page, under Swapped and disabled keys; a key for them is handy for switching often without opening the app. “Toggle” keys flip the switch each press; the others set it one way.',
+    ],
+    example: 'Put “Windows keys off, or on again” on Fn + Windows key: one press before a game, one after.',
+    docs: QMK + 'keycodes_magic',
+    where: [
+      { label: 'Keys page, “A key”, Swapped and disabled keys', href: '#/keys' },
+      { label: 'Typing feel, Swapped and disabled keys', href: '#/typing/magic' },
+    ],
+    related: ['typing-magic', 'key-palette'],
+  },
+  'international-keys': {
+    title: 'International keys',
+    qmkName: 'ISO, JIS, KC_NUHS, KC_NUBS, KC_INT1 – 5, KC_LANG1 – 5',
+    body: [
+      'Keys that only some keyboards have: the two extra keys of ISO keyboards (beside Enter, and beside left Shift), the Japanese keys and the language keys of Korean and Japanese keyboards.',
+      'What one types depends on the computer’s keyboard layout, not on the keyboard: the key beside left Shift types \\ in the UK and < in Germany.',
+    ],
+    example: 'A German keyboard layout on an ANSI keyboard has no < key: put “Key beside left Shift on ISO keyboards” on an Fn layer.',
+    docs: QMK + 'keycodes_basic',
+    where: [{ label: 'Keys page, “A key”, International keys', href: '#/keys' }],
+    related: ['key-palette'],
+  },
+  'switch-keys': {
+    title: 'Keys that switch features on and off',
+    qmkName: 'AS_TOGG, CM_TOGG, KO_TOGG, OS_TOGG',
+    body: [
+      'Keys that turn a whole feature off for a while, and on again: Capitals by holding, key chords, shortcut replacements and one-tap modifiers.',
+      'Key chords, shortcut replacements and Capitals by holding are on again after the keyboard restarts; the one-tap switch is kept. The Capitals by holding keys only work while that setting is on in Typing feel.',
+    ],
+    example: 'Key chords getting in the way in a game? A key that turns them off for the session, and on again.',
+    docs: QMK + 'features/combo#keycodes',
+    where: [{ label: 'Keys page, “A key”, More keys', href: '#/keys' }],
+    related: ['combos', 'key-overrides', 'typing-auto-shift', 'typing-one-shot'],
+  },
+  'restart-keys': {
+    title: 'Restart and firmware update keys',
+    qmkName: 'QK_BOOT, QK_REBOOT',
+    body: [
+      'Restart restarts the keyboard, as if it were unplugged and plugged in again. Firmware update puts it into firmware update mode (QMK’s bootloader): it stops typing until new firmware is put on it or it is unplugged.',
+      'The firmware update key only goes on a key while the keyboard is unlocked; the app asks to unlock first.',
+    ],
+    example: 'Put Firmware update on an Fn layer, so updating the firmware never means holding a key while plugging in.',
+    docs: QMK + 'quantum_keycodes#qmk-keycodes',
+    where: [{ label: 'Keys page, “A key”, More keys', href: '#/keys' }],
+    related: ['firmware', 'unlock'],
+  },
+  'left-out-keys': {
+    title: 'Keys the app leaves out',
+    qmkName: 'Joystick, programmable buttons, MIDI, audio, haptic, steno, backlight, underglow, dynamic macros, swap hands, Unicode',
+    body: [
+      'QMK has keys for hardware and features most keyboards’ firmware doesn’t include: joystick and programmable buttons, MIDI and music, sound, vibration, stenography, single-colour backlights and underglow strips, keys that record macros on the keyboard, swapping the halves of split keyboards, Unicode characters. Pressed on a keyboard without the feature, they do nothing, so the palette leaves them out. The K15 Max’s firmware, Keychron’s and the Vial build alike, has none of them.',
+      'If your firmware has one, type its QMK name under More options, Key code (PB_1, JS_0, MI_C …). A key that already holds one shows what kind of key it is.',
+    ],
+    example: 'Want extra buttons for a streaming app? F13 – F24, under Function keys, work everywhere without anything in the firmware.',
+    docs: QMK + 'keycodes',
+    where: [{ label: 'Keys page, More options, Key code', href: '#/keys' }],
+    related: ['raw-code', 'key-palette'],
+  },
 
   // ---- Shortcuts and macros ----
 
@@ -688,8 +764,11 @@ const topics = {
     ],
     example: 'Turn on “Windows keys do nothing” before a game, and off again afterwards.',
     docs: QMK + 'keycodes_magic',
-    where: [{ label: 'Typing feel, Swapped and disabled keys', href: '#/typing/magic' }],
-    related: ['nothing', 'typing-reset'],
+    where: [
+      { label: 'Typing feel, Swapped and disabled keys', href: '#/typing/magic' },
+      { label: 'Keys page, “A key”, Swapped and disabled keys (keys that change these switches)', href: '#/keys' },
+    ],
+    related: ['magic-keys', 'nothing', 'typing-reset'],
   },
   'typing-grave-esc': {
     title: 'The combined Esc and ` key',

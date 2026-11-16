@@ -1,14 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The palette of keys: a search box with a line saying what the key under the pointer does, and the groups of key
 // tiles in a box that scrolls and fills the space there is. Macro and multi-tap tiles carry their names and what
-// they do (shortcut-keys.ts), so the Shortcuts page's pickers get them too.
+// they do (shortcut-keys.ts), so the Shortcuts page's pickers get them too. Groups marked `more` wait under a
+// closed "More keys" fold at the end, except while searching, which looks everywhere.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PaletteGroup, PaletteKey } from '../../device'
+import type { HelpTopicId } from '../../help/topics'
 import { SearchField } from '../../ui/controls'
 import { KeyTile } from '../../ui/KeyTile'
+import { Disclosure, HelpButton } from '../../ui/layout'
 import { PageLink } from '../../ui/PageLink'
 import { nameShortcutGroups, useShortcutKeys } from './shortcut-keys'
+
+/** The help topic behind the "?" beside a group's title. */
+const GROUP_HELP: Partial<Record<string, HelpTopicId>> = {
+  helpers: 'helper-keys',
+  magic: 'magic-keys',
+  international: 'international-keys',
+  switches: 'switch-keys',
+  restart: 'restart-keys',
+}
 
 const oneLine = (label: string) => label.replace(/\n/g, ' ')
 
@@ -40,8 +52,11 @@ interface Props {
   label: string
 }
 
+/** `?key-search=magic` in the URL: the palette opens with that search, for screenshots. */
+const searchFromUrl = (): string => (typeof location === 'undefined' ? '' : (new URLSearchParams(location.search).get('key-search') ?? ''))
+
 export function KeyPalette({ groups, current, picked, onPick, hint, label }: Props) {
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(searchFromUrl)
   const [pointed, setPointed] = useState<PaletteKey | null>(null)
   const box = useRef<HTMLDivElement>(null)
   // Macros and multi-tap keys by their names and what they do, wherever the palette is used.
@@ -62,6 +77,46 @@ export function KeyPalette({ groups, current, picked, onPick, hint, label }: Pro
   }, [])
 
   const pointedHere = pointed && shown.some((group) => group.keys.includes(pointed)) ? pointed : null
+  // A search looks everywhere; otherwise the rarely needed groups wait under "More keys".
+  const searching = query.trim() !== ''
+  const everyday = shown.filter((group) => !group.more)
+  const rare = shown.filter((group) => group.more)
+  const isMarked = (key: PaletteKey) => key.code === current || key.code === picked
+
+  const section = (group: PaletteGroup) => (
+    <section key={group.id} aria-label={group.title}>
+      <div className="sticky top-0 z-10 bg-card pt-2.5 pb-1.5 text-xs">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="flex items-center gap-0.5 font-medium text-muted">
+            {group.title}
+            {GROUP_HELP[group.id] && (
+              <span className="-my-1 flex">
+                <HelpButton topic={GROUP_HELP[group.id]!} />
+              </span>
+            )}
+          </h3>
+          {group.link && <PageLink href={group.link.href}>{group.link.label}</PageLink>}
+        </div>
+        {group.note && <p className="mt-0.5 text-muted">{group.note}</p>}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {group.keys.map((key) => (
+          <KeyTile
+            key={key.id}
+            label={key.label}
+            name={keyName(key)}
+            empty={key.empty}
+            current={key.code === current}
+            picked={picked === undefined ? undefined : key.code === picked}
+            onClick={() => onPick(key)}
+            onMouseEnter={() => setPointed(key)}
+            onFocus={() => setPointed(key)}
+          />
+        ))}
+      </div>
+    </section>
+  )
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex items-center gap-3">
@@ -90,29 +145,17 @@ export function KeyPalette({ groups, current, picked, onPick, hint, label }: Pro
             No key matches “{query.trim()}”. If you know its QMK name, type it under More options, Key code.
           </p>
         )}
-        {shown.map((group) => (
-          <section key={group.id} aria-label={group.title}>
-            <div className="sticky top-0 z-10 flex items-baseline justify-between gap-3 bg-card pt-2.5 pb-1.5 text-xs">
-              <h3 className="font-medium text-muted">{group.title}</h3>
-              {group.link && <PageLink href={group.link.href}>{group.link.label}</PageLink>}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {group.keys.map((key) => (
-                <KeyTile
-                  key={key.id}
-                  label={key.label}
-                  name={keyName(key)}
-                  empty={key.empty}
-                  current={key.code === current}
-                  picked={picked === undefined ? undefined : key.code === picked}
-                  onClick={() => onPick(key)}
-                  onMouseEnter={() => setPointed(key)}
-                  onFocus={() => setPointed(key)}
-                />
-              ))}
-            </div>
-          </section>
-        ))}
+        {(searching ? shown : everyday).map(section)}
+        {!searching && rare.length > 0 && (
+          // Rarely needed keys, folded away; open by itself when the key being edited is one of them.
+          <Disclosure id="keys-palette-more" label="More keys" forceOpen={rare.some((group) => group.keys.some(isMarked))}>
+            <div className="-mt-2.5">{rare.map(section)}</div>
+            <p className="mt-3 flex items-center gap-0.5 text-[13px] text-muted">
+              Keys for joysticks, MIDI, sound and other hardware most keyboards don’t have are left out.
+              <HelpButton topic="left-out-keys" />
+            </p>
+          </Disclosure>
+        )}
       </div>
     </div>
   )

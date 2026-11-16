@@ -41,6 +41,11 @@ describe('pictureLabel', () => {
     expect(pictureLabel(layerKeycode('MO', 4))?.outer).toBe('Hold\nLayer 4')
   })
 
+  it('labels the palette’s extra keys as their tiles, and unnamed families by family', () => {
+    expect(pictureLabel(0x7002)).toEqual({ outer: 'Toggle\nCaps Ctrl', inner: '', masked: false })
+    expect(pictureLabel(0x7103)?.outer).toBe('MIDI')
+  })
+
   it('leaves keys the tables already name well alone', () => {
     expect(pictureLabel(0x04)).toBeNull()
   })

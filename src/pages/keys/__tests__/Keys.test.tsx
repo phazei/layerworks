@@ -5,7 +5,7 @@ import { clearPrefs } from '../../../ui/prefs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '../..'
-import { deviceStore, layerKeycode, layerTapKeycode, modTapKeycode, shortcutKeycode } from '../../../device'
+import { deviceStore, layerKeycode, layerTapKeycode, modTapKeycode, parseKeycode, shortcutKeycode } from '../../../device'
 import { renameMacro } from '../../../shell/layer-names'
 import { connectDemo, disconnect } from '../../../shell/session'
 import { Shell } from '../../../shell/Shell'
@@ -39,6 +39,7 @@ function openMoreOptions(): void {
 }
 
 const choice = (name: string) => screen.getByRole('radio', { name })
+const keycode = (name: string) => parseKeycode(name)!
 const palette = () => screen.getByRole('group', { name: 'Keys' })
 
 beforeEach(async () => {
@@ -270,5 +271,74 @@ describe('the Keys page', () => {
     expect(screen.getByRole('group', { name: 'What it does now' })).toHaveTextContent('Volume Up')
     await click(within(palette()).getByRole('button', { name: 'Mute Audio' }))
     await waitFor(() => expect(deviceStore.getState().keyboard!.knobs['2,0,1']).toBe(0xa8))
+  })
+})
+
+describe('the keys beyond the everyday ones', () => {
+  const search = (text: string) => fireEvent.change(screen.getByRole('searchbox', { name: 'Search keys' }), { target: { value: text } })
+  const tiles = () => within(palette()).queryAllByRole('button').map((tile) => tile.getAttribute('aria-label'))
+
+  it('shows the typing helpers and the swapped and disabled keys, with the rarer ones folded away', async () => {
+    await openKeys(A_KEY)
+    expect(within(palette()).getByRole('region', { name: 'Typing helpers' })).toBeInTheDocument()
+    expect(within(palette()).getByRole('region', { name: 'Swapped and disabled keys' })).toHaveTextContent('Typing feel')
+    expect(within(palette()).getByRole('button', { name: 'Capitals for one word (Caps Word)' })).toBeInTheDocument()
+    expect(within(palette()).getByRole('button', { name: 'More keys' })).toHaveAttribute('aria-expanded', 'false')
+    expect(within(palette()).queryByRole('region', { name: 'Restart and firmware update' })).toBeNull()
+    fireEvent.click(within(palette()).getByRole('button', { name: 'More keys' }))
+    expect(within(palette()).getByRole('region', { name: 'Restart and firmware update' })).toBeInTheDocument()
+  })
+
+  it('finds them by friendly name, QMK name and what they do, folded ones included', async () => {
+    await openKeys(A_KEY)
+    search('magic')
+    expect(tiles()).toContain('Swap Caps Lock and left Ctrl')
+    expect(tiles()).not.toContain('A')
+    search('windows key')
+    expect(tiles()).toContain('Windows keys do nothing')
+    search('nkro')
+    expect(tiles()).toEqual(expect.arrayContaining(['Any number of keys at once: on or off']))
+    search('swap')
+    expect(tiles()).toContain('Swap Esc and Caps Lock')
+    search('gui')
+    expect(tiles()).toContain('Windows keys do nothing')
+    search('space cadet')
+    expect(tiles()).toContain('Left Shift when held, ( when tapped (Space Cadet)')
+    search('reboot')
+    expect(tiles()).toContain('Restart the keyboard')
+  })
+
+  it('says what a key holding a magic key does, and opens the fold for a rare one', async () => {
+    await act(() => deviceStore.assign({ kind: 'key', layer: 2, row: 3, col: 2 }, 0x7002))
+    await openKeys(A_KEY)
+    const now = screen.getByRole('group', { name: 'What it does now' })
+    expect(now).toHaveTextContent('Swap Caps Lock and left Ctrl, or back')
+    expect(now).toHaveTextContent('CL_TOGG')
+    expect(choice('A key')).toHaveAttribute('aria-checked', 'true')
+    expect(within(palette()).getByRole('button', { name: 'Swap Caps Lock and left Ctrl, or back' })).toHaveAttribute('aria-current', 'true')
+  })
+
+  it('opens "More keys" by itself for a key that holds one of its keys', async () => {
+    await act(() => deviceStore.assign({ kind: 'key', layer: 2, row: 3, col: 2 }, keycode('QK_REBOOT')))
+    await openKeys(A_KEY)
+    expect(within(palette()).getByRole('button', { name: 'More keys' })).toHaveAttribute('aria-expanded', 'true')
+    expect(within(palette()).getByRole('button', { name: 'Restart the keyboard' })).toHaveAttribute('aria-current', 'true')
+  })
+
+  it('asks to unlock before putting the firmware update key on a key', async () => {
+    await openKeys(A_KEY)
+    fireEvent.click(within(palette()).getByRole('button', { name: 'More keys' }))
+    await click(within(palette()).getByRole('button', { name: /^Firmware update mode/ }))
+    const dialog = await screen.findByRole('dialog', { name: /Unlock the keyboard/ })
+    expect(dialog).toHaveTextContent('firmware update key')
+    await act(async () => within(dialog).getByRole('button', { name: 'Cancel' }).click())
+    expect(keymap(2, 3, 2)).toBe(0x04)
+  })
+
+  it('names a key from a family the palette leaves out', async () => {
+    // A MIDI note: the demo's firmware has no MIDI, so no table names it.
+    await act(() => deviceStore.assign({ kind: 'key', layer: 2, row: 3, col: 2 }, 0x7103))
+    await openKeys(A_KEY)
+    expect(screen.getByRole('group', { name: 'What it does now' })).toHaveTextContent('A MIDI music key')
   })
 })

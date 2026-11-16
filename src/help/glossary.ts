@@ -98,6 +98,19 @@ export const GLOSSARY: GlossaryEntry[] = [
     topic: 'typing-grave-esc',
   },
   {
+    term: 'ISO and JIS keys',
+    aka: 'KC_NUHS, KC_NUBS, Non-US, KC_INT1, KC_LANG1, Kana, Henkan',
+    friendly: 'International keys',
+    meaning: 'The extra keys of ISO, Japanese and Korean keyboards.',
+    topic: 'international-keys',
+  },
+  {
+    term: 'Joystick',
+    aka: 'JS_0, joystick buttons, game controller',
+    meaning: 'Game controller buttons a keyboard can send. Few firmwares include them; the palette leaves them out.',
+    topic: 'left-out-keys',
+  },
+  {
     term: 'Key override',
     aka: 'Key overrides, ko_make_basic',
     friendly: 'Shortcut replacement',
@@ -160,7 +173,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   },
   {
     term: 'Magic keycodes',
-    aka: 'Magic, MAGIC_SWAP',
+    aka: 'Magic, MAGIC_SWAP, CL_SWAP, GU_TOGG, AG_SWAP',
     friendly: 'Swapped and disabled keys',
     meaning: 'Swap Caps Lock and Ctrl, Alt and Win, or switch the Windows keys off.',
     topic: 'typing-magic',
@@ -171,6 +184,12 @@ export const GLOSSARY: GlossaryEntry[] = [
     friendly: 'The keyboard’s switches',
     meaning: 'The grid of wires the keys sit on. Reading it shows every key, Fn included.',
     topic: 'test-keys',
+  },
+  {
+    term: 'MIDI',
+    aka: 'MI_C, music keys, sequencer',
+    meaning: 'Keys that play notes in music software. Few firmwares include them; the palette leaves them out.',
+    topic: 'left-out-keys',
   },
   {
     term: 'MO, TG, TO, TT, DF',
@@ -201,6 +220,12 @@ export const GLOSSARY: GlossaryEntry[] = [
     topic: 'one-shot-mod',
   },
   {
+    term: 'Programmable button',
+    aka: 'PB_1, QK_PROGRAMMABLE_BUTTON',
+    meaning: 'Extra buttons programs can listen for. Few firmwares include them; F13 – F24 do the same job everywhere.',
+    topic: 'left-out-keys',
+  },
+  {
     term: 'QMK',
     aka: 'Quantum Mechanical Keyboard',
     friendly: 'The firmware',
@@ -227,6 +252,13 @@ export const GLOSSARY: GlossaryEntry[] = [
     friendly: 'Snap Click',
     meaning: 'Which of two opposite keys counts when both are held, for games.',
     topic: 'typing-snap-click',
+  },
+  {
+    term: 'Space Cadet',
+    aka: 'SC_LSPO, KC_LSPO, SC_RSPC, SC_SENT, space cadet shift',
+    friendly: 'Shift when held, bracket when tapped',
+    meaning: 'Shift (or Ctrl, or Alt) while held, ( or ) when tapped.',
+    topic: 'helper-keys',
   },
   {
     term: 'Tap dance',
