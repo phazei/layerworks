@@ -34,6 +34,17 @@ export function setPref<T>(key: string, value: T): void {
   for (const listener of [...listeners]) listener()
 }
 
+/** Forgets everything remembered, in storage and in memory (tests: each starts as a fresh browser would). */
+export function clearPrefs(): void {
+  cache.clear()
+  try {
+    for (const key of Object.keys(localStorage)) if (key.startsWith(PREFIX)) localStorage.removeItem(key)
+  } catch {
+    // Blocked storage: nothing was kept there.
+  }
+  for (const listener of [...listeners]) listener()
+}
+
 function subscribe(listener: () => void): () => void {
   listeners.add(listener)
   return () => listeners.delete(listener)

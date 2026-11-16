@@ -56,11 +56,16 @@ export function TapDanceEditor({ index }: { index: number }) {
       intro={
         <p>
           One key that does different things depending on how you press it. Leave any of them as “Nothing” if you
-          don’t need it. It works once it is on a key: on the Keys page, pick TD({index}) under Multi-tap keys.
+          don’t need it. It works once it is on a key.
         </p>
       }
       example={{ label: 'tap for Esc, tap twice for Caps Lock', entry: EXAMPLE }}
-      usage={<Uses code={tapDanceKeycode(index)} howTo={`On the Keys page, click a key and pick TD(${index}) under Multi-tap keys.`} />}
+      usage={
+        <Uses
+          code={tapDanceKeycode(index)}
+          howTo={`On the Keys page, click a key and pick “Multi-tap ${index + 1}” (TD(${index})) under Multi-tap keys.`}
+        />
+      }
     >
       <KeyField label="Tap" optional shortcuts exclude={EXCLUDE} value={entry.onTap} onChange={(onTap) => set({ onTap })} />
       <KeyField label="Hold" optional shortcuts exclude={EXCLUDE} value={entry.onHold} onChange={(onHold) => set({ onHold })} />

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+import { clearPrefs } from '../../../ui/prefs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '../..'
@@ -38,6 +39,8 @@ const savedMacro = (i: number) => {
 beforeEach(() => {
   vi.spyOn(console, 'log').mockImplementation(() => {})
   vi.spyOn(console, 'warn').mockImplementation(() => {})
+  // "More options" open or closed is remembered in the browser: start each test without what the last one left.
+  clearPrefs()
 })
 
 afterEach(async () => {
@@ -107,7 +110,7 @@ describe('the editor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Type text' }))
     const added = steps().getByRole('textbox', { name: 'Text to type, step 4' })
     expect(screen.getByText('Type the text this step should type.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Unlock and save…' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Unlock to save…' })).toBeDisabled()
     expect(screen.getByText('1 step to fix before saving.')).toBeInTheDocument()
 
     fireEvent.change(added, { target: { value: 'é' } })
@@ -137,7 +140,7 @@ describe('the editor', () => {
     fireEvent.change(steps().getByRole('textbox', { name: 'Text to type, step 1' }), { target: { value: 'x' } })
     expect(screen.getByText(/Saving needs the keyboard unlocked/)).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Unlock and save…' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Unlock to save…' }))
 
     expect(screen.getByRole('dialog', { name: /Unlock the keyboard/ })).toHaveTextContent('only takes macro changes while it is unlocked')
     expect(deviceStore.getState().macros).toBe(before)

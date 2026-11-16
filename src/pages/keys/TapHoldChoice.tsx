@@ -92,11 +92,9 @@ export function TapHoldChoice({ current, names, ownLayer, groups, onAssign }: Pr
           {label}
         </Button>
       </div>
-      <p className="text-[13px] text-muted">
-        How long counts as a hold is set on the <PageLink href="#/typing">Typing feel page</PageLink>.
-      </p>
 
-      {/* At least room for a few rows of keys; in a short window the column scrolls instead. */}
+      {/* At least room for a few rows of keys; in a short window the column scrolls instead. The notes go under it,
+          so in a small window the palette starts as high as it can. */}
       <div className="flex min-h-52 flex-1 flex-col">
         <KeyPalette
           groups={groups}
@@ -109,7 +107,8 @@ export function TapHoldChoice({ current, names, ownLayer, groups, onAssign }: Pr
       </div>
       <p className="text-[13px] text-muted">
         Only plain keys can be tapped; for a media key or a shortcut, use a{' '}
-        <PageLink href="#/shortcuts">multi-tap key</PageLink>.
+        <PageLink href="#/shortcuts">multi-tap key</PageLink>. How long counts as a hold is set on the{' '}
+        <PageLink href="#/typing">Typing feel page</PageLink>.
       </p>
 
       {hold === 'mods' && (

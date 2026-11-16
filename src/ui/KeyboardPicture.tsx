@@ -6,6 +6,7 @@ import { useId, useMemo } from 'react'
 import { KeyboardWidget } from '../vendor/pipette/renderer/components/keyboard'
 import { KEY_UNIT } from '../vendor/pipette/renderer/components/keyboard/constants'
 import { cx } from './controls'
+import { knobPictureText, pictureLabel, type PictureLabel } from './picture-labels'
 import { keycodeId, posKey, type KeyboardData, type KleKey } from '../device/api'
 
 /** How many pixels the widget draws a 1u key at, in the picture's own size (before it is scaled to fit). */
@@ -35,6 +36,13 @@ interface Props {
    * picture takes its own size, shrinking to the width there is.
    */
   fit?: boolean
+  /**
+   * "row,col" → a colour to fill the key with (key colours). `light` says it is a light colour: its label is drawn
+   * dark, otherwise light, in either theme.
+   */
+  fills?: ReadonlyMap<string, { colour: string; light: boolean }>
+  /** "row,col" → a CSS colour for a thick outline (lighting zones). */
+  outlines?: ReadonlyMap<string, string>
 }
 
 // The widget's own "ever pressed" colour is a fixed light green; seen keys use its per-key fill instead, which
@@ -54,28 +62,62 @@ function knobRules(scope: string, turned: ReadonlySet<string> = new Set(), seen:
   ].join('\n')
 }
 
-export function KeyboardPicture({ keyboard, layer, pressed, selection, onSelect, seen, highlighted, knobsTurned, knobsSeen, fit = false }: Props) {
-  const scope = useId()
-  const knobStyle = knobRules(scope, knobsTurned, knobsSeen)
-  const seenFills = useMemo(() => (seen ? new Map([...seen].map((pos) => [pos, SEEN_FILL])) : undefined), [seen])
+/**
+ * The key's outer shape is the first child of its <g data-key-pos>; rules scoped to this picture outline it, and
+ * colour the labels of filled keys (the widget's own choice only knows its own fills).
+ */
+function keyRules(
+  scope: string,
+  outlines: ReadonlyMap<string, string> = new Map(),
+  fills: ReadonlyMap<string, { light: boolean }> = new Map(),
+): string {
+  const at = (pos: string) => `[data-picture="${scope}"] [data-key-pos="${pos}"]`
+  return [
+    ...[...outlines].map(([pos, colour]) => `${at(pos)} > :first-child { stroke: ${colour}; stroke-width: 3.5px }`),
+    ...[...fills].map(([pos, { light }]) => `${at(pos)} text { fill: var(${light ? '--key-label-on-light' : '--key-label-on-dark'}) }`),
+  ].join('\n')
+}
 
-  const keycodes = useMemo(() => {
-    const map = new Map<string, string>()
+export function KeyboardPicture({
+  keyboard,
+  layer,
+  pressed,
+  selection,
+  onSelect,
+  seen,
+  highlighted,
+  knobsTurned,
+  knobsSeen,
+  fit = false,
+  fills,
+  outlines,
+}: Props) {
+  const scope = useId()
+  const knobStyle = [knobRules(scope, knobsTurned, knobsSeen), keyRules(scope, outlines, fills)].filter(Boolean).join('\n')
+  const seenFills = useMemo(() => (seen ? new Map([...seen].map((pos) => [pos, SEEN_FILL])) : undefined), [seen])
+  const fillColours = useMemo(() => (fills ? new Map([...fills].map(([pos, f]) => [pos, f.colour])) : undefined), [fills])
+
+  // Friendly labels where the tables only have QMK's names (picture-labels.ts).
+  const { keycodes, labels } = useMemo(() => {
+    const keycodes = new Map<string, string>()
+    const labels = new Map<string, PictureLabel>()
     for (let row = 0; row < keyboard.rows; row++) {
       for (let col = 0; col < keyboard.cols; col++) {
-        map.set(posKey(row, col), keycodeId(keyboard.keymap[`${layer},${row},${col}`] ?? 0))
+        const code = keyboard.keymap[`${layer},${row},${col}`] ?? 0
+        keycodes.set(posKey(row, col), keycodeId(code))
+        const label = pictureLabel(code)
+        if (label) labels.set(posKey(row, col), label)
       }
     }
-    return map
+    return { keycodes, labels }
   }, [keyboard, layer])
 
   const knobKeycodes = useMemo(() => {
     const map = new Map<string, [string, string]>()
+    // The widget has no label override for knobs; it draws an unknown keycode as its text.
+    const text = (code: number) => knobPictureText(code) ?? keycodeId(code)
     for (let knob = 0; knob < keyboard.knobCount; knob++) {
-      map.set(String(knob), [
-        keycodeId(keyboard.knobs[`${layer},${knob},0`] ?? 0),
-        keycodeId(keyboard.knobs[`${layer},${knob},1`] ?? 0),
-      ])
+      map.set(String(knob), [text(keyboard.knobs[`${layer},${knob},0`] ?? 0), text(keyboard.knobs[`${layer},${knob},1`] ?? 0)])
     }
     return map
   }, [keyboard, layer])
@@ -97,10 +139,11 @@ export function KeyboardPicture({ keyboard, layer, pressed, selection, onSelect,
       <KeyboardWidget
         keys={keyboard.layout.keys}
         keycodes={keycodes}
+        labelOverrides={labels}
         encoderKeycodes={knobKeycodes}
         pressedKeys={pressed}
         highlightedKeys={highlighted}
-        keyColors={seenFills}
+        keyColors={fillColours ?? seenFills}
         selectedKey={selection?.kind === 'key' ? selection : null}
         selectedEncoder={selection?.kind === 'knob' ? { idx: selection.knob, dir: selection.direction } : null}
         onKeyClick={onSelect && ((key: KleKey) => onSelect({ kind: 'key', row: key.row, col: key.col }))}

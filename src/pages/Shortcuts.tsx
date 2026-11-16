@@ -57,6 +57,7 @@ function ShortcutsPage() {
   const path = usePath()
   const caps = useDevice((s) => s.capabilities)
   const macroCount = useDevice((s) => s.keyboard?.macroCount ?? 0)
+  const uid = useDevice((s) => s.keyboard?.uid ?? '')
   const opened = openedFromPath(path)
   const count = !opened
     ? 0
@@ -73,7 +74,8 @@ function ShortcutsPage() {
     <div className="@container">
       <div className="grid items-start gap-4 @2xl:grid-cols-[17rem_minmax(0,1fr)] @5xl:grid-cols-[22rem_minmax(0,1fr)]">
         <ShortcutList selected={selected} />
-        {selected === null ? <Nothing /> : <Editor key={`${selected.kind}:${selected.index}`} opened={selected} />}
+        {/* Keyed by keyboard too: what an editor holds (a save's outcome, an open picker) belongs to one keyboard. */}
+        {selected === null ? <Nothing /> : <Editor key={`${uid}:${selected.kind}:${selected.index}`} opened={selected} />}
       </div>
     </div>
   )

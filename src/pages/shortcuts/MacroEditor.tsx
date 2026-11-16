@@ -3,7 +3,7 @@
 // keyboard". Nothing reaches the keyboard until it is saved, and saving needs the keyboard unlocked.
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { CircleCheck, CircleDot, Clock, Lock, Plus, Type } from 'lucide-react'
+import { Clock, Lock, Plus, Type } from 'lucide-react'
 import {
   deviceStore,
   encodeMacro,
@@ -22,14 +22,16 @@ import { openUnlock } from '../../shell/unlock-dialog'
 import { Button, cx, TextInput } from '../../ui/controls'
 import { Card, Disclosure, HelpButton, Notice } from '../../ui/layout'
 import { roomText, STEP_NAMES } from './describe'
-import { draftOf, setDraft, useDrafts } from './drafts'
+import { draftOf, getDraft, setDraft, useDrafts } from './drafts'
 import { Recorder } from './Recorder'
+import { SaveBar, SaveState } from './SaveBar'
 import { StepRow } from './StepRow'
 import { Uses } from './Uses'
 
 const UNLOCK_REASON = 'The keyboard only takes macro changes while it is unlocked.'
 
 const SAVE_PROBLEMS: Partial<Record<MacroSaveResult, string>> = {
+  locked: 'The keyboard is locked again, so nothing was saved. Unlock it, then save.',
   'too-big': 'It doesn’t fit in the space the macros share. Shorten it, or another macro.',
   invalid: 'Some steps need fixing first (marked in red).',
   failed: 'The keyboard didn’t take it. Check it is connected and try again.',
@@ -92,6 +94,8 @@ export function MacroEditor({ index }: { index: number }) {
   const buffer = useDevice((s) => s.macros)
   const unlocked = useDevice((s) => s.unlock?.unlocked === true)
   const drafts = useDrafts()
+  // As the Keys page's palette names it.
+  const macroName = useStoredMacroNames()[index]?.trim() || defaultMacroName(index)
   const [picking, setPicking] = useState<number | null>(null)
   const [result, setResult] = useState<MacroSaveResult | null>(null)
   const [saving, setSaving] = useState(false)
@@ -140,11 +144,16 @@ export function MacroEditor({ index }: { index: number }) {
       openUnlock(UNLOCK_REASON)
       return
     }
+    const sent = steps
     setSaving(true)
-    const outcome = await deviceStore.saveMacro(index, steps)
+    const outcome = await deviceStore.saveMacro(index, sent)
     setSaving(false)
     setResult(outcome)
-    if (outcome === 'saved' || outcome === 'unchanged') setDraft(kb.uid, index, null)
+    // Edits made while it was on its way stay a draft.
+    if (outcome === 'saved' || outcome === 'unchanged') {
+      const now = getDraft(kb.uid, index)
+      if (now === undefined || sameSteps(now, sent)) setDraft(kb.uid, index, null)
+    }
   }
 
   return (
@@ -154,34 +163,41 @@ export function MacroEditor({ index }: { index: number }) {
           <div className="flex flex-wrap items-center gap-2">
             <NameField key={`${kb.uid}:${index}`} uid={kb.uid} index={index} />
             <span className="font-mono text-[13px] text-muted">M{index}</span>
-            <span className="ml-auto flex items-center gap-1.5 text-[13px]" role="status">
-              {dirty ? (
-                <>
-                  <CircleDot size={14} aria-hidden className="text-warning" />
-                  <span>Not saved yet</span>
-                </>
-              ) : (
-                <>
-                  <CircleCheck size={14} aria-hidden className="text-success" />
-                  <span className="text-muted">{result === 'saved' ? 'Saved to the keyboard' : 'As on the keyboard'}</span>
-                </>
-              )}
-            </span>
+            <SaveState dirty={dirty} justSaved={result === 'saved'} />
           </div>
           {(dirty || (result !== null && SAVE_PROBLEMS[result])) && (
             <SaveBar
               dirty={dirty}
-              unlocked={unlocked}
               saving={saving}
-              problems={problems}
-              fits={fit.buffer !== null}
-              space={space}
-              result={result}
+              needsUnlock={!unlocked}
+              blocked={problems > 0 || fit.buffer === null}
+              hint={
+                problems > 0
+                  ? `${problems} step${problems === 1 ? '' : 's'} to fix before saving.`
+                  : dirty
+                    ? 'Undo, in the bar at the bottom, takes a saved macro back.'
+                    : ''
+              }
               onSave={() => void save()}
               onRevert={() => edit(saved)}
-            />
+            >
+              {!fit.buffer && <Notice tone="danger">{space}</Notice>}
+              {result && SAVE_PROBLEMS[result] && <Notice tone="danger">{SAVE_PROBLEMS[result]}</Notice>}
+              {!unlocked && dirty && (
+                <Notice>
+                  <span className="flex items-start gap-2">
+                    <Lock size={14} aria-hidden className="mt-0.5 shrink-0" />
+                    <span>
+                      Saving needs the keyboard unlocked: it only takes macro changes then. Your changes stay here until
+                      you save or revert, even if you go to another page.
+                      <HelpButton topic="macro-unlock" />
+                    </span>
+                  </span>
+                </Notice>
+              )}
+            </SaveBar>
           )}
-          <Uses code={macroKeycode(index)} howTo={`On the Keys page, click a key and pick “${defaultMacroName(index)}” under Macros.`} />
+          <Uses code={macroKeycode(index)} howTo={`On the Keys page, click a key and pick “${macroName}” under Macros.`} />
         </header>
 
         <section aria-label="Steps" className="flex flex-col gap-2">
@@ -254,57 +270,5 @@ export function MacroEditor({ index }: { index: number }) {
         </p>
       </div>
     </Card>
-  )
-}
-
-/** Save and Revert, with what stands in the way of saving. At the top, so they are in view however long the macro. */
-function SaveBar({ dirty, unlocked, saving, problems, fits, space, result, onSave, onRevert }: {
-  dirty: boolean
-  unlocked: boolean
-  saving: boolean
-  problems: number
-  fits: boolean
-  space: string
-  result: MacroSaveResult | null
-  onSave: () => void
-  onRevert: () => void
-}) {
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          variant="primary"
-          icon={unlocked ? undefined : <Lock size={14} aria-hidden />}
-          disabled={!dirty || saving || problems > 0 || !fits}
-          onClick={onSave}
-        >
-          {unlocked ? 'Save to keyboard' : 'Unlock and save…'}
-        </Button>
-        <Button variant="quiet" disabled={!dirty || saving} onClick={onRevert}>
-          Revert
-        </Button>
-        <span className="text-[13px] text-muted">
-          {problems > 0
-            ? `${problems} step${problems === 1 ? '' : 's'} to fix before saving.`
-            : dirty
-              ? 'Undo, in the bar at the bottom, takes a saved macro back.'
-              : ''}
-        </span>
-      </div>
-      {!fits && <Notice tone="danger">{space}</Notice>}
-      {result && SAVE_PROBLEMS[result] && <Notice tone="danger">{SAVE_PROBLEMS[result]}</Notice>}
-      {!unlocked && dirty && (
-        <Notice>
-          <span className="flex items-start gap-2">
-            <Lock size={14} aria-hidden className="mt-0.5 shrink-0" />
-            <span>
-              Saving needs the keyboard unlocked: it only takes macro changes then. Your changes stay here until you
-              save or revert, even if you go to another page.
-              <HelpButton topic="macro-unlock" />
-            </span>
-          </span>
-        </Notice>
-      )}
-    </div>
   )
 }

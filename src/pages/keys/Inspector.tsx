@@ -37,6 +37,12 @@ const CHOICES: { value: Choice; label: string; help: HelpTopicId }[] = [
   { value: 'tapHold', label: 'Tap or hold', help: 'tap-hold' },
 ]
 
+/** `?choice=tapHold` in the URL (or key, shortcut, layer): the inspector opens on that choice, for screenshots. */
+function choiceFromUrl(): Choice | null {
+  const asked = new URLSearchParams(location.search).get('choice')
+  return CHOICES.find((c) => c.value === asked)?.value ?? null
+}
+
 /** "Now" for a macro or multi-tap key: its name, what it does, and where it is set up. */
 function NowShortcut({ found, id }: { found: ShortcutKey; id: string }) {
   return (
@@ -97,7 +103,7 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
   // Opens on the choice that holds what the key does now. "More options" opens for this key when that is where
   // it is, without changing whether it stays open for the next one.
   const [opening] = useState(() => choiceFor(current, paletteCodes))
-  const [choice, setChoice] = useState<Choice>(opening.choice)
+  const [choice, setChoice] = useState<Choice>(() => choiceFromUrl() ?? opening.choice)
   const shortcutKey = useShortcutKeys()
   const found = shortcutKey(current)
 

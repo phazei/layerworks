@@ -71,6 +71,12 @@ export function resetPlugins(): void {
   plugins.length = 0
 }
 
+/** For tests: takes one plugin out again, leaving the built-in pages. */
+export function removePlugin(id: string): void {
+  const index = plugins.findIndex((plugin) => plugin.id === id)
+  if (index >= 0) plugins.splice(index, 1)
+}
+
 /** Whether a plugin applies: always when it has no conditions, otherwise only to a matching connected keyboard. */
 function active(plugin: PluginDef, state: DeviceState): boolean {
   if (!plugin.matches && !plugin.requires) return true

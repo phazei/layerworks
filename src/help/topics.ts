@@ -196,6 +196,35 @@ const topics = {
     example: 'Colour on blue with vividness halfway gives a soft sky blue.',
     docs: QMK + 'features/rgb_matrix#keycodes',
   },
+  'key-colours': {
+    title: 'Key colours',
+    qmkName: 'Keychron per-key RGB',
+    body: [
+      'With the “Key by key” effect every key shows a colour of its own. Pick a colour, then click a key or drag across several; the keyboard changes as you paint and keeps the colours after a moment.',
+      'Brightness is one setting for the whole keyboard (the Brightness slider), so a key’s colour is only its colour and vividness. Undo takes back one stroke at a time.',
+    ],
+    example: 'Paint the letters white, then W, A, S and D red, for games.',
+    docs: 'https://www.keychron.com/blogs/news/how-to-set-per-key-rgb-on-launcher',
+  },
+  'key-style': {
+    title: 'How the key colours light up',
+    qmkName: 'Per-key RGB type',
+    body: [
+      'Steady shows every colour all the time. Breathing fades them in and out together. The others light keys only while you type: the key you press, a glow around it, or a splash spreading from it, each in the colours you painted.',
+      'The Speed slider sets how fast they breathe or fade.',
+    ],
+    example: '“Light up when pressed” on a dark desk: keys flash in their colour as you type.',
+  },
+  'lighting-zones': {
+    title: 'Lighting zones',
+    qmkName: 'Keychron mixed RGB',
+    body: [
+      'With the “Mixed zones” effect the keyboard is split into zones, and each zone plays its own effects. Every key belongs to one zone; paint keys to move them.',
+      'A zone can play several effects in turn, each for as long as you set, fading from one to the next. Each effect has its own colour and speed; brightness is the keyboard’s.',
+    ],
+    example: 'W, A, S and D breathing red in one zone while the rest of the keyboard plays a rainbow wave.',
+    docs: 'https://www.keychron.com/blogs/news/how-to-set-mix-rgb-on-launcher',
+  },
   unlock: {
     title: 'Locked and unlocked',
     qmkName: 'Vial unlock',
@@ -297,7 +326,7 @@ const topics = {
       'A macro can type anything, including commands, so the keyboard only takes macro changes while it is unlocked: a web page can’t plant one behind your back.',
       'You can edit a macro while the keyboard is locked; the changes wait in the app until you unlock and save. Undoing a saved macro needs the keyboard unlocked too.',
     ],
-    example: 'Click “Unlock and save…”, hold Esc and Enter until the bar is full, then save.',
+    example: 'Click “Unlock to save…”, hold Esc and Enter until the bar is full, then save.',
   },
   'macro-hold': {
     title: 'Holding a key down and letting it go',

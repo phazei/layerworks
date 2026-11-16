@@ -59,6 +59,9 @@ export function setEntryDraft(uid: string, kind: EntryKind, index: number, entry
   announce(uid, kind, index, entry !== null)
 }
 
+export const getEntryDraft = (uid: string, kind: EntryKind, index: number): AnyEntry | undefined =>
+  drafts.get(key(uid, kind, index)) as AnyEntry | undefined
+
 /** Every draft, for marking unsaved ones. */
 export function useDrafts(): ReadonlyMap<string, unknown> {
   return useSyncExternalStore(

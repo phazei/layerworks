@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { ExternalLink, X } from 'lucide-react'
+import { docsSite } from '../help/docs-site'
 import { closeHelp, useHelpTopic } from '../help/help-store'
 import { HELP_TOPICS, type HelpTopicId } from '../help/topics'
 import { cx, IconButton } from '../ui/controls'
@@ -75,7 +76,7 @@ export function HelpPanel() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 self-start text-[13px] font-medium text-accent hover:underline"
             >
-              Read more in the QMK documentation
+              Read more in {docsSite(topic.docs)}
               <ExternalLink size={13} aria-hidden />
               <span className="sr-only">(opens in a new tab)</span>
             </a>

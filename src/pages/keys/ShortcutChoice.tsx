@@ -4,9 +4,10 @@
 
 import { useState } from 'react'
 import { canTakeModifiers, keycodeName, keycodeTitle, MODIFIERS, readShortcut, shortcutKeycode, type PaletteGroup } from '../../device'
-import { Button, Checkbox } from '../../ui/controls'
+import { Button } from '../../ui/controls'
 import { KeyCap } from '../../ui/KeyTile'
 import { KeyPalette } from './KeyPalette'
+import { ModifierBoxes } from './Modifiers'
 
 interface Props {
   current: number
@@ -25,14 +26,7 @@ export function ShortcutChoice({ current, groups, onAssign }: Props) {
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <span className="text-muted">Hold</span>
-        {MODIFIERS.map((mod) => (
-          <Checkbox
-            key={mod.bit}
-            label={mod.name}
-            checked={(mods & mod.bit) !== 0}
-            onChange={(on) => setMods(on ? mods | mod.bit : mods & ~mod.bit)}
-          />
-        ))}
+        <ModifierBoxes mods={mods} onChange={setMods} />
         <span className="text-muted">and press</span>
         {key !== null ? <KeyCap label={keycodeName(key)} /> : <span className="text-muted italic">a key from below</span>}
         <Button

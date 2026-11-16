@@ -2,9 +2,10 @@
 // Picking the key a step presses: the Keys page's palette, with Ctrl, Shift, Alt and Win to tick for a shortcut.
 
 import { useMemo, useState } from 'react'
-import { canTakeModifiers, keyPalette, MODIFIERS, readShortcut, shortcutKeycode, useDevice } from '../../device'
-import { Button, Checkbox } from '../../ui/controls'
+import { canTakeModifiers, keyPalette, readShortcut, shortcutKeycode, useDevice } from '../../device'
+import { Button } from '../../ui/controls'
 import { KeyPalette } from '../keys/KeyPalette'
+import { ModifierBoxes } from '../keys/Modifiers'
 
 interface Props {
   current: number
@@ -31,14 +32,7 @@ export function KeyPicker({ current, shortcuts, onPick, onClose, exclude = SHORT
       {shortcuts && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="text-[13px] text-muted">Hold while tapping</span>
-          {MODIFIERS.map((mod) => (
-            <Checkbox
-              key={mod.bit}
-              label={mod.name}
-              checked={(mods & mod.bit) !== 0}
-              onChange={(on) => setMods(on ? mods | mod.bit : mods & ~mod.bit)}
-            />
-          ))}
+          <ModifierBoxes mods={mods} onChange={setMods} />
         </div>
       )}
       <div className="flex h-72 flex-col">

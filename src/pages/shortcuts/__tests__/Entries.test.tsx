@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Multi-tap keys, key chords, shortcut replacements and repeat rules on the demo keyboard.
 
+import { clearPrefs } from '../../../ui/prefs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '../..'
@@ -32,6 +33,8 @@ const click = (name: string | RegExp) => act(async () => fireEvent.click(screen.
 beforeEach(() => {
   vi.spyOn(console, 'log').mockImplementation(() => {})
   vi.spyOn(console, 'warn').mockImplementation(() => {})
+  // "More options" open or closed is remembered in the browser: start each test without what the last one left.
+  clearPrefs()
 })
 
 afterEach(async () => {

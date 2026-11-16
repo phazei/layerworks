@@ -44,6 +44,9 @@
   /* A key held down. The widget keeps the default (dark) label on it in this theme, so it must be light. */
   --key-bg-pressed: #6fcf97;
   --key-label-pressed: #171a1f; /* a label on it, where the app draws one (knob directions) */
+  /* Labels on keys painted in a lighting colour (the colour is data, so the same in both themes). */
+  --key-label-on-light: #14161a;
+  --key-label-on-dark: #ffffff;
   --wire-row: #2f6fe4;
   --wire-col: #c0379a;
 

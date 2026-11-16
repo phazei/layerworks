@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+import { clearPrefs } from '../../../ui/prefs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '../..'
@@ -27,6 +28,8 @@ let downloads: { name: string; blob: Blob }[]
 beforeEach(() => {
   vi.spyOn(console, 'log').mockImplementation(() => {})
   vi.spyOn(console, 'warn').mockImplementation(() => {})
+  // "More options" open or closed is remembered in the browser: start each test without what the last one left.
+  clearPrefs()
   downloads = []
   const blobs = new Map<string, Blob>()
   URL.createObjectURL = vi.fn((blob: Blob) => {

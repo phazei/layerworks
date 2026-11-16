@@ -4,7 +4,7 @@
 // one-click example, Save / Revert / Clear, and the fields for a key and for modifiers.
 
 import { useState, type ReactNode } from 'react'
-import { CircleCheck, CircleDot, Lock, Sparkles } from 'lucide-react'
+import { Lock, Sparkles } from 'lucide-react'
 import {
   bootKeycode,
   deviceStore,
@@ -26,8 +26,9 @@ import { openUnlock } from '../../shell/unlock-dialog'
 import { Button, Checkbox } from '../../ui/controls'
 import { Card, HelpButton, Notice } from '../../ui/layout'
 import { KINDS } from './describe'
-import { entryDraftOf, setEntryDraft, useDrafts } from './drafts'
+import { entryDraftOf, getEntryDraft, setEntryDraft, useDrafts } from './drafts'
 import { KeyPicker } from './KeyPicker'
+import { SaveBar, SaveState } from './SaveBar'
 import { Caps } from './StepRow'
 
 export interface EntryDraft<K extends EntryKind> {
@@ -57,6 +58,7 @@ export function useEntryDraft<K extends EntryKind>(kind: K, index: number): Entr
 }
 
 const SAVE_PROBLEMS: Partial<Record<EntrySaveResult, string>> = {
+  locked: 'The keyboard is locked again, so nothing was saved. Unlock it, then save.',
   invalid: 'Something needs fixing first (said in red above).',
   failed: 'The keyboard didn’t take it. Check it is connected and try again.',
 }
@@ -93,11 +95,16 @@ export function EntryFrame<K extends EntryKind>({ kind, index, draft, intro, exa
       openUnlock('It holds the key that restarts the keyboard for a firmware update, which the keyboard only takes while unlocked.')
       return
     }
+    const sent = entry
     setSaving(true)
-    const outcome = await deviceStore.saveEntry(kind, index, entry)
+    const outcome = await deviceStore.saveEntry(kind, index, sent)
     setSaving(false)
     setResult(outcome)
-    if (outcome === 'saved' || outcome === 'unchanged') setEntryDraft(uid, kind, index, null)
+    // Edits made while it was on its way stay a draft.
+    if (outcome === 'saved' || outcome === 'unchanged') {
+      const now = getEntryDraft(uid, kind, index)
+      if (now === undefined || entriesMatch(kind, now as EntryOf<K>, sent)) setEntryDraft(uid, kind, index, null)
+    }
   }
 
   return (
@@ -110,40 +117,22 @@ export function EntryFrame<K extends EntryKind>({ kind, index, draft, intro, exa
               <HelpButton topic={info.help} />
             </h2>
             <span className="text-[13px] text-muted">{info.qmk}</span>
-            <span className="ml-auto flex items-center gap-1.5 text-[13px]" role="status">
-              {dirty ? (
-                <>
-                  <CircleDot size={14} aria-hidden className="text-warning" />
-                  <span>Not saved yet</span>
-                </>
-              ) : (
-                <>
-                  <CircleCheck size={14} aria-hidden className="text-success" />
-                  <span className="text-muted">
-                    {result === 'saved' ? 'Saved to the keyboard' : entryIsEmpty(kind, saved) ? 'Empty on the keyboard' : 'As on the keyboard'}
-                  </span>
-                </>
-              )}
-            </span>
+            <SaveState
+              dirty={dirty}
+              justSaved={result === 'saved'}
+              savedText={entryIsEmpty(kind, saved) ? 'Empty on the keyboard' : 'As on the keyboard'}
+            />
           </div>
           {(dirty || (result !== null && SAVE_PROBLEMS[result])) && (
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="primary"
-                  icon={needsUnlock ? <Lock size={14} aria-hidden /> : undefined}
-                  disabled={!dirty || saving || problem !== null}
-                  onClick={() => void save()}
-                >
-                  {needsUnlock ? 'Unlock and save…' : 'Save to keyboard'}
-                </Button>
-                <Button variant="quiet" disabled={!dirty || saving} onClick={() => edit(saved)}>
-                  Revert
-                </Button>
-                <span className="text-[13px] text-muted">
-                  {problem ?? (dirty ? 'Undo, in the bar at the bottom, takes a saved change back.' : '')}
-                </span>
-              </div>
+            <SaveBar
+              dirty={dirty}
+              saving={saving}
+              needsUnlock={needsUnlock}
+              blocked={problem !== null}
+              hint={problem ?? (dirty ? 'Undo, in the bar at the bottom, takes a saved change back.' : '')}
+              onSave={() => void save()}
+              onRevert={() => edit(saved)}
+            >
               {result && SAVE_PROBLEMS[result] && <Notice tone="danger">{SAVE_PROBLEMS[result]}</Notice>}
               {needsUnlock && dirty && (
                 <Notice>
@@ -157,7 +146,7 @@ export function EntryFrame<K extends EntryKind>({ kind, index, draft, intro, exa
                   </span>
                 </Notice>
               )}
-            </div>
+            </SaveBar>
           )}
         </header>
 

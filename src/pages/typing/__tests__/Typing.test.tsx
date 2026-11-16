@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+import { clearPrefs } from '../../../ui/prefs'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '../..'
 import { deviceStore } from '../../../device'
 import { FakeLink, fakeKeyboard, fakeKeyboardConfig, type FakeKeyboardConfig, type FakeKeychron } from '../../../device/fake-keyboard'
-import { definePlugin } from '../../../plugins/api'
+import { definePlugin, removePlugin } from '../../../plugins/api'
 import { Shell } from '../../../shell/Shell'
 
 let config: FakeKeyboardConfig
@@ -56,12 +57,13 @@ beforeAll(() => {
 beforeEach(() => {
   vi.spyOn(console, 'log').mockImplementation(() => {})
   vi.spyOn(console, 'warn').mockImplementation(() => {})
-  localStorage.clear()
+  clearPrefs()
 })
 
 afterEach(async () => {
   await act(() => deviceStore.disconnect())
   location.hash = ''
+  removePlugin('test-typing')
 })
 
 describe('the Typing feel page', () => {
