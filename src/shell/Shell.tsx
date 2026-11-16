@@ -3,11 +3,12 @@
 // page asks for it, the page itself, and the status line; the help panel slides in over the right edge of the
 // page (not over the status line, so undo stays in reach).
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { deviceStore, useDevice } from '../device'
 import { activePages, type PageDef } from '../plugins/api'
 import { Card, HelpButton } from '../ui/layout'
 import { useAppliedTheme } from '../ui/theme'
+import { useElementSize } from '../ui/useElementSize'
 import { Connecting, ConnectPrompt } from './ConnectPrompt'
 import { HelpPanel } from './HelpPanel'
 import { usePath } from './router'
@@ -59,6 +60,9 @@ export function Shell() {
   const ready = status === 'ready' && keyboard !== null
   const needsKeyboard = page !== null && !page.offline && !ready
   const Page = page?.component
+  // The height the stage and the page share: everything between the page title and the status line.
+  const shared = useRef<HTMLDivElement>(null)
+  const space = useElementSize(shared).height
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface text-content">
@@ -71,19 +75,18 @@ export function Shell() {
               {page.help && <HelpButton topic={page.help} />}
             </header>
           )}
-          {page?.stage && ready && (
-            <div className="shrink-0 px-6 pb-4">
-              <Stage keyboard={keyboard} selectable={page.stage === 'select'} />
+          <div ref={shared} className="flex min-h-0 flex-1 flex-col">
+            {/* The stage ends in its resize handle, which takes the place of the gap under it. */}
+            {page?.stage && ready && <Stage keyboard={keyboard} selectable={page.stage === 'select'} space={space} />}
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-6">
+              {!page ? (
+                <NotFound />
+              ) : needsKeyboard ? (
+                status === 'connecting' ? <Connecting /> : <ConnectPrompt />
+              ) : (
+                Page && <Page />
+              )}
             </div>
-          )}
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-6">
-            {!page ? (
-              <NotFound />
-            ) : needsKeyboard ? (
-              status === 'connecting' ? <Connecting /> : <ConnectPrompt />
-            ) : (
-              Page && <Page />
-            )}
           </div>
           <HelpPanel />
         </main>

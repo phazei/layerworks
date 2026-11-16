@@ -8,12 +8,13 @@ import { Activity, Lock, LockOpen, MousePointerClick, Pause, RotateCcw, RotateCw
 import { keycodeTitle, matrixKeys, useDevice, type KeyboardData, type LayerState } from '../device'
 import type { PageDef } from '../plugins/api'
 import { useConnectedLayerNames } from '../shell/layer-names'
-import { howHeard, knobDirections, knobKeycode, useKnobTurns, usePressedKeys } from '../shell/pressed-keys'
+import { knobDirections, useKnobTurns, usePressedKeys } from '../shell/pressed-keys'
 import { openUnlock } from '../shell/unlock-dialog'
 import { Button } from '../ui/controls'
 import { KeyboardPicture } from '../ui/KeyboardPicture'
 import { Card, HelpButton } from '../ui/layout'
 import { ProgressBar } from '../ui/ProgressBar'
+import { knobPlan, type KnobPlan, type Visibility } from './test/knob'
 import { useSeenKeys } from './test/seen'
 import { useMatrix, type MatrixMode } from './test/useMatrix'
 
@@ -107,26 +108,40 @@ function turnName(position: string, knobCount: number): string {
   return knobCount > 1 ? `knob ${Number(knob) + 1} ${way}` : way
 }
 
-/** How turning the knob is seen, and which directions can't be on the active layer. */
-function KnobNote({ keyboard, layer }: { keyboard: KeyboardData; layer: LayerState }) {
+const WHY: Record<Exclude<Visibility, 'seen'>, [string, string]> = {
+  kept: ['which the computer keeps for itself, so this page can’t see it', 'which the computer keeps for itself, so this page can’t see them'],
+  maybe: ['which may not reach this page', 'which may not reach this page'],
+  unseen: ['which this page can’t see', 'which this page can’t see'],
+}
+
+/** "On Windows, turning it right sends Volume Up, which …", one sentence per kind of trouble. */
+function troubleSentences(plan: KnobPlan, layerName: string, knobCount: number): string[] {
+  const kinds = ['kept', 'maybe', 'unseen'] as const
+  return kinds.flatMap((kind) => {
+    const these = plan.here.filter((d) => d.visibility === kind)
+    if (these.length === 0) return []
+    const turns = these.map((d) => turnName(d.position, knobCount)).join(' or ')
+    const sends = these.map((d) => keycodeTitle(d.code)).join(' and ')
+    return [`On ${layerName}, turning it ${turns} sends ${sends}, ${WHY[kind][these.length > 1 ? 1 : 0]}.`]
+  })
+}
+
+/** How turning the knob is seen, which directions can't be on the active layer, and where they can. */
+function KnobNote({ plan, layer }: { plan: KnobPlan; layer: LayerState }) {
   const names = useConnectedLayerNames()
-  const directions = knobDirections(keyboard)
-  if (directions.length === 0) return null
-  const unseen = directions.filter((position) => howHeard(knobKeycode(keyboard, layer, position)) === null)
-  const layerName = names[layer.active] ?? `layer ${layer.active}`
+  const name = (n: number) => names[n] ?? `layer ${n}`
+  if (plan.here.length === 0) return null
+  const troubles = troubleSentences(plan, name(layer.active), plan.here.length / 2)
+  const there = plan.elsewhere
   return (
     <p className="flex gap-2.5">
       <RotateCw size={16} aria-hidden className="mt-0.5 shrink-0" />
       <span>
-        Turning the knob shows when it sends something this page can see, like volume or scrolling, while this window
-        is in front.
-        {unseen.map((position) => (
-          <span key={position}>
-            {' '}
-            On {layerName}, turning it {turnName(position, keyboard.knobCount)} sends{' '}
-            {keycodeTitle(knobKeycode(keyboard, layer, position))}, which this page can’t see.
-          </span>
-        ))}
+        Turning the knob shows when it sends something this page can see, like scrolling or an ordinary key, while
+        this window is in front.
+        {troubles.map((sentence) => ` ${sentence}`)}
+        {there &&
+          ` ${there.way === 'hold' ? 'Hold' : 'Switch to'} ${name(there.layer)} and turn it: there ${there.does}, which this page can see.`}
       </span>
     </p>
   )
@@ -152,7 +167,11 @@ function KeyTest({ keyboard }: { keyboard: KeyboardData }) {
   const seenHere = useMemo(() => new Set(all.filter((key) => seen.has(key))), [all, seen])
   const knobs = useMemo(() => knobDirections(keyboard), [keyboard])
   const knobsSeen = useMemo(() => new Set(knobs.filter((position) => seen.has(KNOB + position))), [knobs, seen])
-  const everything = all.length > 0 && seenHere.size === all.length && knobsSeen.size === knobs.length
+  const plan = useMemo(() => knobPlan(keyboard, layer ?? NO_LAYER), [keyboard, layer])
+  // The knob counts are out of the turns the page can check on some layer the keyboard can reach (and any seen
+  // anyway); the rest can't be checked here, which is not the knob's fault.
+  const knobsCheckable = new Set([...plan.checkable, ...knobsSeen]).size
+  const everything = all.length > 0 && seenHere.size === all.length && knobsSeen.size >= knobsCheckable
   const check = capabilities?.check('keyMatrix')
   const canUnlock = check !== undefined && !check.available && check.needsUnlock === true
 
@@ -168,7 +187,9 @@ function KeyTest({ keyboard }: { keyboard: KeyboardData }) {
                 </span>
                 {knobs.length > 0 && (
                   <span className="text-[13px] text-muted tabular-nums">
-                    {knobsSeen.size} of {knobs.length} knob turns
+                    {knobsCheckable === 0
+                      ? 'Knob turns can’t be checked here'
+                      : `${knobsSeen.size} of ${knobsCheckable} knob turns${knobsCheckable < knobs.length ? ` (${knobs.length - knobsCheckable} can’t be checked here)` : ''}`}
                   </span>
                 )}
                 {everything && <span className="text-[13px] text-success">Every key works</span>}
@@ -197,7 +218,7 @@ function KeyTest({ keyboard }: { keyboard: KeyboardData }) {
       </Card>
       <div className="flex flex-col gap-2 rounded-card bg-card px-5 py-4 text-[13px] text-muted shadow-card">
         <ModeNote mode={matrix.mode === 'hidden' ? 'watching' : matrix.mode} wireless={wireless} canUnlock={canUnlock} resume={matrix.resume} />
-        <KnobNote keyboard={keyboard} layer={layer ?? NO_LAYER} />
+        <KnobNote plan={plan} layer={layer ?? NO_LAYER} />
         {!focused && (matrix.mode === 'off' || knobs.length > 0) && (
           <p className="flex gap-2.5 text-content">
             <MousePointerClick size={16} aria-hidden className="mt-0.5 shrink-0" />

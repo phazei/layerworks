@@ -4,6 +4,7 @@
 
 import { useId, useMemo } from 'react'
 import { KeyboardWidget } from '../vendor/pipette/renderer/components/keyboard'
+import { cx } from './controls'
 import { keycodeId, posKey, type KeyboardData, type KleKey } from '../device/api'
 
 export type PictureSelection =
@@ -25,6 +26,11 @@ interface Props {
   /** Knob directions ("knob,direction") to show turned just now, and ones to mark as seen. Turned wins. */
   knobsTurned?: ReadonlySet<string>
   knobsSeen?: ReadonlySet<string>
+  /**
+   * Fill the box it is in, width and height, keeping its shape and centred (the box needs a height). Without it the
+   * picture takes its own size, shrinking to the width there is.
+   */
+  fit?: boolean
 }
 
 // The widget's own "ever pressed" colour is a fixed light green; seen keys use its per-key fill instead, which
@@ -44,7 +50,7 @@ function knobRules(scope: string, turned: ReadonlySet<string> = new Set(), seen:
   ].join('\n')
 }
 
-export function KeyboardPicture({ keyboard, layer, pressed, selection, onSelect, seen, highlighted, knobsTurned, knobsSeen }: Props) {
+export function KeyboardPicture({ keyboard, layer, pressed, selection, onSelect, seen, highlighted, knobsTurned, knobsSeen, fit = false }: Props) {
   const scope = useId()
   const knobStyle = knobRules(scope, knobsTurned, knobsSeen)
   const seenFills = useMemo(() => (seen ? new Map([...seen].map((pos) => [pos, SEEN_FILL])) : undefined), [seen])
@@ -75,7 +81,14 @@ export function KeyboardPicture({ keyboard, layer, pressed, selection, onSelect,
     // The widget draws at a fixed size; let it shrink to the space there is. It fills a held key with
     // var(--success) and picks the label colour for that per theme; inside the picture --success is the pressed
     // key token, light enough in the light theme for the dark label the widget keeps there.
-    <div data-picture={scope} className="flex justify-center [--success:var(--key-bg-pressed)] [&>svg]:h-auto [&>svg]:max-w-full">
+    <div
+      data-picture={scope}
+      className={cx(
+        'flex justify-center [--success:var(--key-bg-pressed)]',
+        // The svg's viewBox keeps the shape when both sides are set: it scales to fit and centres.
+        fit ? 'h-full w-full [&>svg]:h-full [&>svg]:w-full' : '[&>svg]:h-auto [&>svg]:max-w-full',
+      )}
+    >
       {knobStyle && <style>{knobStyle}</style>}
       <KeyboardWidget
         keys={keyboard.layout.keys}

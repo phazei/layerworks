@@ -109,12 +109,31 @@ describe('the Test page', () => {
       expect(screen.getByText('2 of 2 knob turns')).toBeInTheDocument()
     })
 
+    it('says the volume keys stay with the computer, and where the knob can be checked instead', async () => {
+      await openTest()
+      const note = screen.getByText(/Turning the knob shows when it sends something this page can see/)
+      expect(note).toHaveTextContent(
+        'On Windows, turning it left or right sends Volume Down and Volume Up, which the computer keeps for itself, so this page can’t see them.',
+      )
+      expect(note).toHaveTextContent('Hold Layer 4 and turn it: there it scrolls, which this page can see.')
+      // Checkable on Layer 4, so they count.
+      expect(screen.getByText('0 of 2 knob turns')).toBeInTheDocument()
+    })
+
     it('says which directions this page can’t see on the active layer', async () => {
       await openTest()
-      expect(screen.getByText(/Turning the knob shows when it sends something this page can see/)).not.toHaveTextContent('can’t see')
-
       await act(async () => demoKeyboard()!.holdLayer(3))
-      await waitFor(() => expect(screen.getByText(/Turning the knob shows/)).toHaveTextContent(/On Windows Fn, turning it left sends .+, which this page can’t see\./))
+      await waitFor(() => expect(screen.getByText(/Turning the knob shows/)).toHaveTextContent(/On Windows Fn, turning it left or right sends .+ and .+, which this page can’t see\./))
+    })
+
+    it('doesn’t count turns no reachable layer lets the page see', async () => {
+      await openTest()
+      // Take the scrolling away from Layer 4: now the knob sends volume, or nothing the page sees, everywhere.
+      await act(async () => {
+        await deviceStore.assign({ kind: 'knob', layer: 4, knob: 0, direction: 0 }, 0x01)
+        await deviceStore.assign({ kind: 'knob', layer: 4, knob: 0, direction: 1 }, 0x01)
+      })
+      await waitFor(() => expect(screen.getByText('Knob turns can’t be checked here')).toBeInTheDocument())
     })
 
     it('adds to what the unlocked keyboard reports', async () => {

@@ -54,3 +54,32 @@ export function renameLayer(uid: string, index: number, name: string): void {
   names[index] = name.trim()
   setPref(key(uid), names)
 }
+
+// Macro names: the same idea. A macro without one is "Macro 1", "Macro 2" … (QMK's M0, M1 …).
+
+const macroKey = (uid: string) => `macro-names:${uid}`
+
+export const defaultMacroName = (index: number): string => `Macro ${index + 1}`
+
+/** The names the user gave the connected keyboard's macros, as stored ("" where none was given). */
+export function useStoredMacroNames(): string[] {
+  const uid = useDevice((s) => s.keyboard?.uid ?? '')
+  return usePref<string[]>(macroKey(uid), NONE)[0]
+}
+
+export function storedMacroNames(uid: string): string[] {
+  return getPref<string[]>(macroKey(uid), NONE)
+}
+
+/** Replaces every stored macro name for a keyboard at once (a restore). */
+export function setMacroNames(uid: string, names: string[]): void {
+  setPref(macroKey(uid), names.map((name) => name.trim()))
+}
+
+/** Names a macro; an empty name goes back to the default. */
+export function renameMacro(uid: string, index: number, name: string): void {
+  const names = [...getPref<string[]>(macroKey(uid), NONE)]
+  while (names.length <= index) names.push('')
+  names[index] = name.trim()
+  setPref(macroKey(uid), names)
+}
