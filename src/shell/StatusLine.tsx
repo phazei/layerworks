@@ -98,6 +98,7 @@ export function StatusLine() {
   return (
     <footer
       aria-label="Status"
+      data-tour="status"
       className="flex h-12 shrink-0 items-center justify-between gap-4 border-t border-edge bg-card pr-4 pl-6 text-[13px]"
     >
       <div role="status" className="flex min-w-0 items-center gap-1">
@@ -112,6 +113,7 @@ export function StatusLine() {
         <Button size="sm" variant="quiet" icon={<Redo2 size={15} aria-hidden />} disabled={!canRedo} onClick={() => void deviceStore.redo()}>
           Redo
         </Button>
+        <HelpButton topic="undo" />
       </div>
     </footer>
   )

@@ -26,6 +26,7 @@ import { LayerChoice } from './LayerChoice'
 import { MoreOptions } from './MoreOptions'
 import { ShortcutChoice } from './ShortcutChoice'
 import { useShortcutKeys, type ShortcutKey } from './shortcut-keys'
+import { useTappingToggle } from './tapping-toggle'
 import { TapHoldChoice } from './TapHoldChoice'
 
 const MORE_OPTIONS = 'keys-more'
@@ -106,6 +107,7 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
   const [choice, setChoice] = useState<Choice>(() => choiceFromUrl() ?? opening.choice)
   const shortcutKey = useShortcutKeys()
   const found = shortcutKey(current)
+  const taps = useTappingToggle().taps
 
   const assign = (code: number) => void deviceStore.assign(slot, code)
   // Vial stores a knob's counter-clockwise turn as direction 0 and the clockwise one as 1.
@@ -152,7 +154,7 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
                 <NowShortcut found={found} id={keycodeId(current)} />
               ) : (
                 <span className="flex min-w-0 flex-col leading-tight">
-                  <span className="font-medium">{describeKeycode(current, names)}</span>
+                  <span className="font-medium">{describeKeycode(current, names, taps)}</span>
                   <span className="font-mono text-xs break-all text-muted">{keycodeId(current)}</span>
                 </span>
               )}

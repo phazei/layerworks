@@ -7,7 +7,7 @@ import '../../pages'
 import { deviceStore } from '../../device'
 import { connectDemo, demoKeyboard, disconnect } from '../session'
 import { Shell } from '../Shell'
-import { closeUnlock } from '../unlock-dialog'
+import { closeUnlock, openUnlock } from '../unlock-dialog'
 
 const ESC = '0,1'
 const ENTER = '3,14'
@@ -50,6 +50,29 @@ describe('the unlock dialog', () => {
     act(() => within(dialog).getByRole('button', { name: 'Cancel' }).click())
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(demoKeyboard()).not.toBeNull()
+  })
+
+  it('tells whoever asked whether the keyboard got unlocked', async () => {
+    await shell()
+    let answer: boolean | null = null
+    act(() => void openUnlock('Test').then((ok) => (answer = ok)))
+    await act(async () => within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }).click())
+    expect(answer).toBe(false)
+
+    act(() => {
+      demoKeyboard()!.setKey(ESC, true)
+      demoKeyboard()!.setKey(ENTER, true)
+    })
+    answer = null
+    act(() => void openUnlock('Test').then((ok) => (answer = ok)))
+    vi.useFakeTimers()
+    await act(async () => within(screen.getByRole('dialog')).getByRole('button', { name: 'Start unlocking' }).click())
+    await act(() => vi.advanceTimersByTimeAsync(9000))
+    // As soon as it completes, while the dialog still says so.
+    expect(answer).toBe(true)
+    expect(screen.getByRole('dialog', { name: 'The keyboard is unlocked' })).toBeInTheDocument()
+    // Asked again while unlocked: yes at once, no dialog.
+    await expect(openUnlock('Again')).resolves.toBe(true)
   })
 
   it('shows the count while the keys are held, can’t be closed, and ends unlocked', async () => {

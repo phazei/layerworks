@@ -11,8 +11,12 @@ import data from './k15-max.json'
 
 const WINDOWS_LAYER = 2
 
-/** Example macros, so the Shortcuts page has something to show (the keyboard's real buffer is empty). */
+/**
+ * Example macros, so the Shortcuts page has something to show (the keyboard's real buffer is empty). In M1 - M3, so
+ * the K15's keys printed M1 - M3 (QMK's M1 - M3, as on a real Keychron) run them; M0 stays empty.
+ */
 const DEMO_MACROS: MacroStep[][] = [
+  [],
   [{ kind: 'text', text: 'hello@example.com' }],
   // Ctrl+A, then Ctrl+C: copy everything.
   [{ kind: 'tap', key: 0x0104 }, { kind: 'wait', ms: 50 }, { kind: 'tap', key: 0x0106 }],
@@ -27,19 +31,17 @@ function demoMacros(): number[] {
 }
 
 /**
- * Vial protocol 6 keycodes put on the demo's keymap so the Shortcuts page shows its examples in use: M0 on Fn + P,
- * TD(0) on Fn + Caps Lock (Windows layers), and the alternate repeat key on Fn2 + Space. For the Keys page's tap /
- * hold choice: on Fn2, Caps Lock is "tap: Esc, hold: Ctrl" (LCTL_T(KC_ESCAPE)) and Tab "tap: Tab, hold: Windows Fn"
- * (LT3(KC_TAB)).
+ * Vial protocol 6 keycodes put on the demo's keymap so the Shortcuts page shows its examples in use (the macros are
+ * on the printed M1 - M5 keys already): TD(1) on Fn + Caps Lock (Windows layers), and the alternate repeat key on
+ * Fn2 + Space. For the Keys page's tap / hold choice: on Fn2, Caps Lock is "tap: Esc, hold: Ctrl"
+ * (LCTL_T(KC_ESCAPE)) and Tab "tap: Tab, hold: Windows Fn" (LT3(KC_TAB)).
  */
-const M0 = 0x7700
-const TD0 = 0x5700
+const TD1 = 0x5701
 const ALT_REPEAT = 0x7c7a
 const CTRL_ESC = 0x2129
 const WINFN_TAB = 0x432b
 function withMacroKey(keymap: number[][][]): number[][][] {
-  keymap[WINDOWS_LAYER + 1][2][11] = M0
-  keymap[WINDOWS_LAYER + 1][3][1] = TD0
+  keymap[WINDOWS_LAYER + 1][3][1] = TD1
   keymap[4][5][5] = ALT_REPEAT
   keymap[4][3][1] = CTRL_ESC
   keymap[4][2][1] = WINFN_TAB
@@ -54,11 +56,13 @@ const AREP_ENABLED = 0x08
 
 /**
  * Example entries, as the keyboard stores them (vial.h's structs, little-endian), one or two of each kind:
- * multi-tap keys Esc / Caps Lock and copy / paste; key chords J + K → Esc and D + F → Tab; Shift + Backspace →
- * Delete and Shift + Esc → ~; after Ctrl + Z the repeat key sends Ctrl + Y, and after Home, End.
+ * multi-tap keys Esc / Caps Lock and copy / paste (TD(1) and TD(2): multi-tap keys go by QMK's number, like
+ * macros, and TD(0) stays empty); key chords J + K → Esc and D + F → Tab; Shift + Backspace → Delete and Shift + Esc
+ * → ~; after Ctrl + Z the repeat key sends Ctrl + Y, and after Home, End.
  */
 const DEMO_ENTRIES = {
   tapDance: [
+    new Array<number>(10).fill(0),
     [...le16(0x29), ...le16(0), ...le16(0x39), ...le16(0), ...le16(200)],
     [...le16(CTRL | 0x06), ...le16(CTRL | 0x19), ...le16(0), ...le16(0), ...le16(200)],
   ],

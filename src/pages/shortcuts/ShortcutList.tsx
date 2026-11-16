@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// The left column: one section per kind of shortcut. Macros first, with the space they share; under "More
-// options" the other four kinds, open by themselves when any is in use. Each section lists only the slots in use
-// (or being edited), with "Add" opening the next free one, so 80 slots stay a short list.
+// The left column: one section per kind of shortcut. Macros first, with the space they share; then the other kinds
+// that have something in use or are open; under "More options" the kinds not in use. Each section lists only the
+// slots in use (or being edited), with "Add" opening the next free one, so 80 slots stay a short list. Macros and
+// multi-tap keys go by QMK's numbers (M1 is Macro 1), slot 0 last.
 
 import type { ReactNode } from 'react'
 import { CircleDot, Plus } from 'lucide-react'
@@ -11,6 +12,7 @@ import {
   keycodeUses,
   macroSpace,
   macroUses,
+  numberedSlots,
   readMacros,
   entriesMatch,
   sameSteps,
@@ -27,7 +29,7 @@ import { Card, Disclosure, HelpButton } from '../../ui/layout'
 import { ProgressBar } from '../../ui/ProgressBar'
 import { KINDS, roomText, summarize, summarizeEntry } from './describe'
 import { draftOf, entryDraftOf, useDrafts, type DraftKind } from './drafts'
-import { shortcutHref, type Opened } from './route'
+import { shortcutHref, slotNumber, usesQmkNumber, type Opened } from './route'
 
 interface Row {
   index: number
@@ -124,11 +126,16 @@ function Section({ kind, name, qmk, help, used, count, free, addLabel, children 
   )
 }
 
-/** Rows for one entry kind: slots in use, being edited, or open. */
+/**
+ * Rows for one entry kind: slots in use, being edited, or open. Multi-tap keys go by QMK's number, slot 0 last, and
+ * "Add" opens the lowest free number from 1 (numberedSlots); the other kinds count from 1 in slot order.
+ */
 function entryRows(kb: KeyboardData, kind: EntryKind, saved: AnyEntry[], drafts: ReadonlyMap<string, unknown>, selected: Opened | null) {
   const rows: Row[] = []
+  const order = usesQmkNumber(kind) ? numberedSlots(saved.length) : saved.map((_, i) => i)
   let free: number | null = null
-  saved.forEach((entry, index) => {
+  for (const index of order) {
+    const entry = saved[index]
     const draft = entryDraftOf(drafts, kb.uid, kind, index)
     const unsaved = draft !== undefined && !entriesMatch(kind, draft, entry)
     const shown = draft ?? entry
@@ -136,19 +143,19 @@ function entryRows(kb: KeyboardData, kind: EntryKind, saved: AnyEntry[], drafts:
     const open = selected?.kind === kind && selected.index === index
     if (entryIsEmpty(kind, entry) && !unsaved && !open) {
       free ??= index
-      return
+      continue
     }
     const td = kind === 'tapDance' ? tapDanceKeycode(index) : null
     rows.push({
       index,
-      title: `${KINDS[kind].one} ${index + 1}`,
+      title: `${KINDS[kind].one} ${slotNumber(kind, index)}`,
       qmk: kind === 'tapDance' ? `TD(${index})` : '',
       summary: empty ? 'Empty' : summarizeEntry(kind, shown),
       empty,
       unsaved,
       uses: td === null ? 0 : keycodeUses(kb, td).length,
     })
-  })
+  }
   const used = saved.filter((e) => !entryIsEmpty(kind, e)).length
   return { rows, free, used }
 }
@@ -167,7 +174,8 @@ export function ShortcutList({ selected }: { selected: Opened | null }) {
   const space = buffer ? macroSpace(buffer, kb.macroCount, kb.macroBytes) : null
   const macroRows: Row[] = []
   let freeMacro: number | null = null
-  for (let i = 0; i < kb.macroCount; i++) {
+  // QMK's numbers, M0 last; "Add" takes the lowest free number from 1 (numberedSlots).
+  for (const i of numberedSlots(kb.macroCount)) {
     const steps = macros?.[i] ?? []
     const draft = draftOf(drafts, kb.uid, i)
     const unsaved = draft !== undefined && !sameSteps(draft, steps)
@@ -194,7 +202,27 @@ export function ShortcutList({ selected }: { selected: Opened | null }) {
     const saved = (entries?.[kind] ?? []) as AnyEntry[]
     return { kind, count, ...entryRows(kb, kind, saved, drafts, selected) }
   }).filter((s) => s.count > 0)
-  const anyInUse = sections.some((s) => s.rows.length > 0) || (selected !== null && selected.kind !== 'macro')
+  // Kinds with something in use, a draft, or the editor open come up under Macros; the rest wait under More options.
+  // An unused kind moves up when its editor opens (from Add, or an address), not when its first entry is saved, so
+  // the list doesn't shift under the pointer then.
+  const inView = (s: (typeof sections)[number]) => s.rows.length > 0 || selected?.kind === s.kind
+  const above = sections.filter(inView)
+  const below = sections.filter((s) => !inView(s))
+  const section = (s: (typeof sections)[number]) => (
+    <Section
+      key={s.kind}
+      kind={s.kind}
+      name={KINDS[s.kind].name}
+      qmk={KINDS[s.kind].qmk}
+      help={KINDS[s.kind].help}
+      used={s.used}
+      count={s.count}
+      free={s.free}
+      addLabel={`Add a ${KINDS[s.kind].one.toLowerCase()}`}
+    >
+      <Rows kind={s.kind} rows={s.rows} selected={selected} />
+    </Section>
+  )
 
   return (
     <Card title="Shortcuts" description="What the keyboard can do beyond one key, one character.">
@@ -223,28 +251,13 @@ export function ShortcutList({ selected }: { selected: Opened | null }) {
             <Rows kind="macro" rows={macroRows} selected={selected} />
           </Section>
         )}
-        {sections.length > 0 && (
-          <Disclosure key={String(anyInUse)} id="shortcuts-more" forceOpen={anyInUse}>
+        {entries !== null && above.length > 0 && <div className="mt-5 flex flex-col gap-5">{above.map(section)}</div>}
+        {(entries === null ? sections.length > 0 : below.length > 0) && (
+          <Disclosure id="shortcuts-more">
             {entries === null ? (
               <p className="text-[13px] text-muted">Reading them from the keyboard…</p>
             ) : (
-              <div className="flex flex-col gap-5">
-                {sections.map((s) => (
-                  <Section
-                    key={s.kind}
-                    kind={s.kind}
-                    name={KINDS[s.kind].name}
-                    qmk={KINDS[s.kind].qmk}
-                    help={KINDS[s.kind].help}
-                    used={s.used}
-                    count={s.count}
-                    free={s.free}
-                    addLabel={`Add a ${KINDS[s.kind].one.toLowerCase()}`}
-                  >
-                    <Rows kind={s.kind} rows={s.rows} selected={selected} />
-                  </Section>
-                ))}
-              </div>
+              <div className="flex flex-col gap-5">{below.map(section)}</div>
             )}
           </Disclosure>
         )}

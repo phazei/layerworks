@@ -3,11 +3,12 @@
 // trying combinations doesn't fill the undo history.
 
 import { useState } from 'react'
-import { canTakeModifiers, keycodeName, keycodeTitle, MODIFIERS, readShortcut, shortcutKeycode, type PaletteGroup } from '../../device'
+import { canTakeModifiers, keycodeName, keycodeTitle, readShortcut, shortcutKeycode, type PaletteGroup } from '../../device'
 import { Button } from '../../ui/controls'
 import { KeyCap } from '../../ui/KeyTile'
 import { KeyPalette } from './KeyPalette'
 import { ModifierBoxes } from './Modifiers'
+import { offers } from './TapHoldChoice'
 
 interface Props {
   current: number
@@ -18,8 +19,12 @@ interface Props {
 
 export function ShortcutChoice({ current, groups, onAssign }: Props) {
   const now = readShortcut(current)
-  const [mods, setMods] = useState(now?.mods || MODIFIERS[0].bit)
-  const [key, setKey] = useState<number | null>(now && canTakeModifiers(now.key) ? now.key : null)
+  // As in Tap or hold: nothing ticked to start with, and the key starts as the one in the shortcut, or the plain key
+  // it holds now.
+  const [mods, setMods] = useState(now?.mods ?? 0)
+  const [key, setKey] = useState<number | null>(() =>
+    now && canTakeModifiers(now.key) ? now.key : offers(groups, current) ? current : null,
+  )
   const code = key !== null && mods !== 0 ? shortcutKeycode(mods, key) : null
 
   return (
@@ -36,7 +41,7 @@ export function ShortcutChoice({ current, groups, onAssign }: Props) {
           disabled={code === null || code === current}
           onClick={() => code !== null && onAssign(code)}
         >
-          {code === null ? (mods === 0 ? 'Tick a modifier' : 'Pick a key') : code === current ? 'This is the shortcut now' : `Use ${keycodeTitle(code)}`}
+          {code === null ? (key === null ? 'Pick a key' : 'Tick a modifier') : code === current ? 'This is the shortcut now' : `Use ${keycodeTitle(code)}`}
         </Button>
       </div>
       <KeyPalette

@@ -6,8 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '../..'
 import { backupText, createBackup, deviceStore, parseBackup, type DeviceState } from '../../../device'
-import { connectDemo, disconnect } from '../../../shell/session'
+import { connectDemo, demoKeyboard, disconnect } from '../../../shell/session'
 import { Shell } from '../../../shell/Shell'
+import { closeUnlock } from '../../../shell/unlock-dialog'
 import { readFirmware } from '../firmware'
 
 async function go(path: string): Promise<void> {
@@ -170,6 +171,34 @@ describe('Device page', () => {
     const review = await screen.findByRole('region', { name: 'Restore' })
     expect(review).toHaveTextContent('Macros (all of them are replaced)needs unlocking')
     expect(within(review).getByRole('button', { name: 'Unlock first…' })).toBeInTheDocument()
+  })
+
+  it('works the plan out again after unlocking from the review, but waits for Restore…', async () => {
+    await showDevice()
+    const before = deviceStore.getState().macros
+    const backup = createBackup(deviceStore.getState(), [])
+    backup.macros![0] = 0x61
+    const input = card('Back up and restore').querySelector<HTMLInputElement>('input[type=file]')!
+    await act(async () => fireEvent.change(input, { target: { files: [new File([backupText(backup)], 'm.json')] } }))
+    const review = await screen.findByRole('region', { name: 'Restore' })
+
+    act(() => {
+      demoKeyboard()!.setKey('0,1', true)
+      demoKeyboard()!.setKey('3,14', true)
+    })
+    vi.useFakeTimers()
+    try {
+      await act(async () => fireEvent.click(within(review).getByRole('button', { name: 'Unlock first…' })))
+      await act(async () => within(screen.getByRole('dialog', { name: /Unlock the keyboard/ })).getByRole('button', { name: 'Start unlocking' }).click())
+      await act(() => vi.advanceTimersByTimeAsync(9000))
+    } finally {
+      vi.useRealTimers()
+    }
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Restore' })).not.toHaveTextContent('needs unlocking'))
+    expect(within(screen.getByRole('region', { name: 'Restore' })).queryByRole('button', { name: 'Unlock first…' })).toBeNull()
+    expect(within(screen.getByRole('region', { name: 'Restore' })).getByRole('button', { name: 'Restore…' })).toBeInTheDocument()
+    expect(deviceStore.getState().macros).toBe(before)
+    act(() => closeUnlock())
   })
 })
 

@@ -9,6 +9,7 @@ import {
   keycodeName,
   keycodeTitle,
   LAYER_ACTIONS,
+  layerActionSentence,
   modifierShort,
   modifierWords,
   readLayerKey,
@@ -29,18 +30,19 @@ export type Choice = 'key' | 'shortcut' | 'layer' | 'tapHold'
 
 export const layerName = (names: string[], layer: number): string => names[layer] ?? `Layer ${layer}`
 
-export function layerSentence(action: LayerAction, name: string): string {
-  return action.sentence.replace('{layer}', name)
+/** A layer action's sentence: "While held, use Fn2"; `taps` is the keyboard's tapping toggle (useTappingToggle). */
+export function layerSentence(action: LayerAction, name: string, taps?: number): string {
+  return layerActionSentence(action, name, taps)
 }
 
 /** "While held, use Fn2 with Ctrl + Shift" */
 export const layerModSentence = (name: string, mods: number): string => `While held, use ${name} with ${modifierWords(mods)}`
 
-/** What a keycode does, in plain words; layer keys say the layer's name. */
-export function describeKeycode(code: number, names: string[]): string {
+/** What a keycode does, in plain words; layer keys say the layer's name (and, to stay on, how many taps). */
+export function describeKeycode(code: number, names: string[], taps?: number): string {
   const layerKey = readLayerKey(code)
   const action = layerKey && LAYER_ACTIONS.find((a) => a.op === layerKey.op)
-  if (layerKey && action) return layerSentence(action, layerName(names, layerKey.layer))
+  if (layerKey && action) return layerSentence(action, layerName(names, layerKey.layer), taps)
   const tapHold = readTapHold(code)
   if (tapHold) return tapHoldWords(tapHold, (layer) => layerName(names, layer))
   const layerMod = readLayerMod(code)

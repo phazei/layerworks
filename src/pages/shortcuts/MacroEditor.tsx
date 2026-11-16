@@ -22,7 +22,7 @@ import { openUnlock } from '../../shell/unlock-dialog'
 import { Button, cx, TextInput } from '../../ui/controls'
 import { Card, Disclosure, HelpButton, Notice } from '../../ui/layout'
 import { roomText, STEP_NAMES } from './describe'
-import { draftOf, getDraft, setDraft, useDrafts } from './drafts'
+import { draftOf, getDraft, renamedMacro, setDraft, useDrafts } from './drafts'
 import { Recorder } from './Recorder'
 import { SaveBar, SaveState } from './SaveBar'
 import { StepRow } from './StepRow'
@@ -48,7 +48,10 @@ function NameField({ uid, index }: { uid: string; index: number }) {
       placeholder={defaultMacroName(index)}
       onChange={(e) => setText(e.target.value)}
       onBlur={() => {
-        if (text !== null) renameMacro(uid, index, text)
+        if (text !== null) {
+          renameMacro(uid, index, text)
+          renamedMacro(uid, index)
+        }
         setText(null)
       }}
       onKeyDown={(e) => {
@@ -136,14 +139,13 @@ export function MacroEditor({ index }: { index: number }) {
   const free = kb.macroBytes - othersUsed - bytes.length - 1
   const problems = steps.filter((s) => stepProblem(s, kb.vialProtocol) !== null).length
   const space = fit.buffer
-    ? `This macro takes ${bytes.length + 1} bytes. ${roomText(free)} for all macros together.`
+    ? `This macro takes ${bytes.length + 1} byte${bytes.length === 0 ? '' : 's'}. ${roomText(free)} for all macros together.`
     : `Too long by ${fit.overflow} bytes: all ${kb.macroCount} macros share ${kb.macroBytes} bytes. Shorten this one or another.`
 
   const save = async () => {
-    if (!unlocked) {
-      openUnlock(UNLOCK_REASON)
-      return
-    }
+    // Unlocking first; once it completes, the save goes ahead without a second press. Cancelled or not completed,
+    // nothing is saved and the draft stays.
+    if (!unlocked && !(await openUnlock(UNLOCK_REASON))) return
     const sent = steps
     setSaving(true)
     const outcome = await deviceStore.saveMacro(index, sent)

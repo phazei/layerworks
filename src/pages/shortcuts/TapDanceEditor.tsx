@@ -63,7 +63,7 @@ export function TapDanceEditor({ index }: { index: number }) {
       usage={
         <Uses
           code={tapDanceKeycode(index)}
-          howTo={`On the Keys page, click a key and pick “Multi-tap ${index + 1}” (TD(${index})) under Multi-tap keys.`}
+          howTo={`On the Keys page, click a key and pick “Multi-tap ${index}” (TD(${index})) under Multi-tap keys.`}
         />
       }
     >

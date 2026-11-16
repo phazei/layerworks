@@ -34,14 +34,21 @@ interface Props {
 
 type Hold = 'mods' | 'layer'
 
+/** Whether the palette offers this key. */
+export const offers = (groups: PaletteGroup[], code: number): boolean => groups.some((group) => group.keys.some((key) => key.code === code))
+
 export function TapHoldChoice({ current, names, ownLayer, groups, onAssign }: Props) {
   const now = readTapHold(current)
   // The layers a layer-tap key can reach: its keycode has room for 0-15.
   const layers = names.slice(0, MAX_TAP_LAYER + 1)
   const [hold, setHold] = useState<Hold>(now?.hold ?? 'mods')
-  const [mods, setMods] = useState(now?.hold === 'mods' ? now.mods : 0x01)
+  // Nothing ticked to start with: a tick should mean the user chose it.
+  const [mods, setMods] = useState(now?.hold === 'mods' ? now.mods : 0)
   const [layer, setLayer] = useState(now?.hold === 'layer' ? now.layer : ownLayer + 1 < layers.length ? ownLayer + 1 : 0)
-  const [key, setKey] = useState<number | null>(now && canBeTapped(now.key) ? now.key : null)
+  // The tap starts as the key's own tap, or the plain key it holds now ("Z"), so only the hold needs picking.
+  const [key, setKey] = useState<number | null>(() =>
+    now && canBeTapped(now.key) ? now.key : offers(groups, current) ? current : null,
+  )
 
   const code = key === null ? null : hold === 'mods' ? modTapKeycode(mods, key) : layerTapKeycode(layer, key)
   const label =
@@ -49,9 +56,9 @@ export function TapHoldChoice({ current, names, ownLayer, groups, onAssign }: Pr
       ? code === current
         ? 'This is what it does now'
         : `Use ${describeKeycode(code, names)}`
-      : hold === 'mods' && (mods & 0x0f) === 0
-        ? 'Tick a modifier'
-        : 'Pick a key to tap'
+      : key === null
+        ? 'Pick a key to tap'
+        : 'Tick a modifier'
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">

@@ -5,8 +5,9 @@
 
 import { useSyncExternalStore } from 'react'
 import type { AnyEntry, EntryKind, MacroStep } from '../../device'
+import { storedMacroNames } from '../../shell/layer-names'
 import { setUnsaved } from '../../shell/unsaved'
-import { shortcutHref } from './route'
+import { shortcutHref, slotNumber } from './route'
 
 /** What a draft can be for: a macro, or one of the entry kinds. */
 export type DraftKind = 'macro' | EntryKind
@@ -47,7 +48,14 @@ const NAMES: Record<DraftKind, [string, string]> = {
 }
 function announce(uid: string, kind: DraftKind, index: number, unsaved: boolean): void {
   const [one, many] = NAMES[kind]
-  setUnsaved(key(uid, kind, index), unsaved ? { label: `${one} ${index + 1}`, group: many, href: shortcutHref(kind, index), keyboard: uid } : null)
+  // As the list calls it: a macro by the name the user gave it, otherwise "Macro 3" for M3.
+  const label = (kind === 'macro' && storedMacroNames(uid)[index]?.trim()) || `${one} ${slotNumber(kind, index)}`
+  setUnsaved(key(uid, kind, index), unsaved ? { label, group: many, href: shortcutHref(kind, index), keyboard: uid } : null)
+}
+
+/** Says a macro's unsaved work again under its new name, after it is renamed. */
+export function renamedMacro(uid: string, index: number): void {
+  if (drafts.has(key(uid, 'macro', index))) announce(uid, 'macro', index, true)
 }
 
 export const getDraft = (uid: string, index: number): MacroStep[] | undefined =>

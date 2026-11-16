@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Shortcuts & macros: the list on the left (macros, and under "More options" multi-tap keys, key chords, shortcut
-// replacements and repeat rules, each in its own section), the one picked on the right, edited in place.
-// "#/shortcuts/macro/1" opens Macro 1, "#/shortcuts/chord/1" Key chord 1, and so on (shortcuts/route.ts). No
+// Shortcuts & macros: the list on the left (macros, then multi-tap keys, key chords, shortcut replacements and
+// repeat rules, each in its own section, those not in use under "More options"), the one picked on the right, edited
+// in place. "#/shortcuts/macro/1" opens Macro 1 (QMK's M1), "#/shortcuts/chord/1" Key chord 1 (shortcuts/route.ts). No
 // keyboard picture: the editors need the room, and the keys a shortcut is on are listed (and linked) in them.
 
 import { Command } from 'lucide-react'
@@ -27,11 +27,12 @@ function Nothing() {
         </p>
         <p>
           Build it from steps or record it as you type, save it to the keyboard, then put it on a key from the Keys
-          page. <a className="font-medium text-accent hover:underline" href={macroHref(0)}>Start with Macro 1</a>.
+          page. <a className="font-medium text-accent hover:underline" href={macroHref(1)}>Start with Macro 1</a>, which
+          the key printed M1 runs on Keychron keyboards.
         </p>
         <p>
-          Under More options: keys that do different things when tapped or held, keys pressed together, shortcuts that
-          send something else, and what the repeat key does.
+          Below the macros, or under More options until you use them: keys that do different things when tapped or
+          held, keys pressed together, shortcuts that send something else, and what the repeat key does.
         </p>
       </div>
     </Card>

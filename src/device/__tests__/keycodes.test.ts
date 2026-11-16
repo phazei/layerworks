@@ -4,7 +4,11 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { recreateKeyboardKeycodes } from '../../vendor/pipette/shared/keycodes/keycodes'
 import {
   canBeTapped,
+  firstFreeSlot,
   isBasicKey,
+  macroTitle,
+  numberedSlots,
+  tapDanceTitle,
   keycodeCap,
   keycodeId,
   keycodeName,
@@ -170,6 +174,37 @@ describe('tap / hold keys', () => {
     expect(keycodeName(modTapKeycode(0x01, ESC)!)).toBe('Esc / Ctrl')
     expect(keycodeCap(layerTapKeycode(4, SPACE)!)).toBe('Space\nLayer 4')
     expect(keycodeName(shortcutKeycode(0x01, 0x06))).toBe('Ctrl+C')
+  })
+})
+
+// Keychron prints M1 - M5 on keys mapped to QMK's M1 - M5, so the number shown is QMK's own and slot 0 comes last.
+// These pin the rule: don't change it back to "Macro 1" = M0.
+describe('numbering macros and multi-tap keys', () => {
+  it('calls each by QMK’s number', () => {
+    expect(macroTitle(1)).toBe('Macro 1')
+    expect(macroTitle(0)).toBe('Macro 0')
+    expect(tapDanceTitle(1)).toBe('Multi-tap key 1')
+    expect(tapDanceTitle(0)).toBe('Multi-tap key 0')
+  })
+
+  it('lists 1, 2 … then 0', () => {
+    expect(numberedSlots(4)).toEqual([1, 2, 3, 0])
+    expect(numberedSlots(1)).toEqual([0])
+    expect(numberedSlots(0)).toEqual([])
+  })
+
+  it('adds at the lowest free number from 1, and at 0 only when every other is taken', () => {
+    expect(firstFreeSlot(16, () => true)).toBe(1)
+    expect(firstFreeSlot(16, (i) => i !== 1 && i !== 2)).toBe(3)
+    expect(firstFreeSlot(4, (i) => i === 0)).toBe(0)
+    expect(firstFreeSlot(4, () => false)).toBeNull()
+  })
+
+  it('orders the palette’s macros and multi-tap keys the same way', () => {
+    const palette = keyPalette()
+    expect(palette.find((g) => g.id === 'macros')!.keys.map((k) => k.id).slice(0, 2)).toEqual(['M1', 'M2'])
+    expect(palette.find((g) => g.id === 'macros')!.keys.at(-1)!.id).toBe('M0')
+    expect(palette.find((g) => g.id === 'tapDance')!.keys.at(-1)!.id).toBe('TD(0)')
   })
 })
 

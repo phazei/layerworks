@@ -126,7 +126,8 @@ describe('saving an entry on the fake keyboard', () => {
 
   it('offers the multi-tap keys and the repeat keys in the key palette', () => {
     const groups = keyPalette()
-    expect(groups.find((g) => g.id === 'tapDance')?.keys.map((k) => k.id)).toEqual(['TD(0)', 'TD(1)'])
+    // By QMK's number, slot 0 last (numberedSlots).
+    expect(groups.find((g) => g.id === 'tapDance')?.keys.map((k) => k.id)).toEqual(['TD(1)', 'TD(0)'])
     expect(groups.find((g) => g.id === 'repeat')?.keys.map((k) => k.id)).toEqual(['QK_REPEAT_KEY', 'QK_ALT_REPEAT_KEY'])
   })
 

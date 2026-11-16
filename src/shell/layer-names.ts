@@ -2,7 +2,7 @@
 // Names for the layers. The keyboard has nowhere to store them, so they live in this browser, per keyboard.
 
 import { useMemo } from 'react'
-import { useDevice, type KeyboardData, type LinkInfo } from '../device'
+import { macroTitle, useDevice, type KeyboardData, type LinkInfo } from '../device'
 import { getPref, setPref, usePref } from '../ui/prefs'
 
 const NONE: string[] = []
@@ -55,11 +55,12 @@ export function renameLayer(uid: string, index: number, name: string): void {
   setPref(key(uid), names)
 }
 
-// Macro names: the same idea. A macro without one is "Macro 1", "Macro 2" … (QMK's M0, M1 …).
+// Macro names: the same idea, kept per QMK index. A macro without one is called by QMK's number: "Macro 1" is M1,
+// "Macro 0" is M0 (device/keycodes.ts, macroTitle).
 
 const macroKey = (uid: string) => `macro-names:${uid}`
 
-export const defaultMacroName = (index: number): string => `Macro ${index + 1}`
+export const defaultMacroName = (index: number): string => macroTitle(index)
 
 /** The names the user gave the connected keyboard's macros, as stored ("" where none was given). */
 export function useStoredMacroNames(): string[] {

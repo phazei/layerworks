@@ -124,8 +124,45 @@ describe('multi-tap keys', () => {
     await click('Clear this multi-tap key')
     await click('Save to keyboard')
 
-    expect(entryIsEmpty('tapDance', entries().tapDance[1])).toBe(true)
+    expect(entryIsEmpty('tapDance', entries().tapDance[2])).toBe(true)
     expect(section('Multi-tap keys')).toHaveTextContent('Tap dance · 1 of 16 used')
+  })
+
+  // Multi-tap keys go by QMK's number like macros: TD(1) is Multi-tap key 1, TD(0) comes last. Don't change back.
+  it('numbers them as QMK does, and Add takes the lowest free number from 1', async () => {
+    await show('#/shortcuts/multi-tap/1')
+    expect(screen.getByRole('heading', { name: /^Multi-tap key 1/ })).toBeInTheDocument()
+    const links = within(section('Multi-tap keys')).getAllByRole('link')
+    expect(links.map((link) => link.getAttribute('href'))).toEqual(['#/shortcuts/multi-tap/1', '#/shortcuts/multi-tap/2'])
+    expect(links[0]).toHaveTextContent('Multi-tap key 1TD(1)')
+    await click('Add a multi-tap key')
+    await waitFor(() => expect(location.hash).toBe('#/shortcuts/multi-tap/3'))
+  })
+
+  it('lists TD(0) last when it is open', async () => {
+    await show('#/shortcuts/multi-tap/0')
+    expect(screen.getByRole('heading', { name: /^Multi-tap key 0/ })).toBeInTheDocument()
+    expect(within(section('Multi-tap keys')).getAllByRole('link').at(-1)).toHaveTextContent('Multi-tap key 0TD(0)')
+  })
+})
+
+describe('what is in use comes above the fold', () => {
+  it('shows kinds in use under the macros, and keeps unused ones under More options', async () => {
+    await show()
+    // Every kind has entries in the demo: nothing left to fold away.
+    expect(screen.queryByRole('button', { name: 'More options' })).toBeNull()
+    expect(section('Multi-tap keys')).toBeInTheDocument()
+
+    // With the multi-tap keys cleared, their section waits under More options (closed).
+    await act(async () => {
+      for (const index of [1, 2]) await deviceStore.saveEntry('tapDance', index, { onTap: 0, onHold: 0, onDoubleTap: 0, onTapHold: 0, tappingTerm: 200 })
+    })
+    expect(screen.queryByRole('region', { name: 'Multi-tap keys' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'More options' })).toHaveAttribute('aria-expanded', 'false')
+
+    // Opened at its address, it comes up.
+    await go('#/shortcuts/multi-tap/1')
+    expect(within(screen.getByRole('navigation', { name: 'Shortcuts' })).getByRole('region', { name: 'Multi-tap keys' })).toBeInTheDocument()
   })
 })
 

@@ -6,15 +6,17 @@
 import { useMemo } from 'react'
 import {
   entryIsEmpty,
+  macroTitle,
   readMacroKey,
   readMacros,
   readTapDanceKey,
+  tapDanceTitle,
   useDevice,
   type Entries,
   type KeyboardData,
   type PaletteGroup,
 } from '../../device'
-import { defaultMacroName, useStoredMacroNames } from '../../shell/layer-names'
+import { useStoredMacroNames } from '../../shell/layer-names'
 import { summarize, summarizeEntry } from '../shortcuts/describe'
 import { shortcutHref } from '../shortcuts/route'
 
@@ -46,7 +48,8 @@ export interface ShortcutSources {
 export function shortcutKeyOf(code: number, sources: ShortcutSources, steps = readAllMacros(sources)): ShortcutKey | null {
   const macro = readMacroKey(code)
   if (macro !== null) {
-    const name = sources.macroNames[macro]?.trim() || defaultMacroName(macro)
+    // Names are kept per QMK index: the one given to M1 is Macro 1's.
+    const name = sources.macroNames[macro]?.trim() || macroTitle(macro)
     const macroSteps = steps?.[macro]
     const empty = macroSteps !== undefined && macroSteps.length === 0
     return {
@@ -66,9 +69,10 @@ export function shortcutKeyOf(code: number, sources: ShortcutSources, steps = re
     return {
       kind: 'tapDance',
       index: tapDance,
-      name: `Multi-tap key ${tapDance + 1}`,
+      // QMK's own number: TD(1) is Multi-tap key 1 (keycodes.ts, numberedSlots).
+      name: tapDanceTitle(tapDance),
       // Broken after the hyphen: "Multi-tap" set bold (the current key) is wider than a tile.
-      label: `Multi-\ntap ${tapDance + 1}`,
+      label: `Multi-\ntap ${tapDance}`,
       summary: entry === undefined ? '' : empty ? 'Empty' : summarizeEntry('tapDance', entry),
       empty,
       href: shortcutHref('tapDance', tapDance),

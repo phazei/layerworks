@@ -13,7 +13,9 @@ function DevicePage() {
     <div className="@container max-w-6xl">
       <div className="grid items-start gap-4 @4xl:grid-cols-2">
         <div className="flex flex-col gap-4">
-          <Backup />
+          <div data-tour="backup">
+            <Backup />
+          </div>
           <Wireless />
         </div>
         <KeyboardInfo />

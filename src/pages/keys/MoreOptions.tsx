@@ -89,7 +89,8 @@ function KeyCodeField({ current, names, initialCode, onAssign }: Omit<Props, 'la
 
 /** A modifier for the next key only (QMK's one-shot modifier): tick, then use. */
 function OneShotModifier({ current, onAssign }: { current: number; onAssign: (code: number) => void }) {
-  const [mods, setMods] = useState(readOneShotMod(current)?.mods ?? 0x02)
+  // Nothing ticked unless the key already holds one: a tick should mean the user chose it.
+  const [mods, setMods] = useState(readOneShotMod(current)?.mods ?? 0)
   const code = oneShotModKeycode(mods)
   return (
     <div className="flex flex-col gap-1.5">

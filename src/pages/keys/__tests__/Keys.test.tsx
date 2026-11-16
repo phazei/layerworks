@@ -100,6 +100,10 @@ describe('the Keys page', () => {
   it('builds a shortcut from modifiers and a key', async () => {
     await openKeys(A_KEY)
     fireEvent.click(choice('A shortcut'))
+    // Nothing ticked to start with, and the key it holds now (A) already picked.
+    expect(screen.getByRole('button', { name: 'Tick a modifier' })).toBeDisabled()
+    expect(within(screen.getByRole('group', { name: 'Key for the shortcut' })).getByRole('button', { name: 'A' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Ctrl' }))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Shift' }))
     fireEvent.click(within(screen.getByRole('group', { name: 'Key for the shortcut' })).getByRole('button', { name: 'C' }))
     await click(screen.getByRole('button', { name: 'Use Ctrl + Shift + C' }))
@@ -164,7 +168,11 @@ describe('the Keys page', () => {
     await openKeys(A_KEY)
     fireEvent.click(choice('Tap or hold'))
     expect(choice('Tap or hold')).toHaveAttribute('aria-checked', 'true')
-    // Ctrl is ticked to start with; nothing is written until the button.
+    // The tap starts as the key it holds now (A), nothing is ticked, and nothing is written until the button.
+    expect(within(screen.getByRole('group', { name: 'Key for a tap' })).getByRole('button', { name: 'A' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Tick a modifier' })).toBeDisabled()
+    fireEvent.click(within(screen.getByRole('group', { name: 'Modifiers while held' })).getByRole('checkbox', { name: 'Ctrl' }))
+    expect(screen.getByRole('button', { name: 'Use Tap: A · Hold: Ctrl' })).toBeEnabled()
     fireEvent.click(within(screen.getByRole('group', { name: 'Key for a tap' })).getByRole('button', { name: 'Escape' }))
     expect(keymap(2, 3, 2)).toBe(0x04)
     await click(screen.getByRole('button', { name: 'Use Tap: Escape · Hold: Ctrl' }))
@@ -208,7 +216,7 @@ describe('the Keys page', () => {
   })
 
   it('names macro and multi-tap tiles by what they do, and finds them by name', async () => {
-    act(() => renameMacro(deviceStore.getState().keyboard!.uid, 0, 'Email'))
+    act(() => renameMacro(deviceStore.getState().keyboard!.uid, 1, 'Email'))
     await openKeys(A_KEY)
     await waitFor(() => expect(within(palette()).getByRole('button', { name: 'Email: Types “hello@example.com”' })).toHaveTextContent('Email'))
     expect(within(palette()).getByRole('button', { name: 'Multi-tap key 1: Tap: Escape · Double tap: Caps Lock' })).toHaveTextContent('Multi- tap 1')
@@ -219,15 +227,39 @@ describe('the Keys page', () => {
     expect(within(palette()).queryByRole('button', { name: 'A' })).toBeNull()
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search keys' }), { target: { value: 'caps lock' } })
     expect(within(palette()).getByRole('button', { name: /^Multi-tap key 1/ })).toBeInTheDocument()
-    act(() => renameMacro(deviceStore.getState().keyboard!.uid, 0, ''))
+    act(() => renameMacro(deviceStore.getState().keyboard!.uid, 1, ''))
   })
 
   it('says what a macro key runs, with a link to it', async () => {
-    // Fn + P on the Windows layers is M0.
-    await openKeys({ kind: 'key', row: 2, col: 11 }, 3)
+    // The key printed M1 is QMK's M1: Macro 1, as on the key.
+    await openKeys({ kind: 'key', row: 1, col: 0 })
     const now = screen.getByRole('group', { name: 'What it does now' })
     await waitFor(() => expect(now).toHaveTextContent('Macro 1 · Types “hello@example.com”'))
     expect(within(now).getByRole('link', { name: 'Open on Shortcuts & macros' })).toHaveAttribute('href', '#/shortcuts/macro/1')
+  })
+
+  it('ticks no modifier for the next key only until one is chosen', async () => {
+    await openKeys(A_KEY)
+    openMoreOptions()
+    const use = screen.getAllByRole('button', { name: 'Tick a modifier' }).at(-1)!
+    expect(use).toBeDisabled()
+    for (const box of screen.getAllByRole('checkbox', { name: 'Shift' })) expect(box).not.toBeChecked()
+  })
+
+  it('ticks no modifier for a layer with modifiers until one is chosen', async () => {
+    setPref('open:keys-layer-mods', true)
+    await openKeys(A_KEY)
+    fireEvent.click(choice('Switch layer'))
+    expect(screen.getByRole('checkbox', { name: 'Ctrl' })).not.toBeChecked()
+    expect(screen.getByRole('button', { name: 'Tick a modifier' })).toBeDisabled()
+  })
+
+  it('says how many taps keep a layer on, from the keyboard’s setting', async () => {
+    await openKeys(A_KEY)
+    fireEvent.click(choice('Switch layer'))
+    // The demo reports QMK's tapping toggle as 5, a setting on the Typing feel page.
+    expect(screen.getByRole('button', { name: /Hold for Windows Fn, or tap it 5 times to keep it on/ })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Typing feel page' })).toHaveAttribute('href', '#/typing/tapHold')
   })
 
   it('edits a knob direction', async () => {

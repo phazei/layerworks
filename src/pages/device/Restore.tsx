@@ -41,7 +41,9 @@ type Step =
   | { kind: 'error'; fileName: string; message: string }
   | { kind: 'review'; fileName: string; file: KeyboardFile; warnings: string[]; plan: RestorePlan }
   | { kind: 'running'; fileName: string; done: number; total: number }
-  | { kind: 'done'; fileName: string; report: RestoreReport; names: Partial<Record<RestorePart, number>> }
+  | { kind: 'done'; fileName: string; file: KeyboardFile; report: RestoreReport; names: Partial<Record<RestorePart, number>> }
+
+const UNLOCK_REASON = 'Restoring macros needs it.'
 
 const ICON = 15
 
@@ -63,7 +65,15 @@ function listParts(counts: Partial<Record<RestorePart, number>>): string {
   return parts.length <= 1 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`
 }
 
-function Review({ step, onRestore, onCancel }: { step: Extract<Step, { kind: 'review' }>; onRestore: () => void; onCancel: () => void }) {
+interface ReviewProps {
+  step: Extract<Step, { kind: 'review' }>
+  onRestore: () => void
+  onCancel: () => void
+  /** The keyboard was unlocked from here: work the plan out again (the restore itself still waits for Restore…). */
+  onUnlocked: () => void
+}
+
+function Review({ step, onRestore, onCancel, onUnlocked }: ReviewProps) {
   const names = useConnectedLayerNames()
   const unlocked = useDevice((s) => s.unlock?.unlocked === true)
   const name = useDevice((s) => s.keyboard?.name ?? 'the keyboard')
@@ -121,7 +131,7 @@ function Review({ step, onRestore, onCancel }: { step: Extract<Step, { kind: 're
               {locked > 1 && ' and a few other changes'} can only be written while the keyboard is unlocked. Unlock
               it first, or restore without {locked === 1 ? 'it' : 'them'}.
             </span>
-            <Button size="sm" icon={<Lock size={13} aria-hidden />} onClick={() => openUnlock('Restoring macros needs it.')}>
+            <Button size="sm" icon={<Lock size={13} aria-hidden />} onClick={() => void openUnlock(UNLOCK_REASON).then((ok) => ok && onUnlocked())}>
               Unlock first…
             </Button>
           </span>
@@ -173,7 +183,8 @@ function Review({ step, onRestore, onCancel }: { step: Extract<Step, { kind: 're
   )
 }
 
-function Report({ step, onDone }: { step: Extract<Step, { kind: 'done' }>; onDone: () => void }) {
+/** After the restore: what was written, failed and left out. Unlocking from here goes back to the review of the same file. */
+function Report({ step, onDone, onUnlocked }: { step: Extract<Step, { kind: 'done' }>; onDone: () => void; onUnlocked: () => void }) {
   const { report } = step
   const written = { ...report.written, ...step.names }
   const nothing = Object.keys(written).length === 0
@@ -215,7 +226,7 @@ function Report({ step, onDone }: { step: Extract<Step, { kind: 'done' }>; onDon
               Left out because the keyboard is locked: {report.skipped.map((s) => s.what).join(', ')}. Unlock it and
               restore the file again to write {report.skipped.length === 1 ? 'it' : 'them'}.
             </span>
-            <Button size="sm" icon={<Lock size={13} aria-hidden />} onClick={() => openUnlock('Restoring macros needs it.')}>
+            <Button size="sm" icon={<Lock size={13} aria-hidden />} onClick={() => void openUnlock(UNLOCK_REASON).then((ok) => ok && onUnlocked())}>
               Unlock…
             </Button>
           </span>
@@ -260,26 +271,32 @@ export function Restore() {
   }, [ready])
 
   async function open(fileName: string, read: () => Promise<string>) {
-    // The keyboard's own lighting keys change the lighting without telling the app; compare with what it has now.
-    await deviceStore.refreshLighting()
-    const state = deviceStore.getState()
-    const kb = state.keyboard
+    const kb = deviceStore.getState().keyboard
     if (!kb) return
     try {
-      const file = readKeyboardFile(await read(), kb.vialProtocol)
-      const fit = checkFit(file.identity, state)
-      if (!fit.fits) {
-        setStep({ kind: 'error', fileName, message: fit.reason })
-        return
-      }
-      const plan = planRestore(file.contents, state, storedLayerNames(kb.uid), storedMacroNames(kb.uid))
-      setStep({ kind: 'review', fileName, file, warnings: fit.warnings, plan })
+      await review(fileName, readKeyboardFile(await read(), kb.vialProtocol))
     } catch (error) {
       setStep({ kind: 'error', fileName, message: error instanceof Error ? error.message : String(error) })
     }
   }
 
-  async function run(plan: RestorePlan, fileName: string) {
+  /** Checks a file read against the keyboard as it is now and shows what restoring it would change. */
+  async function review(fileName: string, file: KeyboardFile) {
+    // The keyboard's own lighting keys change the lighting without telling the app; compare with what it has now.
+    await deviceStore.refreshLighting()
+    const state = deviceStore.getState()
+    const kb = state.keyboard
+    if (!kb) return
+    const fit = checkFit(file.identity, state)
+    if (!fit.fits) {
+      setStep({ kind: 'error', fileName, message: fit.reason })
+      return
+    }
+    const plan = planRestore(file.contents, state, storedLayerNames(kb.uid), storedMacroNames(kb.uid))
+    setStep({ kind: 'review', fileName, file, warnings: fit.warnings, plan })
+  }
+
+  async function run(plan: RestorePlan, fileName: string, file: KeyboardFile) {
     const uid = deviceStore.getState().keyboard?.uid
     setStep({ kind: 'running', fileName, done: 0, total: 0 })
     const report = await deviceStore.restore(plan, ({ done, total }) => setStep({ kind: 'running', fileName, done, total }))
@@ -293,7 +310,7 @@ export function Restore() {
       setMacroNames(uid, plan.macroNames)
       names.macroNames = 1
     }
-    setStep({ kind: 'done', fileName, report, names })
+    setStep({ kind: 'done', fileName, file, report, names })
   }
 
   return (
@@ -317,7 +334,8 @@ export function Restore() {
         <Review
           step={step}
           onCancel={() => setStep({ kind: 'idle' })}
-          onRestore={() => void run(step.plan, step.fileName)}
+          onRestore={() => void run(step.plan, step.fileName, step.file)}
+          onUnlocked={() => void review(step.fileName, step.file)}
         />
       )}
       {step.kind === 'running' && (
@@ -334,7 +352,9 @@ export function Restore() {
           </p>
         </section>
       )}
-      {step.kind === 'done' && <Report step={step} onDone={() => setStep({ kind: 'idle' })} />}
+      {step.kind === 'done' && (
+        <Report step={step} onDone={() => setStep({ kind: 'idle' })} onUnlocked={() => void review(step.fileName, step.file)} />
+      )}
     </div>
   )
 }

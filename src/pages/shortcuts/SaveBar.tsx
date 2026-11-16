@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // What the macro editor and the other editors share at the top of their card: whether the shortcut matches the
-// keyboard, and while it doesn't, "Save to keyboard" (or "Unlock to save…", which opens the unlock dialog and writes
-// nothing) with Revert and what stands in the way.
+// keyboard, and while it doesn't, "Save to keyboard" (or "Unlock to save…", which opens the unlock dialog and saves
+// once the keyboard is unlocked) with Revert and what stands in the way.
 
 import type { ReactNode } from 'react'
 import { CircleCheck, CircleDot, Lock } from 'lucide-react'
 import { Button } from '../../ui/controls'
+import { HelpButton } from '../../ui/layout'
 
 /** "Not saved yet", or that it matches the keyboard ("Saved to the keyboard" just after saving). */
 export function SaveState({ dirty, justSaved, savedText = 'As on the keyboard' }: { dirty: boolean; justSaved: boolean; savedText?: string }) {
@@ -15,6 +16,7 @@ export function SaveState({ dirty, justSaved, savedText = 'As on the keyboard' }
         <>
           <CircleDot size={14} aria-hidden className="text-warning" />
           <span>Not saved yet</span>
+          <HelpButton topic="shortcut-drafts" />
         </>
       ) : (
         <>
@@ -29,7 +31,7 @@ export function SaveState({ dirty, justSaved, savedText = 'As on the keyboard' }
 interface SaveBarProps {
   dirty: boolean
   saving: boolean
-  /** Saving first needs the keyboard unlocked: the button opens the unlock dialog instead. */
+  /** Saving first needs the keyboard unlocked: the button opens the unlock dialog, and the save follows it. */
   needsUnlock: boolean
   /** Something must be fixed first; the button is disabled. */
   blocked: boolean

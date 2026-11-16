@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Whether the unlock dialog is open, and what became of the unlock it started. Anything that needs the keyboard
-// unlocked calls openUnlock(reason); the dialog (UnlockDialog.tsx, mounted once in the shell) does the rest.
+// unlocked calls openUnlock(reason) and, if it wants to carry on by itself afterwards, awaits whether it worked; the
+// dialog (UnlockDialog.tsx, mounted once in the shell) does the rest.
 
 import { useSyncExternalStore } from 'react'
 import { deviceStore, type UnlockResult } from '../device'
@@ -18,16 +19,31 @@ export interface UnlockRequest {
 const CLOSED: UnlockRequest = { open: false, reason: null, running: false, result: null }
 let request = CLOSED
 const listeners = new Set<() => void>()
+/** Whoever asked through openUnlock and is waiting to hear whether the keyboard is now unlocked. */
+let waiting: ((unlocked: boolean) => void)[] = []
 
 function set(patch: Partial<UnlockRequest>): void {
   request = { ...request, ...patch }
   for (const listener of [...listeners]) listener()
 }
 
-/** Opens the dialog at its first step: what unlocking is and which keys to hold. */
-export function openUnlock(reason?: string): void {
-  if (request.running) return
-  set({ ...CLOSED, open: true, reason: reason ?? null })
+function settle(unlocked: boolean): void {
+  const all = waiting
+  waiting = []
+  for (const resolve of all) resolve(unlocked)
+}
+
+/**
+ * Opens the dialog at its first step: what unlocking is and which keys to hold. Resolves true as soon as the unlock
+ * completes (while the dialog still shows "done"), so whatever needed it can go ahead by itself; false when the
+ * dialog is closed without unlocking (cancelled, or the unlock didn't complete). Already unlocked: true at once,
+ * without opening anything.
+ */
+export function openUnlock(reason?: string): Promise<boolean> {
+  if (deviceStore.getState().unlock?.unlocked) return Promise.resolve(true)
+  const answer = new Promise<boolean>((resolve) => waiting.push(resolve))
+  if (!request.running) set({ ...CLOSED, open: true, reason: reason ?? null })
+  return answer
 }
 
 /** Starts unlocking (the dialog shows the progress). Called by the dialog's Start button. */
@@ -35,6 +51,7 @@ export function startUnlock(): Promise<UnlockResult> {
   set({ open: true, running: true, result: null })
   return deviceStore.unlock().then((result) => {
     set({ running: false, result })
+    if (result === 'unlocked') settle(true)
     return result
   })
 }
@@ -43,6 +60,7 @@ export function startUnlock(): Promise<UnlockResult> {
 export function closeUnlock(): void {
   if (request.running || deviceStore.getState().unlocking) return
   set(CLOSED)
+  settle(false)
 }
 
 export function useUnlockRequest(): UnlockRequest {

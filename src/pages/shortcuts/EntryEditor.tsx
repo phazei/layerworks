@@ -28,6 +28,7 @@ import { Card, HelpButton, Notice } from '../../ui/layout'
 import { KINDS } from './describe'
 import { entryDraftOf, getEntryDraft, setEntryDraft, useDrafts } from './drafts'
 import { KeyPicker } from './KeyPicker'
+import { slotNumber } from './route'
 import { SaveBar, SaveState } from './SaveBar'
 import { Caps } from './StepRow'
 
@@ -91,8 +92,8 @@ export function EntryFrame<K extends EntryKind>({ kind, index, draft, intro, exa
   }
 
   const save = async () => {
-    if (needsUnlock) {
-      openUnlock('It holds the key that restarts the keyboard for a firmware update, which the keyboard only takes while unlocked.')
+    // Unlocking first; once it completes, the save goes ahead without a second press.
+    if (needsUnlock && !(await openUnlock('It holds the key that restarts the keyboard for a firmware update, which the keyboard only takes while unlocked.'))) {
       return
     }
     const sent = entry
@@ -113,7 +114,7 @@ export function EntryFrame<K extends EntryKind>({ kind, index, draft, intro, exa
         <header className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="flex items-center gap-0.5 text-[15px] font-semibold">
-              {info.one} {index + 1}
+              {info.one} {slotNumber(kind, index)}
               <HelpButton topic={info.help} />
             </h2>
             <span className="text-[13px] text-muted">{info.qmk}</span>

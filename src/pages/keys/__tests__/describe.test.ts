@@ -71,7 +71,9 @@ describe('choiceFor', () => {
   it('names the layer of a tap / hold key, and puts both on its keycap', () => {
     expect(describeKeycode(layerTapKeycode(4, 0x2c)!, NAMES)).toBe('Tap: Space bar · Hold: Fn2')
     expect(describeKeycode(layerModKeycode(4, 0x03)!, NAMES)).toBe('While held, use Fn2 with Ctrl + Shift')
-    expect(describeKeycode(layerKeycode('TT', 3), NAMES)).toBe('Hold for Windows Fn, or tap quickly to keep it on')
+    // The count is said: "tap quickly" alone didn't tell anyone it takes five taps.
+    expect(describeKeycode(layerKeycode('TT', 3), NAMES)).toBe('Hold for Windows Fn, or tap it 5 times to keep it on')
+    expect(describeKeycode(layerKeycode('TT', 3), NAMES, 3)).toBe('Hold for Windows Fn, or tap it 3 times to keep it on')
     expect(capLabel(layerTapKeycode(4, 0x2c)!, NAMES)).toBe('Space\nFn2')
     expect(capLabel(modTapKeycode(0x01, 0x29)!, NAMES)).toBe('Esc\nCtrl')
   })

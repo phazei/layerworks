@@ -201,6 +201,33 @@ function entries(list: readonly tables.Keycode[]): PaletteKey[] {
   return out
 }
 
+/** A list of slots 0, 1, 2 … as 1, 2 … 0 (see numberedSlots). */
+const zeroLast = <T>(list: T[]): T[] => (list.length > 1 ? [...list.slice(1), list[0]] : list)
+
+// --- Numbering of macros and multi-tap keys ----------------------------------------------------------------------
+//
+// Macros and multi-tap keys (tap dances) are numbered as QMK numbers them: "Macro 1" is M1, "Multi-tap key 0" is
+// TD(0). Keychron prints M1 - M5 on keys mapped to QMK's M1 - M5, so the key printed "M1" runs Macro 1. Slot 0 is
+// shown and offered last: lists run 1, 2 … then 0, and a new one takes the lowest free number from 1, slot 0 only
+// when every other is taken. Don't "fix" this to count from 1 = slot 0; the tests pin it.
+
+/** The slots of a numbered kind in the order they are shown: 1, 2 … count - 1, then 0. */
+export function numberedSlots(count: number): number[] {
+  if (count <= 0) return []
+  return [...Array.from({ length: count - 1 }, (_, i) => i + 1), 0]
+}
+
+/** The slot a new one takes: the lowest free number from 1, 0 only when every other is taken; null when none is free. */
+export function firstFreeSlot(count: number, isFree: (index: number) => boolean): number | null {
+  return numberedSlots(count).find(isFree) ?? null
+}
+
+/** "Macro 3" for M3 (a macro without a name of its own). */
+export const macroTitle = (index: number): string => `Macro ${index}`
+
+/** "Multi-tap key 3" for TD(3). */
+export const tapDanceTitle = (index: number): string => `Multi-tap key ${index}`
+
 /** The keys offered in the palette, grouped the way a person would look for them. */
 export function keyPalette(): PaletteGroup[] {
   const groups: PaletteGroup[] = [
@@ -216,8 +243,9 @@ export function keyPalette(): PaletteGroup[] {
     // The shared RGB_ codes: Keychron's keymaps use them, and the firmware sends them to the RGB matrix.
     { id: 'lighting', title: 'Lighting controls', keys: entries(tables.KEYCODES_LIGHTING_RGB.filter((k) => SHARED_LIGHTING.has(k.qmkId))) },
     { id: 'keyboard', title: 'This keyboard', keys: entries(tables.KEYCODES_USER) },
-    { id: 'macros', title: 'Macros', keys: entries(tables.KEYCODES_MACRO_M) },
-    { id: 'tapDance', title: 'Multi-tap keys', keys: entries(tables.KEYCODES_TAP_DANCE) },
+    // In QMK's numbers, slot 0 last (numberedSlots).
+    { id: 'macros', title: 'Macros', keys: zeroLast(entries(tables.KEYCODES_MACRO_M)) },
+    { id: 'tapDance', title: 'Multi-tap keys', keys: zeroLast(entries(tables.KEYCODES_TAP_DANCE)) },
     { id: 'repeat', title: 'Repeat keys', keys: entries(tables.KEYCODES_BEHAVIOR_REPEAT) },
   ]
   return groups.filter((group) => group.keys.length > 0)
@@ -246,23 +274,37 @@ export const isBasicKey = (code: number): boolean => code > KC_SAME_AS_BELOW && 
 export interface LayerAction {
   /** QMK's function name. */
   op: 'MO' | 'TT' | 'TG' | 'OSL' | 'TO' | 'DF'
-  /** The sentence shown in the app; {layer} is replaced with the layer's name. */
+  /**
+   * The sentence shown in the app; {layer} is replaced with the layer's name, {taps} with how many taps keep a
+   * layer on (QMK's tapping toggle).
+   */
   sentence: string
   hint: string
+  /** One or two words above the layer's name on a key in the keyboard picture: "Hold" over "Fn2". */
+  short: string
 }
 
 export const LAYER_ACTIONS: LayerAction[] = [
-  { op: 'MO', sentence: 'While held, use {layer}', hint: 'Like Fn or Shift: active only while the key is down.' },
+  { op: 'MO', sentence: 'While held, use {layer}', hint: 'Like Fn or Shift: active only while the key is down.', short: 'Hold' },
   {
     op: 'TT',
-    sentence: 'Hold for {layer}, or tap quickly to keep it on',
-    hint: 'Like the one above, but a few quick taps (five unless changed) leave the layer on until you tap it again.',
+    sentence: 'Hold for {layer}, or tap it {taps} times to keep it on',
+    hint: 'Held, like the one above. Tapped that many times in quick succession, the layer stays on until you do it again.',
+    short: 'Hold/tap',
   },
-  { op: 'TG', sentence: 'Turn {layer} on or off', hint: 'Press once to switch it on, again to switch it off.' },
-  { op: 'OSL', sentence: 'Use {layer} for the next key only', hint: 'Tap it, then the next key you press comes from that layer.' },
-  { op: 'TO', sentence: 'Switch to {layer} and stay there', hint: 'Turns every other layer off. Make sure that layer has a way back.' },
-  { op: 'DF', sentence: 'Make {layer} the base layer', hint: 'Changes which layer the keyboard rests on until it restarts.' },
+  { op: 'TG', sentence: 'Turn {layer} on or off', hint: 'Press once to switch it on, again to switch it off.', short: 'Toggle' },
+  { op: 'OSL', sentence: 'Use {layer} for the next key only', hint: 'Tap it, then the next key you press comes from that layer.', short: 'Next key' },
+  { op: 'TO', sentence: 'Switch to {layer} and stay there', hint: 'Turns every other layer off. Make sure that layer has a way back.', short: 'Switch to' },
+  { op: 'DF', sentence: 'Make {layer} the base layer', hint: 'Changes which layer the keyboard rests on until it restarts.', short: 'Base' },
 ]
+
+/** QMK's tapping toggle when the keyboard doesn't report it: TAPPING_TOGGLE in vial-qmk's action_tapping.h. */
+export const DEFAULT_TAPPING_TOGGLE = 5
+
+/** A layer action's sentence with the layer's name and the number of taps filled in. */
+export function layerActionSentence(action: LayerAction, layerName: string, taps = DEFAULT_TAPPING_TOGGLE): string {
+  return action.sentence.replace('{layer}', layerName).replace('{taps}', String(taps))
+}
 
 export function layerKeycode(op: LayerAction['op'], layer: number): number {
   return deserialize(`${op}(${layer})`)

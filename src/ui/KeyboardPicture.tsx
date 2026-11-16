@@ -7,6 +7,9 @@ import { KeyboardWidget } from '../vendor/pipette/renderer/components/keyboard'
 import { KEY_UNIT } from '../vendor/pipette/renderer/components/keyboard/constants'
 import { cx } from './controls'
 import { knobPictureText, pictureLabel, type PictureLabel } from './picture-labels'
+// The one place ui reaches into the shell: layer names live in the browser per keyboard, and every picture names
+// layer keys by them.
+import { useConnectedLayerNames } from '../shell/layer-names'
 import { keycodeId, posKey, type KeyboardData, type KleKey } from '../device/api'
 
 /** How many pixels the widget draws a 1u key at, in the picture's own size (before it is scaled to fit). */
@@ -43,6 +46,8 @@ interface Props {
   fills?: ReadonlyMap<string, { colour: string; light: boolean }>
   /** "row,col" → a CSS colour for a thick outline (lighting zones). */
   outlines?: ReadonlyMap<string, string>
+  /** The layers' names, for layer keys ("Hold" over "Fn2"). Default: the connected keyboard's (shell/layer-names.ts). */
+  layerNames?: readonly string[]
 }
 
 // The widget's own "ever pressed" colour is a fixed light green; seen keys use its per-key fill instead, which
@@ -91,8 +96,11 @@ export function KeyboardPicture({
   fit = false,
   fills,
   outlines,
+  layerNames,
 }: Props) {
   const scope = useId()
+  const connectedNames = useConnectedLayerNames()
+  const names = layerNames ?? connectedNames
   const knobStyle = [knobRules(scope, knobsTurned, knobsSeen), keyRules(scope, outlines, fills)].filter(Boolean).join('\n')
   const seenFills = useMemo(() => (seen ? new Map([...seen].map((pos) => [pos, SEEN_FILL])) : undefined), [seen])
   const fillColours = useMemo(() => (fills ? new Map([...fills].map(([pos, f]) => [pos, f.colour])) : undefined), [fills])
@@ -105,22 +113,22 @@ export function KeyboardPicture({
       for (let col = 0; col < keyboard.cols; col++) {
         const code = keyboard.keymap[`${layer},${row},${col}`] ?? 0
         keycodes.set(posKey(row, col), keycodeId(code))
-        const label = pictureLabel(code)
+        const label = pictureLabel(code, names)
         if (label) labels.set(posKey(row, col), label)
       }
     }
     return { keycodes, labels }
-  }, [keyboard, layer])
+  }, [keyboard, layer, names])
 
   const knobKeycodes = useMemo(() => {
     const map = new Map<string, [string, string]>()
     // The widget has no label override for knobs; it draws an unknown keycode as its text.
-    const text = (code: number) => knobPictureText(code) ?? keycodeId(code)
+    const text = (code: number) => knobPictureText(code, names) ?? keycodeId(code)
     for (let knob = 0; knob < keyboard.knobCount; knob++) {
       map.set(String(knob), [text(keyboard.knobs[`${layer},${knob},0`] ?? 0), text(keyboard.knobs[`${layer},${knob},1`] ?? 0)])
     }
     return map
-  }, [keyboard, layer])
+  }, [keyboard, layer, names])
 
   if (!keyboard.layout) return null
   return (

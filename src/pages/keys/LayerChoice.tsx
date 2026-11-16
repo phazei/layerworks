@@ -16,8 +16,10 @@ import {
 } from '../../device'
 import { Button, OptionButton } from '../../ui/controls'
 import { Disclosure, HelpButton } from '../../ui/layout'
+import { PageLink } from '../../ui/PageLink'
 import { layerName, layerSentence } from './describe'
 import { ModifierBoxes } from './Modifiers'
+import { useTappingToggle } from './tapping-toggle'
 
 interface Props {
   current: number
@@ -31,6 +33,7 @@ export function LayerChoice({ current, names, ownLayer, onAssign }: Props) {
   const now = readLayerKey(current) ?? readLayerMod(current)
   const nowMods = readLayerMod(current)
   const [target, setTarget] = useState(now && now.layer < names.length ? now.layer : ownLayer + 1 < names.length ? ownLayer + 1 : 0)
+  const toggle = useTappingToggle()
 
   return (
     <div className="flex flex-col gap-3">
@@ -48,7 +51,7 @@ export function LayerChoice({ current, names, ownLayer, onAssign }: Props) {
           return (
             <OptionButton key={action.op} selected={code === current} onClick={() => onAssign(code)}>
               <span className="min-w-0 flex-1">
-                <span className="block font-medium">{layerSentence(action, names[target])}</span>
+                <span className="block font-medium">{layerSentence(action, names[target], toggle.taps)}</span>
                 <span className="block text-[13px] text-muted">{action.hint}</span>
               </span>
               <span className="shrink-0 font-mono text-xs text-muted">{keycodeId(code)}</span>
@@ -56,10 +59,20 @@ export function LayerChoice({ current, names, ownLayer, onAssign }: Props) {
           )
         })}
       </div>
+      <p className="text-[13px] text-muted">
+        {toggle.setting ? (
+          <>
+            How many taps keep a layer on ({toggle.taps} now) is set on the{' '}
+            <PageLink href="#/typing/tapHold">Typing feel page</PageLink>, under Tap or hold.
+          </>
+        ) : (
+          `How many taps keep a layer on (${toggle.taps}) is fixed in this keyboard’s firmware.`
+        )}
+      </p>
       <div className="[&>div]:mt-1">
         <Disclosure id="keys-layer-mods" label="With modifiers held too" forceOpen={nowMods !== null}>
           {/* A new layer picked above starts the modifiers afresh from what the key holds now. */}
-          <LayerWithMods key={target} current={current} name={layerName(names, target)} layer={target} initialMods={nowMods?.mods ?? 0x01} onAssign={onAssign} />
+          <LayerWithMods key={target} current={current} name={layerName(names, target)} layer={target} initialMods={nowMods?.mods ?? 0} onAssign={onAssign} />
         </Disclosure>
       </div>
     </div>
