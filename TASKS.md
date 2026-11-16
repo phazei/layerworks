@@ -16,9 +16,9 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
   speed, colour, plugin panel slot; no keyboard picture until there is a live preview), Settings (theme, layer
   names, about), Help (topic list), Test (keys seen from browser key events and, once unlocked, from the key
   matrix; knob turns from what they send to the browser), Device (backup and restore to one file, Vial `.vil`
-  import and export, sleep timers, keyboard information), Shortcuts & macros (macros: list, step editor,
-  recording, names, save to the keyboard; the other four kinds are listed as coming soon). Typing feel is a
-  placeholder.
+  import and export, sleep timers, keyboard information), Shortcuts & macros (macros with a step editor and
+  recording; multi-tap keys, key chords, shortcut replacements and repeat rules, each with an inline editor;
+  drafts saved with "Save to keyboard"). Typing feel is a placeholder.
 - **The keyboard stage** takes at most half of the space it shares with the page and has a resize handle.
 - **Checked by the user on the real keyboard:** assigning keys, undo / redo, lighting, unlock and lock, the Test
   page unlocked (M1-M5, Mute, Fn and Fn2 register), backup, restore and `.vil` restore. The user likes the look,
@@ -40,7 +40,9 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
 ## Waiting on the user
 
 - To try on the real keyboard (take a backup first): unlock, edit Macro 1 on Shortcuts & macros, save, press its
-  key, then Undo and press it again; the other macros should be untouched. The stage's resize handle. The
+  key, then Undo and press it again; the other macros should be untouched. Add J + K → Esc as a key chord and
+  Shift + Backspace → Delete as a shortcut replacement; put a multi-tap key on a key and tap / double-tap it;
+  undo each. The stage's resize handle. The
   lighting after a restore (what the page shows matches the keyboard after picking another effect).
 ## Next
 
@@ -49,8 +51,6 @@ user's first reactions are applied. Each item below is sized for one delegated a
 (`AGENTS.md`).
 ### Phase 6 packages (spec section 7)
 
-- **Shortcuts & macros, the other four kinds**: tap dance ("multi-tap keys"), combos ("key chords"), key overrides
-  ("shortcut replacements"), alt repeat ("repeat rules"), each as a list section beside Macros.
 - **Typing feel**: the QMK settings the keyboard reports (tap/hold timing, auto shift, mouse keys …) with plain
   names, and debounce / Snap Click from the Keychron data.
 - **Keys, tap/hold choices**: "one thing when tapped, another when held" (mod-tap, layer-tap) in the inspector.
@@ -58,9 +58,11 @@ user's first reactions are applied. Each item below is sized for one delegated a
 
 ### Small things from review
 
-- Status line says "Saved on the keyboard" while a macro has unsaved edits.
-- At 1000×700 the half-height cap leaves a very small picture (the Follow toggle and the layer row take most of
-  the stage).
+- Keys palette: multi-tap tiles read "TD(0)"; they should show the entry's summary ("Tap: Escape · Double tap:
+  Caps Lock") and macro tiles the macro's name.
+- Shortcuts: the chord picture is small at 1000×700; summaries use the key tables' names ("Escape", "` and ~").
+- Tailwind's "narrower than" container variants (`@max-3xl:`) had no effect in headless Edge; write narrow
+  styles the other way round.
 - Macro text is typed as on a US layout (on a German layout "y" comes out as "z"); the help says so.
 - Test: where the knob scrolls, ordinary mouse scrolling marks it as seen too; the browser can't tell them apart.
 - Lighting: read back while the lights are off, the keyboard can report the saved colour rather than the last
