@@ -47,12 +47,25 @@ Keep building without waiting for approval of mock-ups: build real pages on the 
 section, and let the user react to the result. The user reviews in the browser afterwards, so every package ends
 with screenshots (see `AGENTS.md`) and notes on what to look at.
 
+## In progress right now
+
+One delegated agent is running in the background, session `ses_e1debfc70ffey83TnPHv8IaaIG` (the one that built
+the Keys inspector and palette): **the keys other configurators offer that the palette lacks**. It compares the
+palette with Pipette's and Vial's key lists (joystick buttons, programmable buttons, the "Magic" keys and the
+rest), checks each family against the firmware, adds the ones worth having in plain words, and makes what is
+already there findable ("magic" is on Typing feel as "Swapped and disabled keys"). Files: `src/device/keycodes.ts`,
+`src/pages/keys/*`, help topics and glossary entries for what it adds. Screenshots on port 5195. Its work is
+uncommitted until reviewed.
+
+**When it reports:** run `pnpm typecheck`, `pnpm lint`, `pnpm test` (twice), `pnpm vitest run --sequence.shuffle
+src/pages src/shell src/ui src/device src/help`, `pnpm build`; check its firmware claims against `../vial_qmk`;
+read the screenshots in `%TEMP%\opencode\layerworks-shots\`; commit; delete this section; tell the user what was
+added, what was left out and why.
+
 ## Waiting on the user
 
-- **Open for discussion:**
-  - Moving a macro to another number. Recommendation: don't renumber; the number is what keys point at. Offer
-    "Swap with another macro" (the two keys trade what they run) or "Copy to…" if the need shows up; "put this
-    macro on a key" already covers "I want it on the M3 key".
+- Decided by the user: macros keep their numbers; no moving or swapping. Vial's "negative mods" (a shortcut
+  replacement's "must not be held") gets no more attention for now.
 - The user is testing page by page and reports bugs as found; the dev server (`pnpm dev`) is open while agents
   edit, so the user sees work in progress.
 - **To try on the real keyboard** (take a backup first):
