@@ -5,18 +5,27 @@
 import {
   canTakeModifiers,
   KC_SAME_AS_BELOW,
+  keycodeCap,
+  keycodeName,
   keycodeTitle,
   LAYER_ACTIONS,
+  modifierShort,
+  modifierWords,
   readLayerKey,
+  readLayerMod,
+  readLayerTap,
+  readOneShotMod,
   readShortcut,
+  readTapHold,
   slotKeycode,
+  tapHoldWords,
   type KeyboardData,
   type LayerAction,
   type Slot,
 } from '../../device'
 
-/** The inspector's three ways of choosing. */
-export type Choice = 'key' | 'shortcut' | 'layer'
+/** The inspector's four ways of choosing. */
+export type Choice = 'key' | 'shortcut' | 'layer' | 'tapHold'
 
 export const layerName = (names: string[], layer: number): string => names[layer] ?? `Layer ${layer}`
 
@@ -24,25 +33,45 @@ export function layerSentence(action: LayerAction, name: string): string {
   return action.sentence.replace('{layer}', name)
 }
 
+/** "While held, use Fn2 with Ctrl + Shift" */
+export const layerModSentence = (name: string, mods: number): string => `While held, use ${name} with ${modifierWords(mods)}`
+
 /** What a keycode does, in plain words; layer keys say the layer's name. */
 export function describeKeycode(code: number, names: string[]): string {
   const layerKey = readLayerKey(code)
   const action = layerKey && LAYER_ACTIONS.find((a) => a.op === layerKey.op)
   if (layerKey && action) return layerSentence(action, layerName(names, layerKey.layer))
+  const tapHold = readTapHold(code)
+  if (tapHold) return tapHoldWords(tapHold, (layer) => layerName(names, layer))
+  const layerMod = readLayerMod(code)
+  if (layerMod) return layerModSentence(layerName(names, layerMod.layer), layerMod.mods)
   return keycodeTitle(code)
 }
 
+/** The label for the keycap beside "Now": two lines for a key that does two things, with the layer's name. */
+export function capLabel(code: number, names: string[]): string {
+  const layerTap = readLayerTap(code)
+  if (layerTap) return `${layerTap.key ? keycodeName(layerTap.key) : 'Nothing'}\n${layerName(names, layerTap.layer)}`
+  const layerMod = readLayerMod(code)
+  if (layerMod) return `${layerName(names, layerMod.layer)}\n+ ${modifierShort(layerMod.mods)}`
+  return keycodeCap(code)
+}
+
 /**
- * Where the inspector opens for a keycode: the choice it belongs to, and whether "More options" holds it (nothing,
- * same as the layer below, or a code none of the choices builds).
+ * Where the inspector opens for a keycode: the choice it belongs to, and whether "More options" holds it (a
+ * one-shot modifier, nothing, same as the layer below, or a code none of the choices builds).
  */
 export function choiceFor(code: number, paletteCodes: ReadonlySet<number>): { choice: Choice; more: boolean } {
   if (paletteCodes.has(code)) return { choice: 'key', more: false }
-  if (readLayerKey(code)) return { choice: 'layer', more: false }
+  if (readLayerKey(code) || readLayerMod(code)) return { choice: 'layer', more: false }
+  if (readTapHold(code)) return { choice: 'tapHold', more: false }
   const shortcut = readShortcut(code)
   if (shortcut && shortcut.mods !== 0 && canTakeModifiers(shortcut.key)) return { choice: 'shortcut', more: false }
   return { choice: 'key', more: true }
 }
+
+/** True for a keycode More options has its own control for (so it isn't put in the key-code field). */
+export const hasOwnOption = (code: number): boolean => code === 0 || code === KC_SAME_AS_BELOW || readOneShotMod(code) !== null
 
 /**
  * For a slot that is "same as the layer below": the layer it normally ends up on, and what it does there. QMK

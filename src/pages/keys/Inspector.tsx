@@ -1,29 +1,32 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// The inspector under the keyboard stage: what the selected key or knob direction does now, and the three ways of
-// choosing something else (a key, a shortcut, a layer switch), with the rarer ones under "More options".
+// The inspector under the keyboard stage: what the selected key or knob direction does now, and the four ways of
+// choosing something else (a key, a shortcut, a layer switch, tap or hold), with the rarer ones under "More
+// options".
 
 import { useMemo, useState } from 'react'
 import {
   canTakeModifiers,
   deviceStore,
-  KC_NOTHING,
   KC_SAME_AS_BELOW,
   keycodeId,
-  keycodeName,
   keyPalette,
   slotKeycode,
   type KeyboardData,
   type Slot,
 } from '../../device'
 import type { HelpTopicId } from '../../help/topics'
-import { cx, Segmented } from '../../ui/controls'
+import { ChoiceGrid } from '../../ui/ChoiceGrid'
+import { cx } from '../../ui/controls'
 import { KeyCap } from '../../ui/KeyTile'
 import { Card, Disclosure, HelpButton } from '../../ui/layout'
-import { choiceFor, describeKeycode, fallThrough, layerName, type Choice } from './describe'
+import { PageLink } from '../../ui/PageLink'
+import { capLabel, choiceFor, describeKeycode, fallThrough, hasOwnOption, layerName, type Choice } from './describe'
 import { KeyPalette } from './KeyPalette'
 import { LayerChoice } from './LayerChoice'
 import { MoreOptions } from './MoreOptions'
 import { ShortcutChoice } from './ShortcutChoice'
+import { useShortcutKeys, type ShortcutKey } from './shortcut-keys'
+import { TapHoldChoice } from './TapHoldChoice'
 
 const MORE_OPTIONS = 'keys-more'
 
@@ -31,7 +34,24 @@ const CHOICES: { value: Choice; label: string; help: HelpTopicId }[] = [
   { value: 'key', label: 'A key', help: 'key-palette' },
   { value: 'shortcut', label: 'A shortcut', help: 'shortcut-key' },
   { value: 'layer', label: 'Switch layer', help: 'layer-key' },
+  { value: 'tapHold', label: 'Tap or hold', help: 'tap-hold' },
 ]
+
+/** "Now" for a macro or multi-tap key: its name, what it does, and where it is set up. */
+function NowShortcut({ found, id }: { found: ShortcutKey; id: string }) {
+  return (
+    <span className="flex min-w-0 flex-col leading-tight">
+      <span>
+        <span className="font-medium">{found.name}</span>
+        {found.summary && <span className="text-muted"> · {found.empty ? 'empty' : found.summary}</span>}
+      </span>
+      <span className="text-xs text-muted">
+        <span className="font-mono">{id}</span> ·{' '}
+        <PageLink href={found.href}>{found.empty ? 'Set it up on Shortcuts & macros' : 'Open on Shortcuts & macros'}</PageLink>
+      </span>
+    </span>
+  )
+}
 
 interface Props {
   keyboard: KeyboardData
@@ -78,12 +98,15 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
   // it is, without changing whether it stays open for the next one.
   const [opening] = useState(() => choiceFor(current, paletteCodes))
   const [choice, setChoice] = useState<Choice>(opening.choice)
+  const shortcutKey = useShortcutKeys()
+  const found = shortcutKey(current)
 
   const assign = (code: number) => void deviceStore.assign(slot, code)
   // Vial stores a knob's counter-clockwise turn as direction 0 and the clockwise one as 1.
   const question =
     slot.kind === 'knob' ? `What should turning ${slot.direction === 1 ? 'right' : 'left'} do?` : 'What should this key do?'
-  const unusual = opening.more && current !== KC_NOTHING && current !== KC_SAME_AS_BELOW
+  // A code no choice builds goes in the key-code field.
+  const unusual = opening.more && !hasOwnOption(current)
 
   // Wide: the question, what it does now, the choice and More options on the left, the choice's body filling
   // the right. The card fits the space under the stage: the palette scrolls in its box, and the left column (with
@@ -118,16 +141,20 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
             </div>
             <div aria-label="What it does now" role="group" className="flex min-w-0 items-center gap-2.5">
               <span className="text-[13px] text-muted">Now</span>
-              <KeyCap label={keycodeName(current)} />
-              <span className="flex min-w-0 flex-col leading-tight">
-                <span className="font-medium">{describeKeycode(current, names)}</span>
-                <span className="font-mono text-xs break-all text-muted">{keycodeId(current)}</span>
-              </span>
+              <KeyCap label={found ? found.label : capLabel(current, names)} />
+              {found ? (
+                <NowShortcut found={found} id={keycodeId(current)} />
+              ) : (
+                <span className="flex min-w-0 flex-col leading-tight">
+                  <span className="font-medium">{describeKeycode(current, names)}</span>
+                  <span className="font-mono text-xs break-all text-muted">{keycodeId(current)}</span>
+                </span>
+              )}
             </div>
           </header>
 
-          <div className="mb-4 flex items-center gap-1 whitespace-nowrap [grid-area:choose]">
-            <Segmented label="What it should do" value={choice} options={CHOICES} onChange={setChoice} />
+          <div className="mb-4 flex max-w-xl items-center gap-1 [grid-area:choose]">
+            <ChoiceGrid label="What it should do" value={choice} options={CHOICES} onChange={setChoice} className="min-w-0 flex-1" />
             <HelpButton topic={CHOICES.find((c) => c.value === choice)!.help} />
           </div>
 
@@ -157,6 +184,9 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
           )}
           {choice === 'shortcut' && <ShortcutChoice current={current} groups={shortcutKeys} onAssign={assign} />}
           {choice === 'layer' && <LayerChoice current={current} names={names} ownLayer={slot.layer} onAssign={assign} />}
+          {choice === 'tapHold' && (
+            <TapHoldChoice current={current} names={names} ownLayer={slot.layer} groups={shortcutKeys} onAssign={assign} />
+          )}
         </div>
       </div>
     </Card>

@@ -1,9 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { keyPalette, layerKeycode, shortcutKeycode, type KeyboardData } from '../../../device'
+import {
+  keyPalette,
+  layerKeycode,
+  layerModKeycode,
+  layerTapKeycode,
+  modTapKeycode,
+  oneShotModKeycode,
+  shortcutKeycode,
+  type KeyboardData,
+} from '../../../device'
 import { connectDemo, disconnect } from '../../../shell/session'
-import { choiceFor, describeKeycode, fallThrough } from '../describe'
+import { capLabel, choiceFor, describeKeycode, fallThrough, hasOwnOption } from '../describe'
 import { matchesSearch } from '../KeyPalette'
 
 // Connecting the demo keyboard sets up the keycode tables for a K15 Max.
@@ -43,10 +52,28 @@ describe('choiceFor', () => {
     expect(describeKeycode(tilde.code, NAMES)).toBe('~')
   })
 
-  it('sends nothing, transparent and unknown codes to More options', () => {
+  it('sends nothing, transparent, one-shot modifiers and unknown codes to More options', () => {
     expect(choiceFor(0x00, codes).more).toBe(true)
     expect(choiceFor(0x01, codes).more).toBe(true)
-    expect(choiceFor(0x4104, codes).more).toBe(true) // LT(1, KC_A)
+    expect(choiceFor(oneShotModKeycode(0x02)!, codes).more).toBe(true)
+    expect(choiceFor(0x7c00, codes).more).toBe(true) // QK_BOOT
+    expect(hasOwnOption(oneShotModKeycode(0x02)!)).toBe(true)
+    expect(hasOwnOption(0x7c00)).toBe(false)
+  })
+
+  it('opens tap / hold keys on "Tap or hold", and the other layer keys on "Switch layer"', () => {
+    expect(choiceFor(0x4104, codes)).toEqual({ choice: 'tapHold', more: false }) // LT(1, KC_A)
+    expect(choiceFor(modTapKeycode(0x01, 0x29)!, codes)).toEqual({ choice: 'tapHold', more: false })
+    expect(choiceFor(layerKeycode('TT', 1), codes)).toEqual({ choice: 'layer', more: false })
+    expect(choiceFor(layerModKeycode(4, 0x01)!, codes)).toEqual({ choice: 'layer', more: false })
+  })
+
+  it('names the layer of a tap / hold key, and puts both on its keycap', () => {
+    expect(describeKeycode(layerTapKeycode(4, 0x2c)!, NAMES)).toBe('Tap: Space bar · Hold: Fn2')
+    expect(describeKeycode(layerModKeycode(4, 0x03)!, NAMES)).toBe('While held, use Fn2 with Ctrl + Shift')
+    expect(describeKeycode(layerKeycode('TT', 3), NAMES)).toBe('Hold for Windows Fn, or tap quickly to keep it on')
+    expect(capLabel(layerTapKeycode(4, 0x2c)!, NAMES)).toBe('Space\nFn2')
+    expect(capLabel(modTapKeycode(0x01, 0x29)!, NAMES)).toBe('Esc\nCtrl')
   })
 })
 

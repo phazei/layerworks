@@ -4,7 +4,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '../..'
-import { deviceStore, layerKeycode, shortcutKeycode } from '../../../device'
+import { deviceStore, layerKeycode, layerTapKeycode, modTapKeycode, shortcutKeycode } from '../../../device'
+import { renameMacro } from '../../../shell/layer-names'
 import { connectDemo, disconnect } from '../../../shell/session'
 import { Shell } from '../../../shell/Shell'
 import { stage, type Selection } from '../../../shell/stage-store'
@@ -154,6 +155,76 @@ describe('the Keys page', () => {
     expect(screen.getByText(/^Means/)).toHaveTextContent('Ctrl + V')
     await click(screen.getByRole('button', { name: 'Use this code' }))
     await waitFor(() => expect(keymap(2, 3, 2)).toBe(shortcutKeycode(0x01, 0x19)))
+  })
+
+  it('makes a tap / hold key with a modifier, only once the button is pressed', async () => {
+    await openKeys(A_KEY)
+    fireEvent.click(choice('Tap or hold'))
+    expect(choice('Tap or hold')).toHaveAttribute('aria-checked', 'true')
+    // Ctrl is ticked to start with; nothing is written until the button.
+    fireEvent.click(within(screen.getByRole('group', { name: 'Key for a tap' })).getByRole('button', { name: 'Escape' }))
+    expect(keymap(2, 3, 2)).toBe(0x04)
+    await click(screen.getByRole('button', { name: 'Use Tap: Escape · Hold: Ctrl' }))
+    await waitFor(() => expect(keymap(2, 3, 2)).toBe(modTapKeycode(0x01, 0x29)))
+    const now = screen.getByRole('group', { name: 'What it does now' })
+    expect(now).toHaveTextContent('Tap: Escape · Hold: Ctrl')
+    expect(now).toHaveTextContent('LCTL_T(KC_ESCAPE)')
+
+    await click(within(screen.getByRole('contentinfo', { name: 'Status' })).getByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(keymap(2, 3, 2)).toBe(0x04))
+  })
+
+  it('makes a tap / hold key with a layer, named after the layer', async () => {
+    await openKeys(A_KEY)
+    fireEvent.click(choice('Tap or hold'))
+    fireEvent.click(within(screen.getByRole('group', { name: 'When held' })).getByRole('button', { name: 'a layer' }))
+    fireEvent.click(within(screen.getByRole('group', { name: 'Layer while held' })).getByRole('button', { name: 'Layer 4' }))
+    fireEvent.click(within(screen.getByRole('group', { name: 'Key for a tap' })).getByRole('button', { name: 'Space bar' }))
+    await click(screen.getByRole('button', { name: 'Use Tap: Space bar · Hold: Layer 4' }))
+    await waitFor(() => expect(keymap(2, 3, 2)).toBe(layerTapKeycode(4, 0x2c)))
+    expect(screen.getByRole('group', { name: 'What it does now' })).toHaveTextContent('LT4(KC_SPACE)')
+  })
+
+  it('opens a mod-tap key on "Tap or hold", saying what it does', async () => {
+    // The demo's Fn2 layer has Caps Lock as Tap: Escape · Hold: Ctrl.
+    await openKeys({ kind: 'key', row: 3, col: 1 }, 4)
+    expect(choice('Tap or hold')).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('group', { name: 'What it does now' })).toHaveTextContent('Tap: Escape · Hold: Ctrl')
+    expect(within(screen.getByRole('group', { name: 'Modifiers while held' })).getByRole('checkbox', { name: 'Ctrl' })).toBeChecked()
+    expect(within(screen.getByRole('group', { name: 'Key for a tap' })).getByRole('button', { name: 'Escape' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'This is what it does now' })).toBeDisabled()
+  })
+
+  it('opens a layer-tap key on "Tap or hold", with its layer by name', async () => {
+    // And Tab as Tap: Tab · Hold: Windows Fn.
+    await openKeys({ kind: 'key', row: 2, col: 1 }, 4)
+    expect(choice('Tap or hold')).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('group', { name: 'What it does now' })).toHaveTextContent('Tap: Tab · Hold: Windows Fn')
+    expect(within(screen.getByRole('group', { name: 'When held' })).getByRole('button', { name: 'a layer' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(screen.getByRole('group', { name: 'Layer while held' })).getByRole('button', { name: 'Windows Fn' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('names macro and multi-tap tiles by what they do, and finds them by name', async () => {
+    act(() => renameMacro(deviceStore.getState().keyboard!.uid, 0, 'Email'))
+    await openKeys(A_KEY)
+    await waitFor(() => expect(within(palette()).getByRole('button', { name: 'Email: Types “hello@example.com”' })).toHaveTextContent('Email'))
+    expect(within(palette()).getByRole('button', { name: 'Multi-tap key 1: Tap: Escape · Double tap: Caps Lock' })).toHaveTextContent('Multi- tap 1')
+    expect(within(palette()).getByRole('button', { name: /^Multi-tap key 5: empty/ })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search keys' }), { target: { value: 'email' } })
+    expect(within(palette()).getByRole('button', { name: /^Email/ })).toBeInTheDocument()
+    expect(within(palette()).queryByRole('button', { name: 'A' })).toBeNull()
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search keys' }), { target: { value: 'caps lock' } })
+    expect(within(palette()).getByRole('button', { name: /^Multi-tap key 1/ })).toBeInTheDocument()
+    act(() => renameMacro(deviceStore.getState().keyboard!.uid, 0, ''))
+  })
+
+  it('says what a macro key runs, with a link to it', async () => {
+    // Fn + P on the Windows layers is M0.
+    await openKeys({ kind: 'key', row: 2, col: 11 }, 3)
+    const now = screen.getByRole('group', { name: 'What it does now' })
+    await waitFor(() => expect(now).toHaveTextContent('Macro 1 · Types “hello@example.com”'))
+    expect(within(now).getByRole('link', { name: 'Open on Shortcuts & macros' })).toHaveAttribute('href', '#/shortcuts/macro/1')
   })
 
   it('edits a knob direction', async () => {

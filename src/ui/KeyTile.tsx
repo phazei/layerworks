@@ -5,14 +5,16 @@
 import type { ButtonHTMLAttributes } from 'react'
 import { cx } from './controls'
 
+// Shape only; the colours are added per state, so no two classes compete for the same property.
 const CAP =
-  'inline-flex shrink-0 flex-col items-center justify-center rounded-control border border-b-2 border-(--key-border) ' +
-  'bg-(--key-bg) px-1 text-center leading-tight whitespace-pre-line text-(--key-label)'
+  'inline-flex shrink-0 flex-col items-center justify-center rounded-control border border-b-2 px-1 text-center ' +
+  'leading-tight whitespace-pre-line'
+const CAP_COLOURS = 'border-(--key-border) bg-(--key-bg) text-(--key-label)'
 
 /** A keycap that shows a label and does nothing. */
 export function KeyCap({ label, className }: { label: string; className?: string }) {
   return (
-    <span aria-hidden className={cx(CAP, 'h-10 min-w-11 text-[11px] font-medium', className)}>
+    <span aria-hidden className={cx(CAP, CAP_COLOURS, 'h-10 min-w-11 text-[11px] font-medium', className)}>
       {label || ' '}
     </span>
   )
@@ -27,10 +29,12 @@ interface KeyTileProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'ch
   current?: boolean
   /** Picked in a choice that isn't applied yet. */
   picked?: boolean
+  /** Nothing is set up behind it yet (an unused macro): drawn faint, with a dashed edge. Still clickable. */
+  empty?: boolean
 }
 
 /** A key in a palette. */
-export function KeyTile({ label, name, current, picked, className, ...rest }: KeyTileProps) {
+export function KeyTile({ label, name, current, picked, empty, className, ...rest }: KeyTileProps) {
   return (
     <button
       type="button"
@@ -39,12 +43,15 @@ export function KeyTile({ label, name, current, picked, className, ...rest }: Ke
       aria-pressed={picked === undefined ? undefined : picked}
       className={cx(
         CAP,
-        'h-12 w-14 cursor-pointer overflow-hidden text-[11px] transition-colors duration-(--motion-fast)',
+        // Long names (a macro's) break anywhere rather than spill out of the cap.
+        'h-12 w-14 cursor-pointer overflow-hidden text-[11px] [overflow-wrap:anywhere] transition-colors duration-(--motion-fast)',
         picked
           ? 'border-accent bg-accent text-on-accent'
           : current
             ? 'border-accent bg-accent-soft font-semibold text-accent ring-1 ring-accent'
-            : 'hover:border-accent hover:bg-(--key-bg-hover)',
+            : empty
+              ? 'border-dashed border-(--key-border) text-muted hover:border-accent hover:bg-(--key-bg-hover)'
+              : cx(CAP_COLOURS, 'hover:border-accent hover:bg-(--key-bg-hover)'),
         className,
       )}
       {...rest}

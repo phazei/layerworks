@@ -1,18 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Keycodes for the rest of the app: names, the palette's groups, and builders for shortcuts and layer keys.
-// Everything here reads the vendored keycode tables, which describe the connected keyboard only after the device
-// store has loaded it.
+// Keycodes for the rest of the app: names, the palette's groups, and builders for shortcuts, layer keys and the
+// tap / hold keys (mod-tap, layer-tap, one-shot modifiers, layer + modifiers). Everything here reads the vendored
+// keycode tables, which describe the connected keyboard only after the device store has loaded it.
 
 import * as tables from '../vendor/pipette/shared/keycodes/keycodes'
 import {
+  buildLMKeycode,
+  buildLTKeycode,
   buildModMaskKeycode,
+  buildModTapKeycode,
   deserialize,
   extractBasicKey,
+  extractLMLayer,
+  extractLMMod,
+  extractLTLayer,
   extractModMask,
   findKeycode,
+  getMacroIndex,
+  getTapDanceIndex,
+  isLMKeycode,
+  isLTKeycode,
   isModMaskKeycode,
+  isModTapKeycode,
+  isTapDanceKeycode,
   keycodeLabel,
   keycodeTooltip,
+  resolve,
   serialize,
 } from '../vendor/pipette/shared/keycodes/keycodes-utils'
 
@@ -22,9 +35,42 @@ export const KC_SAME_AS_BELOW = 0x0001
 /** QMK's name for a keycode, e.g. "KC_A" or "MO(1)". */
 export const keycodeId = (code: number): string => serialize(code)
 
-/** The short text shown on a key, on one line. */
+/** The label the tables give a keycode, on one line. */
+const tableName = (code: number): string => keycodeLabel(serialize(code)).replace(/\n/g, ' ').trim()
+
+/**
+ * The short text shown on a key, on one line: "A", "Ctrl+C", and for keys that do two things the tap and the
+ * hold, "Esc / Ctrl", "Space / Layer 4".
+ */
 export function keycodeName(code: number): string {
-  return keycodeLabel(serialize(code)).replace(/\n/g, ' ').trim()
+  const [first, second] = keycodeCapParts(code)
+  return second === undefined ? first : `${first} / ${second}`
+}
+
+/**
+ * The text for a keycap drawn on its own: like keycodeName, but a key that does two things gets two lines (what a
+ * tap sends, then what a hold does), so it reads like the keyboard picture's split keys.
+ */
+export function keycodeCap(code: number): string {
+  return keycodeCapParts(code).join('\n')
+}
+
+function keycodeCapParts(code: number): [string] | [string, string] {
+  const modTap = readModTap(code)
+  if (modTap) return [tableName(modTap.key), modifierShort(modTap.mods)]
+  const layerTap = readLayerTap(code)
+  if (layerTap) return [layerTap.key ? tableName(layerTap.key) : 'Nothing', `Layer ${layerTap.layer}`]
+  const oneShot = readOneShotMod(code)
+  if (oneShot) return [modifierShort(oneShot.mods), 'next key']
+  const layerMod = readLayerMod(code)
+  if (layerMod) return [`Layer ${layerMod.layer}`, `+ ${modifierShort(layerMod.mods)}`]
+  if (isModMaskKeycode(code)) {
+    // Shifted symbols are Shift + key, but the tables have a label for them: "~".
+    const shifted = tables.KEYCODES_SHIFTED.find((k) => deserialize(k.qmkId) === code)
+    if (shifted) return [shifted.label.replace(/\n/g, ' ')]
+    return [`${modifierShort(extractModMask(code))}+${tableName(extractBasicKey(code))}`]
+  }
+  return [tableName(code)]
 }
 
 /** A longer description where the tables have one, e.g. "Left Control". */
@@ -59,6 +105,8 @@ export interface PaletteKey {
   description?: string
   /** QMK's other names for it ("KC_ESC" for KC_ESCAPE), for searching. */
   aliases?: string[]
+  /** A macro or multi-tap key with nothing set up yet: still offered, but drawn as empty. */
+  empty?: boolean
 }
 
 /** Plain words for keys the tables leave undescribed or describe in jargon. */
@@ -132,6 +180,8 @@ export interface PaletteGroup {
   id: string
   title: string
   keys: PaletteKey[]
+  /** A link beside the group's title, e.g. to where its keys are set up. */
+  link?: { label: string; href: string }
 }
 
 function entries(list: readonly tables.Keycode[]): PaletteKey[] {
@@ -195,7 +245,7 @@ export const isBasicKey = (code: number): boolean => code > KC_SAME_AS_BELOW && 
 
 export interface LayerAction {
   /** QMK's function name. */
-  op: 'MO' | 'TG' | 'OSL' | 'TO' | 'DF'
+  op: 'MO' | 'TT' | 'TG' | 'OSL' | 'TO' | 'DF'
   /** The sentence shown in the app; {layer} is replaced with the layer's name. */
   sentence: string
   hint: string
@@ -203,6 +253,11 @@ export interface LayerAction {
 
 export const LAYER_ACTIONS: LayerAction[] = [
   { op: 'MO', sentence: 'While held, use {layer}', hint: 'Like Fn or Shift: active only while the key is down.' },
+  {
+    op: 'TT',
+    sentence: 'Hold for {layer}, or tap quickly to keep it on',
+    hint: 'Like the one above, but a few quick taps (five unless changed) leave the layer on until you tap it again.',
+  },
   { op: 'TG', sentence: 'Turn {layer} on or off', hint: 'Press once to switch it on, again to switch it off.' },
   { op: 'OSL', sentence: 'Use {layer} for the next key only', hint: 'Tap it, then the next key you press comes from that layer.' },
   { op: 'TO', sentence: 'Switch to {layer} and stay there', hint: 'Turns every other layer off. Make sure that layer has a way back.' },
@@ -215,7 +270,7 @@ export function layerKeycode(op: LayerAction['op'], layer: number): number {
 
 /** The parts of a layer key, or null when the keycode isn't one of LAYER_ACTIONS. */
 export function readLayerKey(code: number): { op: LayerAction['op']; layer: number } | null {
-  const match = /^(MO|TG|OSL|TO|DF)\((\d+)\)$/.exec(serialize(code))
+  const match = /^(MO|TT|TG|OSL|TO|DF)\((\d+)\)$/.exec(serialize(code))
   return match ? { op: match[1] as LayerAction['op'], layer: Number(match[2]) } : null
 }
 
@@ -244,5 +299,121 @@ export function keycodeTitle(code: number): string {
     const mods = MODIFIERS.filter((mod) => shortcut.mods & mod.bit).map((mod) => mod.name)
     return [...mods, shortcut.key ? keycodeTitle(shortcut.key) : '…'].join(' + ')
   }
+  const tapHold = readTapHold(code)
+  if (tapHold) return tapHoldWords(tapHold, (layer) => `layer ${layer}`)
+  const oneShot = readOneShotMod(code)
+  if (oneShot) return `${modifierWords(oneShot.mods)} for the next key only`
+  const layerMod = readLayerMod(code)
+  if (layerMod) return `While held, use layer ${layerMod.layer} with ${modifierWords(layerMod.mods)}`
   return keycodeName(code)
 }
+
+// --- Tap / hold keys -----------------------------------------------------------------------------------------------
+//
+// Mod-tap, one-shot modifiers and layer + modifiers carry a 5-bit modifier mask: Ctrl, Shift, Alt and Win in bits
+// 0-3 (MODIFIERS) and bit 4 meaning "the right-hand ones" for all of them. QMK can't mix sides in one key.
+
+/** The bit of a 5-bit modifier mask that makes every modifier in it the right-hand one. */
+export const RIGHT_HAND = 0x10
+
+/** The highest layer a layer-tap or layer + modifiers key can reach: its keycode has 4 bits for the layer. */
+export const MAX_TAP_LAYER = 15
+
+/** A 5-bit modifier mask in words: "Ctrl", "Ctrl + Shift", "Right Alt". */
+export function modifierWords(mods: number): string {
+  const names = MODIFIERS.filter((mod) => mods & mod.bit).map((mod) => (mods & RIGHT_HAND ? `Right ${mod.name}` : mod.name))
+  return names.join(' + ')
+}
+
+/** The same, short enough for a keycap: "Ctrl", "Ctrl+Shift", "RAlt". */
+export function modifierShort(mods: number): string {
+  return MODIFIERS.filter((mod) => mods & mod.bit)
+    .map((mod) => (mods & RIGHT_HAND ? `R${mod.name}` : mod.name))
+    .join('+')
+}
+
+const validMods = (mods: number): boolean => Number.isInteger(mods) && mods >= 0 && mods <= 0x1f && (mods & 0x0f) !== 0
+const validTapLayer = (layer: number): boolean => Number.isInteger(layer) && layer >= 0 && layer <= MAX_TAP_LAYER
+
+/**
+ * True for a key that can be what a tap / hold key sends when tapped. The firmware keeps 8 bits for it, so only
+ * basic keys fit: no shortcuts, layer keys, macros or keyboard-specific keys.
+ */
+export const canBeTapped = (code: number): boolean => isBasicKey(code)
+
+/** "Tap for `key`, hold for `mods`" (QMK's MT, LCTL_T(kc) …). null when the modifiers or the key can't be used. */
+export function modTapKeycode(mods: number, key: number): number | null {
+  return validMods(mods) && canBeTapped(key) ? buildModTapKeycode(mods, key) : null
+}
+
+/** The parts of a mod-tap key, or null when the keycode isn't one. */
+export function readModTap(code: number): { mods: number; key: number } | null {
+  if (!isModTapKeycode(code)) return null
+  const mods = (code >> 8) & 0x1f
+  return validMods(mods) ? { mods, key: code & 0xff } : null
+}
+
+/** "Tap for `key`, hold for `layer`" (QMK's LT). null for a layer over 15 or a key that can't be tapped. */
+export function layerTapKeycode(layer: number, key: number): number | null {
+  return validTapLayer(layer) && canBeTapped(key) ? buildLTKeycode(layer, key) : null
+}
+
+/** The parts of a layer-tap key, or null when the keycode isn't one. The key is 0 for "hold only". */
+export function readLayerTap(code: number): { layer: number; key: number } | null {
+  return isLTKeycode(code) ? { layer: extractLTLayer(code), key: code & 0xff } : null
+}
+
+export type TapHold = { hold: 'mods'; mods: number; key: number } | { hold: 'layer'; layer: number; key: number }
+
+/** A mod-tap or layer-tap key as one shape, or null. */
+export function readTapHold(code: number): TapHold | null {
+  const modTap = readModTap(code)
+  if (modTap) return { hold: 'mods', ...modTap }
+  const layerTap = readLayerTap(code)
+  return layerTap ? { hold: 'layer', ...layerTap } : null
+}
+
+/** "Tap: Escape · Hold: Ctrl", "Tap: Space · Hold: Fn2" (the layer named by `layerName`). */
+export function tapHoldWords(tapHold: TapHold, layerName: (layer: number) => string): string {
+  const tap = tapHold.key ? keycodeTitle(tapHold.key) : 'nothing'
+  const hold = tapHold.hold === 'mods' ? modifierWords(tapHold.mods) : layerName(tapHold.layer)
+  return `Tap: ${tap} · Hold: ${hold}`
+}
+
+/** A modifier held for the next key pressed only (QMK's OSM, a "sticky" modifier). null for no modifier. */
+export function oneShotModKeycode(mods: number): number | null {
+  return validMods(mods) ? resolve('QK_ONE_SHOT_MOD') | mods : null
+}
+
+export function readOneShotMod(code: number): { mods: number } | null {
+  const base = resolve('QK_ONE_SHOT_MOD')
+  const mods = code - base
+  return mods >= 0 && mods <= 0x1f && validMods(mods) ? { mods } : null
+}
+
+/**
+ * While held, a layer and modifiers together (QMK's LM). null when it can't be built, including right-hand
+ * modifiers on Vial protocols before 6, whose keycode has no room for them.
+ */
+export function layerModKeycode(layer: number, mods: number): number | null {
+  if (!validTapLayer(layer) || !validMods(mods)) return null
+  const code = buildLMKeycode(layer, mods)
+  return extractLMMod(code) === mods ? code : null
+}
+
+export function readLayerMod(code: number): { layer: number; mods: number } | null {
+  if (!isLMKeycode(code)) return null
+  const mods = extractLMMod(code)
+  return validMods(mods) ? { layer: extractLMLayer(code), mods } : null
+}
+
+// --- Macros and multi-tap keys ---------------------------------------------------------------------------------------
+
+/** Which macro a keycode runs (0 for QMK's M0), or null. */
+export function readMacroKey(code: number): number | null {
+  const index = getMacroIndex(code)
+  return index >= 0 ? index : null
+}
+
+/** Which multi-tap key (tap dance) a keycode is (0 for TD(0)), or null. */
+export const readTapDanceKey = (code: number): number | null => (isTapDanceKeycode(code) ? getTapDanceIndex(code) : null)

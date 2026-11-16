@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The palette of keys: a search box with a line saying what the key under the pointer does, and the groups of key
-// tiles in a box that scrolls and fills the space there is.
+// tiles in a box that scrolls and fills the space there is. Macro and multi-tap tiles carry their names and what
+// they do (shortcut-keys.ts), so the Shortcuts page's pickers get them too.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PaletteGroup, PaletteKey } from '../../device'
 import { SearchField } from '../../ui/controls'
 import { KeyTile } from '../../ui/KeyTile'
+import { PageLink } from '../../ui/PageLink'
+import { nameShortcutGroups, useShortcutKeys } from './shortcut-keys'
 
 const oneLine = (label: string) => label.replace(/\n/g, ' ')
 
@@ -41,12 +44,15 @@ export function KeyPalette({ groups, current, picked, onPick, hint, label }: Pro
   const [query, setQuery] = useState('')
   const [pointed, setPointed] = useState<PaletteKey | null>(null)
   const box = useRef<HTMLDivElement>(null)
+  // Macros and multi-tap keys by their names and what they do, wherever the palette is used.
+  const shortcutKey = useShortcutKeys()
+  const named = useMemo(() => nameShortcutGroups(groups, shortcutKey), [groups, shortcutKey])
   const shown = useMemo(
     () =>
-      groups
+      named
         .map((group) => ({ ...group, keys: group.keys.filter((key) => matchesSearch(key, query)) }))
         .filter((group) => group.keys.length > 0),
-    [groups, query],
+    [named, query],
   )
 
   // Open with the current key in view.
@@ -86,13 +92,17 @@ export function KeyPalette({ groups, current, picked, onPick, hint, label }: Pro
         )}
         {shown.map((group) => (
           <section key={group.id} aria-label={group.title}>
-            <h3 className="sticky top-0 z-10 bg-card pt-2.5 pb-1.5 text-xs font-medium text-muted">{group.title}</h3>
+            <div className="sticky top-0 z-10 flex items-baseline justify-between gap-3 bg-card pt-2.5 pb-1.5 text-xs">
+              <h3 className="font-medium text-muted">{group.title}</h3>
+              {group.link && <PageLink href={group.link.href}>{group.link.label}</PageLink>}
+            </div>
             <div className="flex flex-wrap gap-1.5">
               {group.keys.map((key) => (
                 <KeyTile
                   key={key.id}
                   label={key.label}
                   name={keyName(key)}
+                  empty={key.empty}
                   current={key.code === current}
                   picked={picked === undefined ? undefined : key.code === picked}
                   onClick={() => onPick(key)}
