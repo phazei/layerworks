@@ -26,6 +26,14 @@ a delegated agent (`general_opus`), and reviews what comes back. It does not bui
 - **Commit.** After review, the orchestrator commits that package (the user has allowed staging and committing
   in this repo, section by section; never push, never rewrite history), then updates `TASKS.md`: the finished
   package is deleted, anything learned goes to its durable home.
+- **Background and follow-ups.** Agents are launched in the background, so the orchestrator can answer the user
+  meanwhile and is told when each finishes; `TASKS.md` "In progress right now" lists the running sessions, their
+  files and what to do when they report. Follow-up work on a page goes to the session that built it (it knows
+  the code); a review goes to a fresh one. An agent stopped by the account's rate limit is resumed in the same
+  session.
+- **The user's feedback** comes in batches while agents run. Decided items go to an agent as they are; items the
+  user marks as open get a recommendation and go under "Waiting on the user", unbuilt. An agent's claim about
+  the firmware is checked against the source (`../vial_qmk`) before it is written into these documents.
 - Packages that touch the same files run one after another; independent ones can run side by side, **two
   delegated agents at most at a time** (the user's limit). Agents working side by side each get: the list of files
   that are theirs, the files they must leave alone, "targeted edits only" for shared files (`README.md`,

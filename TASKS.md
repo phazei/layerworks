@@ -21,7 +21,8 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
   drafts saved with "Save to keyboard"), Typing feel (the keyboard's QMK settings by what they feel like, with
   search; Keychron debounce and Snap Click; undoable; reset all). Keys also has "Tap or hold" (mod-tap,
   layer-tap) and names macros and multi-tap keys in the palette. Lighting has Key by key (paint colours) and
-  Mixed zones (areas with their own effects) for Keychron keyboards. No page is a placeholder any more.
+  Mixed zones (areas with their own effects) for Keychron keyboards; their editors open below the effect
+  grid. No page is a placeholder any more.
 - **The keyboard stage** takes at most half of the space it shares with the page and has a resize handle.
 - **Checked by the user on the real keyboard:** assigning keys, undo / redo, lighting, unlock and lock, the Test
   page unlocked (M1-M5, Mute, Fn and Fn2 register), backup, restore and `.vil` restore. The user likes the look,
@@ -40,19 +41,47 @@ Keep building without waiting for approval of mock-ups: build real pages on the 
 section, and let the user react to the result. The user reviews in the browser afterwards, so every package ends
 with screenshots (see `AGENTS.md`) and notes on what to look at.
 
+## In progress right now
+
+Two delegated agents are running in the background (launched with `background: true`; the orchestrator is told
+when each finishes). Their work is uncommitted in the working tree until reviewed. Nothing else should edit their
+files meanwhile.
+
+1. **Help guide and first-run tour** (phase 7), session `ses_e1dbde8fdffe6vAbqPoj1rjpio`. Files: `src/help/*`,
+   `src/pages/Help.tsx`, `src/pages/help/*`, new tour files in `src/ui/` and `src/shell/`, a mount in
+   `src/shell/Shell.tsx`, an entry in Settings, `HelpButton` (the "?" toggles the help panel). Screenshots on
+   port 5196. It was stopped once by the account's rate limit and resumed; if it stops again, resume the same
+   session with "continue from where you stopped".
+2. **The user's feedback on Keys and Shortcuts**, session `ses_e1debfc70ffey83TnPHv8IaaIG`. Files:
+   `src/pages/keys/*`, `src/pages/shortcuts/*`, `src/pages/device/*` (unlock-then-refresh only),
+   `src/ui/picture-labels.ts`, `src/ui/KeyboardPicture.tsx`, `src/device/macros.ts`, `entries.ts`, `keycodes.ts`,
+   `src/demo/*`, `src/shell/StatusLine.tsx`, `unsaved.ts`, `UnlockDialog.tsx`, `unlock-dialog.ts`. Screenshots on
+   port 5195. What it is doing, all decided by the user:
+   - Macros and multi-tap keys carry QMK's own number: "Macro 1" is `M1` (the key Keychron prints M1), "Multi-tap
+     1" is `TD(1)`; number 0 is listed last and used last by Add. Key chords, shortcut replacements and repeat
+     rules keep counting from 1. The demo's example macros move to `M1`-`M3`. The user's real keymap was never
+     changed: its M1-M5 keys hold `M1`-`M5`.
+   - Tap or hold starts from the key's current plain key. No modifier ticked by default ("Modifier for the next
+     key only", "With modifiers held too"). The tap-toggle sentence says the number of taps and where it is set.
+   - Layer keys in the picture read "Hold" over the layer's name instead of `MO(4)`.
+   - "Unlock to save…" saves by itself once unlocking finishes (a restore only refreshes its plan).
+   - Shortcuts & macros: kinds in use, or open, are listed above the "More options" fold.
+
+**When an agent reports:** wait until both are done if they touched shared files (`README.md`,
+`src/help/topics.ts`, `src/main.tsx`, `src/ui/*`, `src/shell/Shell.tsx`). Then run `pnpm typecheck`, `pnpm lint`,
+`pnpm test` (twice), `pnpm vitest run --sequence.shuffle src/pages src/shell src/ui src/device src/help`, and
+`pnpm build`; read the new screenshots in `%TEMP%\opencode\layerworks-shots\`; commit in two commits (feedback,
+then help and tour; shared files with the first); delete this section and move what was learned to its home;
+tell the user what to try.
+
 ## Waiting on the user
 
 - **Open for discussion:**
   - Moving a macro to another number. Recommendation: don't renumber; the number is what keys point at. Offer
     "Swap with another macro" (the two keys trade what they run) or "Copy to…" if the need shows up; "put this
     macro on a key" already covers "I want it on the M3 key".
-  - Whether Key by key and Mixed zones belong at the end of the effect grid ("Set per key or zone") or
-    somewhere more prominent.
-- **In progress from the user's feedback** (decided): macros and multi-tap keys carry QMK's own number
-  ("Macro 1" is `M1`; number 0 is listed and used last); layer keys in the picture read "Hold" over the layer's
-  name; "Unlock to save…" saves by itself after unlocking; Tap or hold starts from the key's current plain key;
-  no modifier ticked by default; the tap-toggle sentence says the number of taps; Shortcuts kinds in use sit
-  above the fold; "?" toggles the help panel.- **To try on the real keyboard** (take a backup first):
+- The user is testing page by page and reports bugs as found; the dev server (`pnpm dev`) is open while agents
+  edit, so the user sees work in progress.- **To try on the real keyboard** (take a backup first):
   - Macros: unlock, edit Macro 1, save, press its key, then Undo and press it again; the other macros should be
     untouched.
   - Shortcuts: J + K → Esc as a key chord; Shift + Backspace → Delete as a shortcut replacement; a multi-tap
