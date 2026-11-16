@@ -18,7 +18,9 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
   matrix; knob turns from what they send to the browser), Device (backup and restore to one file, Vial `.vil`
   import and export, sleep timers, keyboard information), Shortcuts & macros (macros with a step editor and
   recording; multi-tap keys, key chords, shortcut replacements and repeat rules, each with an inline editor;
-  drafts saved with "Save to keyboard"). Typing feel is a placeholder.
+  drafts saved with "Save to keyboard"), Typing feel (the keyboard's QMK settings by what they feel like, with
+  search; Keychron debounce and Snap Click; undoable; reset all). Keys also has "Tap or hold" (mod-tap,
+  layer-tap) and names macros and multi-tap keys in the palette. No page is a placeholder any more.
 - **The keyboard stage** takes at most half of the space it shares with the page and has a resize handle.
 - **Checked by the user on the real keyboard:** assigning keys, undo / redo, lighting, unlock and lock, the Test
   page unlocked (M1-M5, Mute, Fn and Fn2 register), backup, restore and `.vil` restore. The user likes the look,
@@ -42,7 +44,10 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
 - To try on the real keyboard (take a backup first): unlock, edit Macro 1 on Shortcuts & macros, save, press its
   key, then Undo and press it again; the other macros should be untouched. Add J + K → Esc as a key chord and
   Shift + Backspace → Delete as a shortcut replacement; put a multi-tap key on a key and tap / double-tap it;
-  undo each. The stage's resize handle. The
+  undo each. Keys: Caps Lock as tap Escape / hold Ctrl, Space as tap Space / hold Fn2. Typing feel: change the
+  hold time and undo; "Windows keys do nothing" on and off (the firmware releases all held keys on that
+  write); a Snap Click pair (A and D), then replug to see it was saved; debounce (the keyboard is at 50 ms);
+  "Reset all typing settings…" last. The stage's resize handle. The
   lighting after a restore (what the page shows matches the keyboard after picking another effect).
 ## Next
 
@@ -51,15 +56,18 @@ user's first reactions are applied. Each item below is sized for one delegated a
 (`AGENTS.md`).
 ### Phase 6 packages (spec section 7)
 
-- **Typing feel**: the QMK settings the keyboard reports (tap/hold timing, auto shift, mouse keys …) with plain
-  names, and debounce / Snap Click from the Keychron data.
-- **Keys, tap/hold choices**: "one thing when tapped, another when held" (mod-tap, layer-tap) in the inspector.
 - **Lighting, per key**: Keychron per-key RGB and mixed zones (the data is in the backup already, not restored).
 
 ### Small things from review
 
-- Keys palette: multi-tap tiles read "TD(0)"; they should show the entry's summary ("Tap: Escape · Double tap:
-  Caps Lock") and macro tiles the macro's name.
+- The keyboard picture still labels keys with the tables' raw names ("M0", "TD(0)", "LCTL_T" over "Esc");
+  the inspector and palette use the friendly ones.
+- The help panel says "Read more in the QMK documentation" for every link, also Keychron's and Vial's.
+- Restore doesn't write Snap Click (nor per-key RGB) yet.
+- Typing feel, wording to verify against the firmware: chordal hold (how a key's hand is decided), two Auto
+  Shift options ("Also with Ctrl, Alt or Win held", "Repeat only after a tap"), whether the delay for taps
+  the keyboard sends itself also applies to knob turns.
+- Keys at 1000×700: the Tap or hold palette starts below the fold.
 - Shortcuts: the chord picture is small at 1000×700; summaries use the key tables' names ("Escape", "` and ~").
 - Tailwind's "narrower than" container variants (`@max-3xl:`) had no effect in headless Edge; write narrow
   styles the other way round.
