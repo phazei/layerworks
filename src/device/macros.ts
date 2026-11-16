@@ -144,7 +144,11 @@ export const macroKeycode = (index: number): number | null => parseKeycode(`M${i
 /** Every key and knob direction that runs macro `index`. */
 export function macroUses(keyboard: KeyboardData, index: number): Slot[] {
   const code = macroKeycode(index)
-  if (code === null) return []
+  return code === null ? [] : keycodeUses(keyboard, code)
+}
+
+/** Every key and knob direction, on any layer, that holds `code`. */
+export function keycodeUses(keyboard: KeyboardData, code: number): Slot[] {
   const slots: Slot[] = []
   for (const [key, value] of Object.entries(keyboard.keymap)) {
     if (value !== code) continue

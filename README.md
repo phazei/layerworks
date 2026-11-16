@@ -6,7 +6,7 @@ the browser (Chrome or Edge, over WebHID), on the cable or through the 2.4 GHz r
 
 The design is in the Alice-Keyboard project: `../docs/spec/layerworks.md`. What exists so far: the connection
 layer, the shell (sidebar, keyboard stage, status line, help panel, themes), the unlock flow and a page for every
-section; Home, Keys, Shortcuts & macros (macros so far), Lighting, Test, Device and Settings are built (see "The built pages"), the rest are still
+section; Home, Keys, Shortcuts & macros, Lighting, Test, Device and Settings are built (see "The built pages"), the rest are still
 placeholders.
 
 ## Run it
@@ -70,6 +70,7 @@ src/
     keyboard-file.ts   opens a file to restore from: a backup or a Vial file
     wireless.ts        Keychron's wireless timers: limits, choices, durations in words
     macros.ts          macros as steps: to and from the shared macro buffer, sizes, problems, recording
+    entries.ts         tap dance, combos, key overrides, alt repeat: defaults, problems, option bits, modifiers
     useDevice.ts       the app's store and its React hook
     api.ts, index.ts   the public surface; pages, plugins and the shell import from here
   demo/              the demo keyboard: a K15 Max inside the page (k15-max.json, demo-link.ts)
@@ -96,7 +97,8 @@ src/
     Stage.tsx          the keyboard stage: layer stack beside the picture, pressed keys, selection, resize handle
     stage-size.ts      how tall the stage is: automatic, chosen, minimum and cap
     LayerStack.tsx     the layers: pick, rename in place, active one marked, "Follow the keyboard"
-    StatusLine.tsx     saved / saving / write error, parts still loading or not readable, undo / redo
+    StatusLine.tsx     saved / saving / write error / unsaved work, parts still loading or not readable, undo / redo
+    unsaved.ts         work a page holds that hasn't reached the keyboard yet (setUnsaved, useUnsaved)
     HelpPanel.tsx      the help topic, sliding in from the right
     ConnectPrompt.tsx  connect a keyboard / try the demo, and "reading the keyboard"
     router.ts          pages by URL (#/keys)
@@ -135,15 +137,19 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
 - **Pages that need a keyboard** show the connect prompt instead while none is connected, and "Reading the
   keyboard…" while one connects. Pages with `offline: true` (Home, Help, Settings) always show.
 - **The status line** says "Saved on the keyboard", "Saving…" while `DeviceState.writing` is above 0, or the
-  `writeError`. Beside it: the parts still being read in the background, or the ones that could not be read.
-  Undo and redo call `deviceStore.undo` / `redo`.
+  `writeError`. While a page holds work not yet on the keyboard (a macro or another shortcut being edited), it says
+  so instead ("Macro 3 has changes not yet saved to the keyboard", "2 macros have unsaved changes"), as a link to
+  the work: pages declare it with `setUnsaved(id, { label, group, href, keyboard })` (`shell/unsaved.ts`), the
+  Shortcuts drafts for theirs. Beside it: the parts still being read in the background, or the ones that could not
+  be read. Undo and redo call `deviceStore.undo` / `redo`.
 - **The help panel** slides in over the right edge of the page (not over the status line) when anything calls
   `openHelp(topic)`, usually a `HelpButton`. Esc or the close button hides it; the page stays usable.
 - **Theme**: dark by default; Settings offers dark, light and "Like the system". Stored with `prefs.ts`
   (`theme`); a small script in `index.html` applies it before the app loads, so nothing flashes.
 - Sized for 1280 × 800 and usable down to about 1000 px wide. When the stage itself is narrower than 768 px (a
-  container query; a window of about 1050 px), the layer stack becomes a row of chips above the picture. The stage
-  takes at most half of the height it shares with the page (see "The keyboard stage and selection"), so the page
+  container query; a window of about 1050 px), the layer stack becomes one row above the picture: the layers as
+  chips (the dot marks the active one, the rename pencil appears on pointing or focus) and "Follow the keyboard" at
+  its right end, wrapping under them only when the row is too narrow. The stage takes at most half of the height it shares with the page (see "The keyboard stage and selection"), so the page
   under it always keeps the other half.
 
 ## Pages and plugins
@@ -281,15 +287,38 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     QMK settings it has room for. *Technical details* (a `Disclosure`): USB IDs (and the receiver's), Vial keyboard
     ID, protocol versions, Keychron feature bits, the raw firmware string, matrix size, layout options, feature
     flags, macro memory, QMK setting IDs, lighting, and the transport's request counters, refreshed every second.
-- **Shortcuts & macros** (`Shortcuts.tsx`, `shortcuts/`): full height, no stage (the editor needs the room, and
-  the keys a macro is on are listed and linked instead). A list on the left and the one picked on the right, two
-  columns from 42rem; no tabs. The page's own addresses: `#/shortcuts/macro/1` opens Macro 1 (`shortcuts/route.ts`).
-  - *The list* (`shortcuts/MacroList.tsx`): the shared macro space as a bar ("Room for about 863 more characters ·
-    63 of 926 bytes used"), then every macro: its name (the user's, or "Macro 1"), QMK's name (M0), "Not saved"
-    while it has a draft, how many keys run it, and a one-line summary (`shortcuts/describe.ts`: "Types
-    “hello@example.com”", "Ctrl + A, waits 0.05 s, Ctrl + C", "Empty"). Under *More options*, the other kinds of
-    shortcut (multi-tap keys, key chords, shortcut replacements, repeat rules), each with its QMK name and how many
-    the keyboard has room for, marked "Coming soon"; each becomes a section of the list like the macros'.
+- **Shortcuts & macros** (`Shortcuts.tsx`, `shortcuts/`): full height, no stage (the editors need the room, and
+  the keys a shortcut is on are listed and linked instead). A list on the left and the one picked on the right, two
+  columns from 42rem; no tabs. The page's own addresses (`shortcuts/route.ts`): `#/shortcuts/macro/1` opens Macro 1,
+  likewise `multi-tap/N`, `chord/N`, `replacement/N` and `repeat/N`; numbers start at 1, as on screen.
+  - *The list* (`shortcuts/ShortcutList.tsx`): one section per kind: Macros, then under *More options* (open by
+    itself while any of them is in use or open) Multi-tap keys, Key chords, Shortcut replacements and Repeat rules.
+    Each section has its name, help, QMK name and "2 of 16 used", and "Add", which opens the next free slot. It lists
+    only the slots in use, being edited or open, so 80 slots stay a short list: each with its title ("Macro 1" or
+    the user's name, "Key chord 3"), QMK's name where it has one (M0, TD(0)), "Not saved" while it has a draft, how
+    many keys run it (macros, multi-tap keys), and a one-line summary (`shortcuts/describe.ts`: "Types
+    “hello@example.com”", "J + K together → Escape", "Shift + Backspace → Delete", "Tap: Escape · Double tap: Caps
+    Lock", "After Ctrl + Z → Ctrl + Y", "(off)" for one turned off). Macros also show their shared space as a bar
+    ("Room for about 863 more characters · 63 of 926 bytes used").
+  - *The other editors* (`shortcuts/EntryEditor.tsx` with `ChordEditor`, `OverrideEditor`, `TapDanceEditor`,
+    `RepeatEditor`): a title ("Key chord 3", "Combos"), saved or "Not saved yet" with Save to keyboard, Revert and
+    what stands in the way (`entryProblem`; "Unlock and save…" only when it holds QK_BOOT where the firmware checks),
+    a sentence or two on the idea and a "Try: …" button that fills in a ready example, then the fields, More
+    options, and "Clear this …". A key is keycaps, its name and "Change…" (the Keys page's palette with Ctrl, Shift,
+    Alt and Win to tick); optional ones can be removed. Modifiers are Ctrl, Shift, Alt and Win checkboxes meaning
+    either side; left and right apart only under More options.
+    - *Key chord*: the keys are clicked on a small picture of the base layer (marked once in the chord, a click
+      again takes one out), with each as a keycap and an × beside it; a chord holds what those keys send there (J,
+      K), not their positions, so it follows a key that moves. Then what it sends. More options: a key from the
+      palette, for one that isn't on the base layer. Works on its own once saved; the timing is a typing setting.
+    - *Shortcut replacement*: hold (modifiers), and press (key), to send instead (key), let go of while sending
+      (modifiers), on / off. More options: the three modifier sets left and right apart (must be held, must not be
+      held, let go of), the layers it works on, and the six option flags in words.
+    - *Multi-tap key*: tap, hold, tap twice; More options: tap then hold, and how long counts as a hold (ms, with
+      150 – 300 ms choices). "Runs when you press" lists the keys with its TD(n), as for macros.
+    - *Repeat rule*: after (key), the repeat key sends (key), on / off; More options: modifiers it still applies
+      with, both ways, left and right the same, and fallback for every other key. "Runs when you press" lists where
+      the alternate repeat key (QK_AREP) is.
   - *The editor* (`shortcuts/MacroEditor.tsx`): the name (an inline field; names live in the browser per keyboard,
     `shell/layer-names.ts` `renameMacro`), whether it matches the keyboard or is "Not saved yet", and while it isn't:
     "Save to keyboard" (or, locked, "Unlock and save…", which opens the unlock dialog and writes nothing), Revert,
@@ -302,8 +331,9 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     options*, *Hold a key down* and *Let a key go*, with why. A step's problem shows under it in red
     (`stepProblem`). *Record what I type* (`shortcuts/Recorder.tsx`) and the bytes this macro takes against the
     room left close the card.
-  - *Drafts* (`shortcuts/drafts.ts`): an edit is a draft per keyboard and macro, kept outside React, so leaving the
-    page and coming back finds it; a draft equal to the saved macro is dropped. While any draft exists the browser
+  - *Drafts* (`shortcuts/drafts.ts`): an edit is a draft per keyboard, kind and slot, kept outside React, so leaving
+    the page and coming back finds it; a draft equal to what is saved is dropped (two empty entries count as equal,
+    whatever their other fields; an empty slot is edited from the defaults: 200 ms, every layer). While any draft exists the browser
     asks before the tab is closed or reloaded. Navigation inside the app is never blocked.
   - *Recording*: while recording, key events in the window are captured (and kept from doing anything else) and
     turned into steps by `stepsFromRecording`: a press and release is a tap, keys tapped with only modifiers held
@@ -356,12 +386,14 @@ stage pages keeps the layer and selection:
 - A different keyboard connecting (or none) resets the stage.
 - **Height** (`stage-size.ts`, applied as CSS in `Stage.tsx`): the stage shares the main area between the page
   title and the status line with the page. Left alone it is as tall as the picture wants at this width (the picture
-  shrinks with the width and never grows past its own drawing size), at most half of that shared space. The picture
+  shrinks with the width and never grows past its own drawing size), at most half of that shared space, but never
+  so little that the keys get smaller than 24 px (`LEGIBLE_KEY`, worked out from the picture's own size and the
+  widget's 1u, so it holds for any keyboard): in a small window half can be too little. The picture
   fits the box it is given, width and height, keeping its shape (`KeyboardPicture`'s `fit`). The handle on its
   bottom edge (`ui/ResizeHandle.tsx`) makes it shorter or taller by dragging (mouse or touch) or with the
   keyboard (arrows, Page Up / Down, Home / End; it is a focusable separator); double-click or Enter goes back to
   automatic. The chosen size is remembered in the browser as a share of the shared space (pref `stage-size`), so it
-  follows the window. It never goes below room for a 120 px picture (and, with the layers as a row above it, the
+  follows the window. The handle can go below the legible size, but never below room for a 120 px picture (and, with the layers as a row above it, the
   row), and that minimum wins over the cap in a very short window. Beside the picture, the layer stack scrolls
   within itself when the stage is shorter than it; as a row above the picture it is always shown whole. Pages under
   the stage, like the Keys inspector, take the rest and follow the handle as it moves.
@@ -400,6 +432,8 @@ one shot (theme, "More options" open) shows in another. `EDGE=<path>` points it 
 - `deviceStore.saveMacro(index, steps)` saves one macro (see "Macros"). Undo and redo take a saved macro back and
   forth like a key, but only while the keyboard is unlocked; locked, they leave the step where it is and set
   `writeError` to `MACRO_UNDO_LOCKED`.
+- `deviceStore.saveEntry(kind, index, entry)` saves one tap dance, combo, key override or alt repeat entry (see
+  "Tap dance, combos, key overrides, alt repeat"); one undo step.
 - `deviceStore.setWirelessTimers({ backlitTime, idleTime })` sets Keychron's wireless timers (`0xA7 0x0C`); the
   keyboard saves them itself. Pairs the firmware would refuse (lights-off under 5 s, sleep under 60 s) or that put
   sleep before lights-off are not sent (`timersProblem`). Writing them while wirelessly connected makes the
@@ -433,6 +467,30 @@ type MacroStep =
 - `macroUses(keyboard, index)` lists the keys and knob turns whose keycode is that macro (`macroKeycode`: QMK's M0 …).
 - The names users give macros live in the browser per keyboard (`shell/layer-names.ts`: `useStoredMacroNames`,
   `renameMacro`, `setMacroNames`), and travel in the backup file.
+
+## Tap dance, combos, key overrides, alt repeat
+
+Vial keeps four more kinds of entry, each in a fixed number of slots (16 each on the K15 Max); a slot whose keys
+are all empty does nothing (`entryIsEmpty`). The store reads them all at load (`DeviceState.entries`), with the
+vendored types (vial.h's structs), which `device/entries.ts` builds on:
+
+| Kind (on screen) | Fields | Notes |
+|---|---|---|
+| Multi-tap key (tap dance) | `onTap`, `onHold`, `onDoubleTap`, `onTapHold`, `tappingTerm` (ms) | Works once its `TD(n)` is on a key (`tapDanceKeycode`) |
+| Key chord (combo) | `key1` – `key4` (packed to the front, `withChordKeys`), `output` | Keys are keycodes, not positions. The chord time is the global QMK setting |
+| Shortcut replacement (key override) | `triggerKey`, `replacementKey`, `layers` (bit per layer), `triggerMods`, `negativeMods`, `suppressedMods`, `options`, `enabled` | Mods are 8-bit masks, left in bits 0-3, right in 4-7; both sides set = either (`MOD_PAIRS`, `modsText`). `OVERRIDE_OPTIONS` are vial.h's bits; the default is the three activations |
+| Repeat rule (alt repeat) | `lastKey`, `altKey`, `allowedMods`, `options`, `enabled` | Needs QK_ALT_REPEAT_KEY on the keyboard (`altRepeatKeycode`). `REPEAT_OPTIONS`: fallback for every other key, both ways, left/right the same |
+
+- `emptyEntry(kind)` gives the defaults a new entry starts from (200 ms, every layer, the default options, on);
+  `entriesMatch` treats two empty entries as the same. `entryProblem` says in words what keeps one from being saved
+  (a chord with fewer than two keys, a repeated key or no output, a replacement without a key or a layer …); an
+  empty entry always saves, which clears the slot.
+- `DeviceStore.saveEntry(kind, index, entry)` resolves `'saved'`, `'unchanged'`, `'locked'`, `'invalid'` or
+  `'failed'`. vial.c needs no unlock for these writes, but while locked it replaces QK_BOOT with nothing in the
+  fields it checks (a tap dance's four keys, a combo's output, an override's replacement, a repeat rule's two keys);
+  such an entry resolves `'locked'` without sending anything, and undoing into one while locked sets `writeError` to
+  `ENTRY_UNDO_LOCKED`. A saved entry is one undo step.
+- The Keys palette has two groups for them: *Multi-tap keys* (`TD(0)` …) and *Repeat keys* (Repeat, Alt Repeat).
 
 ## Backups
 
@@ -507,6 +565,11 @@ only; `?demo-wireless` connects it through the receiver with the K15 Max's wirel
 Its macro buffer starts with three examples (`DEMO_MACROS` in `demo-link.ts`): an e-mail address, Ctrl + A then
 Ctrl + C, and Win + R, wait, "notepad", Enter. Macro 1 is also on Fn + P on the Windows layers; the K15's own M1 –
 M5 keys already run macros 2 – 6.
+
+It also has two of each other kind (`DEMO_ENTRIES`): multi-tap keys Esc / Caps Lock (on Fn + Caps Lock on the
+Windows layers) and Ctrl + C / Ctrl + V; key chords J + K → Esc and D + F → Tab; Shift + Backspace → Delete and
+Shift + Esc → ~; after Ctrl + Z the repeat key sends Ctrl + Y, and Home ↔ End. The alternate repeat key is on Fn2 +
+Space.
 
 ## How it talks to the keyboard
 

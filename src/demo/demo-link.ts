@@ -26,12 +26,57 @@ function demoMacros(): number[] {
   return [...buffer, ...new Array<number>(DEMO_MACRO_BYTES - buffer.length).fill(0)]
 }
 
-/** QMK's M0 for Vial protocol 6, put on Fn + P on the Windows layers, so the page shows a macro in use. */
+/**
+ * Vial protocol 6 keycodes put on the demo's keymap so the Shortcuts page shows its examples in use: M0 on Fn + P,
+ * TD(0) on Fn + Caps Lock (Windows layers), and the alternate repeat key on Fn2 + Space.
+ */
 const M0 = 0x7700
+const TD0 = 0x5700
+const ALT_REPEAT = 0x7c7a
 function withMacroKey(keymap: number[][][]): number[][][] {
   keymap[WINDOWS_LAYER + 1][2][11] = M0
+  keymap[WINDOWS_LAYER + 1][3][1] = TD0
+  keymap[4][5][5] = ALT_REPEAT
   return keymap
 }
+
+const le16 = (v: number) => [v & 0xff, v >> 8]
+const CTRL = 0x0100
+const SHIFT_EITHER = 0x22
+const KO_ENABLED = 0x80
+const AREP_ENABLED = 0x08
+
+/**
+ * Example entries, as the keyboard stores them (vial.h's structs, little-endian), one or two of each kind:
+ * multi-tap keys Esc / Caps Lock and copy / paste; key chords J + K → Esc and D + F → Tab; Shift + Backspace →
+ * Delete and Shift + Esc → ~; after Ctrl + Z the repeat key sends Ctrl + Y, and after Home, End.
+ */
+const DEMO_ENTRIES = {
+  tapDance: [
+    [...le16(0x29), ...le16(0), ...le16(0x39), ...le16(0), ...le16(200)],
+    [...le16(CTRL | 0x06), ...le16(CTRL | 0x19), ...le16(0), ...le16(0), ...le16(200)],
+  ],
+  combo: [
+    [...le16(0x0d), ...le16(0x0e), ...le16(0), ...le16(0), ...le16(0x29)],
+    [...le16(0x07), ...le16(0x09), ...le16(0), ...le16(0), ...le16(0x2b)],
+  ],
+  keyOverride: [
+    [...le16(0x2a), ...le16(0x4c), ...le16(0xffff), SHIFT_EITHER, 0, SHIFT_EITHER, KO_ENABLED | 0b111],
+    [...le16(0x29), ...le16(0x35), ...le16(0xffff), SHIFT_EITHER, 0, 0, KO_ENABLED | 0b111],
+  ],
+  altRepeatKey: [
+    [...le16(CTRL | 0x1d), ...le16(CTRL | 0x1c), 0, AREP_ENABLED],
+    [...le16(0x4a), ...le16(0x4d), 0, AREP_ENABLED | 0x02],
+  ],
+}
+/** Unused slots: all zero. */
+const demoEntries = () =>
+  Object.fromEntries(
+    Object.entries(DEMO_ENTRIES).map(([kind, list]) => [
+      kind,
+      Array.from({ length: 16 }, (_, i) => [...(list[i] ?? new Array<number>(10).fill(0))]),
+    ]),
+  )
 
 /** The plain demo's Keychron commands: the default layer only. */
 const DEMO_KEYCHRON = { protocol: 2, features: 0x01, firmware: 'demo' }
@@ -113,6 +158,7 @@ export function createDemoLink(): DemoLink {
     keymap: withMacroKey(structuredClone(data.keymap)),
     knob: structuredClone(data.knob) as [number, number][],
     counts: { tapDance: 16, combo: 16, keyOverride: 16, altRepeatKey: 16, featureFlags: 0x03 },
+    entryBytes: demoEntries(),
     macroCount: 16,
     macros: demoMacros(),
     // A copy: the fake keyboard keeps what is written in it.

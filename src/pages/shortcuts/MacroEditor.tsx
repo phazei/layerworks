@@ -3,12 +3,11 @@
 // keyboard". Nothing reaches the keyboard until it is saved, and saving needs the keyboard unlocked.
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { CircleCheck, CircleDot, Clock, Keyboard, Lock, Plus, Type } from 'lucide-react'
+import { CircleCheck, CircleDot, Clock, Lock, Plus, Type } from 'lucide-react'
 import {
   deviceStore,
   encodeMacro,
-  keycodeName,
-  macroUses,
+  macroKeycode,
   rawMacros,
   readMacros,
   replaceMacro,
@@ -17,19 +16,16 @@ import {
   useDevice,
   type MacroSaveResult,
   type MacroStep,
-  type Slot,
 } from '../../device'
-import { defaultMacroName, renameMacro, useConnectedLayerNames, useStoredMacroNames } from '../../shell/layer-names'
-import { navigate } from '../../shell/router'
-import { stage } from '../../shell/stage-store'
+import { defaultMacroName, renameMacro, useStoredMacroNames } from '../../shell/layer-names'
 import { openUnlock } from '../../shell/unlock-dialog'
 import { Button, cx, TextInput } from '../../ui/controls'
 import { Card, Disclosure, HelpButton, Notice } from '../../ui/layout'
-import { STEP_NAMES } from './describe'
+import { roomText, STEP_NAMES } from './describe'
 import { draftOf, setDraft, useDrafts } from './drafts'
-import { roomText } from './MacroList'
 import { Recorder } from './Recorder'
 import { StepRow } from './StepRow'
+import { Uses } from './Uses'
 
 const UNLOCK_REASON = 'The keyboard only takes macro changes while it is unlocked.'
 
@@ -62,58 +58,6 @@ function NameField({ uid, index }: { uid: string; index: number }) {
       }}
       className="w-full max-w-72 text-[15px] font-semibold"
     />
-  )
-}
-
-/** Where the macro is on the keyboard; a click shows that key on the Keys page. */
-function Uses({ index }: { index: number }) {
-  const kb = useDevice((s) => s.keyboard)
-  const layer = useDevice((s) => s.layer)
-  const layerNames = useConnectedLayerNames()
-  if (!kb) return null
-  const uses = macroUses(kb, index)
-  const base = layer?.base ?? 0
-  const open = (slot: Slot) => {
-    stage.showLayer(slot.layer)
-    stage.select(slot.kind === 'key' ? { kind: 'key', row: slot.row, col: slot.col } : { kind: 'knob', knob: slot.knob, direction: slot.direction })
-    navigate('/keys')
-  }
-  const where = (slot: Slot) =>
-    slot.kind === 'key'
-      ? `the ${keycodeName(kb.keymap[`${base},${slot.row},${slot.col}`] ?? 0) || 'unlabelled'} key`
-      : `the knob turned ${slot.direction === 0 ? 'left' : 'right'}`
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      <h3 className="flex items-center gap-1.5 text-[13px] font-medium text-muted">
-        <Keyboard size={14} aria-hidden />
-        Runs when you press
-      </h3>
-      {uses.length === 0 ? (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="text-[13px] text-muted">
-            No key runs it yet. On the Keys page, click a key and pick “{defaultMacroName(index)}” under Macros.
-          </span>
-          <Button size="sm" onClick={() => navigate('/keys')}>
-            Put it on a key…
-          </Button>
-        </div>
-      ) : (
-        <ul className="flex flex-wrap gap-1.5">
-          {uses.map((slot) => (
-            <li key={`${slot.layer}:${slot.kind === 'key' ? `${slot.row},${slot.col}` : `k${slot.knob},${slot.direction}`}`}>
-              <button
-                type="button"
-                onClick={() => open(slot)}
-                className="cursor-pointer rounded-pill border border-edge bg-raised px-3 py-1 text-[13px] hover:border-accent hover:text-accent"
-              >
-                {layerNames[slot.layer] ?? `Layer ${slot.layer}`}: {where(slot)}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   )
 }
 
@@ -237,7 +181,7 @@ export function MacroEditor({ index }: { index: number }) {
               onRevert={() => edit(saved)}
             />
           )}
-          <Uses index={index} />
+          <Uses code={macroKeycode(index)} howTo={`On the Keys page, click a key and pick “${defaultMacroName(index)}” under Macros.`} />
         </header>
 
         <section aria-label="Steps" className="flex flex-col gap-2">

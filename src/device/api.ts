@@ -81,6 +81,32 @@ export {
   untypable,
 } from './macros'
 export type { MacroSpace, MacroStep, RecordedKey, RecordOptions } from './macros'
+export { keycodeUses } from './macros'
+export { bootKeycode, ENTRY_KINDS, entryNeedsUnlock } from './restore'
+export type { EntryKind } from './restore'
+export { ENTRY_UNDO_LOCKED } from './store'
+export type { EntrySaveResult } from './store'
+export {
+  ALL_LAYERS,
+  altRepeatKeycode,
+  chordKeys,
+  DEFAULT_TAPPING_TERM,
+  emptyEntry,
+  entriesMatch,
+  entryIsEmpty,
+  entryProblem,
+  MAX_TAPPING_TERM,
+  MOD_KEYS,
+  MOD_PAIRS,
+  modsText,
+  OVERRIDE_DEFAULT_OPTIONS,
+  OVERRIDE_OPTIONS,
+  REPEAT_OPTIONS,
+  sameEntry,
+  tapDanceKeycode,
+  withChordKeys,
+} from './entries'
+export type { AltRepeatKeyEntry, AnyEntry, ComboEntry, EntryOf, KeyOverrideEntry, TapDanceEntry } from './entries'
 
 export { posKey } from '../vendor/pipette/shared/kle/pos-key'
 export type { KleKey, KeyboardLayout } from '../vendor/pipette/shared/kle/types'

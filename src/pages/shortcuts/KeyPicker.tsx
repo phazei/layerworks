@@ -12,12 +12,16 @@ interface Props {
   shortcuts: boolean
   onPick: (key: number) => void
   onClose: () => void
+  /** Palette groups left out. Default: the keys that run other shortcuts (macros, multi-tap keys, repeat keys). */
+  exclude?: string[]
 }
 
-export function KeyPicker({ current, shortcuts, onPick, onClose }: Props) {
+const SHORTCUT_GROUPS = ['macros', 'tapDance', 'repeat']
+
+export function KeyPicker({ current, shortcuts, onPick, onClose, exclude = SHORTCUT_GROUPS }: Props) {
   const keyboard = useDevice((s) => s.keyboard)
-  // Built once the keyboard's tables are in; macros can't run other macros' keys usefully, so those are left out.
-  const groups = useMemo(() => (keyboard ? keyPalette().filter((g) => g.id !== 'macros') : []), [keyboard])
+  // Built once the keyboard's tables are in.
+  const groups = useMemo(() => (keyboard ? keyPalette().filter((g) => !exclude.includes(g.id)) : []), [keyboard, exclude])
   const now = readShortcut(current)
   const [mods, setMods] = useState(shortcuts ? (now?.mods ?? 0) : 0)
   const base = now ? now.key : current

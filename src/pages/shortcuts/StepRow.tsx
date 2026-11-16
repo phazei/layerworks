@@ -58,7 +58,7 @@ function WaitEditor({ ms, label, onChange }: { ms: number; label: string; onChan
 }
 
 /** A key as keycaps: a shortcut's modifiers first, then its key. */
-function Caps({ code }: { code: number }) {
+export function Caps({ code }: { code: number }) {
   const shortcut = readShortcut(code)
   if (!shortcut) return <KeyCap label={keycodeName(code)} />
   return (

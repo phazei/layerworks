@@ -1,13 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Macros being edited and not saved yet, one draft per keyboard and macro. Kept outside React, so leaving the page
-// and coming back finds them as they were; lost when the page is reloaded, which the browser asks about first.
+// Shortcuts being edited and not saved yet: one draft per keyboard, kind and slot (a macro's steps, or a tap dance,
+// combo, key override or alt repeat entry). Kept outside React, so leaving the page and coming back finds them as
+// they were; lost when the page is reloaded, which the browser asks about first.
 
 import { useSyncExternalStore } from 'react'
-import type { MacroStep } from '../../device'
+import type { AnyEntry, EntryKind, MacroStep } from '../../device'
+import { setUnsaved } from '../../shell/unsaved'
+import { shortcutHref } from './route'
 
-let drafts = new Map<string, MacroStep[]>()
+/** What a draft can be for: a macro, or one of the entry kinds. */
+export type DraftKind = 'macro' | EntryKind
+
+let drafts = new Map<string, unknown>()
 const listeners = new Set<() => void>()
-const key = (uid: string, index: number) => `${uid}:${index}`
+const key = (uid: string, kind: DraftKind, index: number) => `${uid}:${kind}:${index}`
 
 function changed(): void {
   drafts = new Map(drafts)
@@ -15,21 +21,46 @@ function changed(): void {
   syncLeaveWarning()
 }
 
-/** Sets the draft of a macro; null drops it (saved, or reverted). */
-export function setDraft(uid: string, index: number, steps: MacroStep[] | null): void {
-  if (steps === null) {
-    if (!drafts.has(key(uid, index))) return
-    drafts.delete(key(uid, index))
+function put(id: string, value: unknown): void {
+  if (value === null) {
+    if (!drafts.has(id)) return
+    drafts.delete(id)
   } else {
-    drafts.set(key(uid, index), steps)
+    drafts.set(id, value)
   }
   changed()
 }
 
-export const getDraft = (uid: string, index: number): MacroStep[] | undefined => drafts.get(key(uid, index))
+/** Sets the draft of a macro; null drops it (saved, or reverted). */
+export function setDraft(uid: string, index: number, steps: MacroStep[] | null): void {
+  put(key(uid, 'macro', index), steps)
+  announce(uid, 'macro', index, steps !== null)
+}
 
-/** Every draft, for marking unsaved macros. */
-export function useDrafts(): ReadonlyMap<string, MacroStep[]> {
+// The status line shows drafts as unsaved work (shell/unsaved.ts), leading back to them.
+const NAMES: Record<DraftKind, [string, string]> = {
+  macro: ['Macro', 'macros'],
+  tapDance: ['Multi-tap key', 'multi-tap keys'],
+  combo: ['Key chord', 'key chords'],
+  keyOverride: ['Shortcut replacement', 'shortcut replacements'],
+  altRepeatKey: ['Repeat rule', 'repeat rules'],
+}
+function announce(uid: string, kind: DraftKind, index: number, unsaved: boolean): void {
+  const [one, many] = NAMES[kind]
+  setUnsaved(key(uid, kind, index), unsaved ? { label: `${one} ${index + 1}`, group: many, href: shortcutHref(kind, index), keyboard: uid } : null)
+}
+
+export const getDraft = (uid: string, index: number): MacroStep[] | undefined =>
+  drafts.get(key(uid, 'macro', index)) as MacroStep[] | undefined
+
+/** Sets the draft of a tap dance, combo, key override or alt repeat entry; null drops it. */
+export function setEntryDraft(uid: string, kind: EntryKind, index: number, entry: AnyEntry | null): void {
+  put(key(uid, kind, index), entry)
+  announce(uid, kind, index, entry !== null)
+}
+
+/** Every draft, for marking unsaved ones. */
+export function useDrafts(): ReadonlyMap<string, unknown> {
   return useSyncExternalStore(
     (listener) => {
       listeners.add(listener)
@@ -39,10 +70,18 @@ export function useDrafts(): ReadonlyMap<string, MacroStep[]> {
   )
 }
 
-export const draftOf = (all: ReadonlyMap<string, MacroStep[]>, uid: string, index: number) => all.get(key(uid, index))
+export const draftOf = (all: ReadonlyMap<string, unknown>, uid: string, index: number) =>
+  all.get(key(uid, 'macro', index)) as MacroStep[] | undefined
+
+export const entryDraftOf = (all: ReadonlyMap<string, unknown>, uid: string, kind: EntryKind, index: number) =>
+  all.get(key(uid, kind, index)) as AnyEntry | undefined
+
+/** How many drafts there are: shortcuts with unsaved changes. */
+export const draftCount = (): number => drafts.size
 
 /** Drops every draft (tests). */
 export function clearDrafts(): void {
+  for (const id of drafts.keys()) setUnsaved(id, null)
   drafts = new Map()
   changed()
 }

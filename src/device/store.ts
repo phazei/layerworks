@@ -45,6 +45,8 @@ import {
 } from './restore'
 import { timersProblem, type WirelessTimers } from './wireless'
 import { encodeMacro, rawMacros, replaceMacro, stepProblem, type MacroStep } from './macros'
+import { entryProblem, sameEntry, type AnyEntry, type EntryOf } from './entries'
+import type { EntryKind } from './restore'
 
 export interface LinkInfo {
   kind: LinkKind
@@ -136,7 +138,22 @@ interface Edit {
   changes: { slot: Slot; from: number; to: number }[]
   /** The macro buffer before and after a macro was saved. */
   macros?: { from: number[]; to: number[] }
+  /** A saved tap dance, combo, key override or alt repeat entry, before and after. */
+  entry?: { kind: EntryKind; index: number; from: AnyEntry; to: AnyEntry }
 }
+
+/** How saving a tap dance, combo, key override or alt repeat entry went. */
+export type EntrySaveResult =
+  | 'saved'
+  | 'unchanged'
+  /** Not attempted: it holds the firmware-update key, which the keyboard only takes while unlocked. */
+  | 'locked'
+  /** Not attempted: `entryProblem` says why, or the slot doesn't exist or hasn't been read. */
+  | 'invalid'
+  | 'failed'
+
+/** Said when undo or redo would write an entry holding QK_BOOT while the keyboard is locked. */
+export const ENTRY_UNDO_LOCKED = 'Undoing this change needs the keyboard unlocked (it holds the firmware-update key).'
 
 /** How saving a macro went. */
 export type MacroSaveResult =
@@ -263,6 +280,12 @@ export interface DeviceStore {
    * A saved macro is one undo step (undo needs the keyboard unlocked too).
    */
   saveMacro(index: number, steps: MacroStep[]): Promise<MacroSaveResult>
+  /**
+   * Saves one tap dance, combo, key override or alt repeat entry; the others stay as they are. An entry holding
+   * QK_BOOT in a place vial-qmk checks needs the keyboard unlocked: locked, it resolves 'locked' and sends
+   * nothing. One undo step.
+   */
+  saveEntry<K extends EntryKind>(kind: K, index: number, entry: EntryOf<K>): Promise<EntrySaveResult>
   /**
    * Writes a restore plan (./restore) to the keyboard, part by part, as one change in the queue. Writes that need
    * the keyboard unlocked are skipped while it is locked. Key and knob changes become one undo step. Layer names
@@ -546,6 +569,15 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       const [before, after] = from === 'undo' ? [edit.macros.to, edit.macros.from] : [edit.macros.from, edit.macros.to]
       if (!(await writeMacroBuffer(before, after))) return
     }
+    if (edit.entry) {
+      const { kind, index } = edit.entry
+      const value = from === 'undo' ? edit.entry.from : edit.entry.to
+      if (!state.unlock?.unlocked && entryNeedsUnlock(kind, value, bootKeycode())) {
+        set({ writeError: ENTRY_UNDO_LOCKED })
+        return
+      }
+      if (!(await writeEntry(kind, index, value))) return
+    }
     // A group is taken back last change first. If a write fails the step stays, so it can be tried again; the
     // writes that did go through are harmless to repeat.
     const changes = from === 'undo' ? [...edit.changes].reverse() : edit.changes
@@ -635,6 +667,37 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     if (!state.unlock?.unlocked) return 'locked'
     if (!(await writeMacroBuffer(buffer, next.buffer))) return 'failed'
     remember({ changes: [], macros: { from: buffer, to: next.buffer } })
+    return 'saved'
+  }
+
+  const ENTRY_SETTERS = {
+    tapDance: protocol.setTapDance,
+    combo: protocol.setCombo,
+    keyOverride: protocol.setKeyOverride,
+    altRepeatKey: protocol.setAltRepeatKey,
+  } as Record<EntryKind, (index: number, entry: AnyEntry) => Promise<void>>
+
+  /** Writes one entry and shows it. */
+  function writeEntry(kind: EntryKind, index: number, entry: AnyEntry): Promise<boolean> {
+    return write(
+      () => ENTRY_SETTERS[kind](index, entry),
+      () => {
+        if (!state.entries) return {}
+        const list = [...(state.entries[kind] as AnyEntry[])]
+        list[index] = { ...entry }
+        return { entries: { ...state.entries, [kind]: list } }
+      },
+    )
+  }
+
+  async function saveEntry(kind: EntryKind, index: number, entry: AnyEntry): Promise<EntrySaveResult> {
+    const now = (state.entries?.[kind] as AnyEntry[] | undefined)?.[index]
+    if (!now) return 'invalid'
+    if (sameEntry(now, entry)) return 'unchanged'
+    if (entryProblem(kind, entry) !== null) return 'invalid'
+    if (!state.unlock?.unlocked && entryNeedsUnlock(kind, entry, bootKeycode())) return 'locked'
+    if (!(await writeEntry(kind, index, entry))) return 'failed'
+    remember({ changes: [], entry: { kind, index, from: { ...now }, to: { ...entry } } })
     return 'saved'
   }
 
@@ -908,6 +971,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     unlock,
     lock: () => inOrder(lock),
     saveMacro: (index, steps) => inOrder(() => saveMacro(index, steps)),
+    saveEntry: (kind, index, entry) => inOrder(() => saveEntry(kind, index, entry)),
     restore: (plan, onProgress) => inOrder(() => restore(plan, onProgress)),
     setWirelessTimers: (timers) => inOrder(() => setWirelessTimers(timers)),
     watchMatrix,

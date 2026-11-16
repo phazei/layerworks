@@ -274,6 +274,83 @@ const topics = {
     ],
     example: 'Record, type “Kind regards,”, tap Enter, type your name, stop.',
   },
+  'tap-dance': {
+    title: 'Multi-tap keys',
+    qmkName: 'Tap dance, TD(0) – TD(15)',
+    body: [
+      'One key that does different things depending on how you press it: a tap, a hold, two quick taps, or a tap followed by a hold. Leave any of them empty if you don’t need it.',
+      'It only works once it is on a key: on the Keys page, click a key and pick it under Multi-tap keys.',
+    ],
+    example: 'Tap for Esc, tap twice for Caps Lock: Caps Lock is still there but hard to hit by accident.',
+    docs: QMK + 'features/tap_dance',
+  },
+  'tapping-term': {
+    title: 'How long counts as a hold',
+    qmkName: 'Tapping term',
+    body: [
+      'How long the key must stay down to count as held rather than tapped, and how quickly a second tap must follow to count as a double tap. Each multi-tap key has its own; 200 ms suits most people.',
+      'Shorter makes taps quicker but holds easier to trigger by accident; longer the other way round.',
+    ],
+    example: 'If a double tap often comes out as two single taps, raise it to 250 ms.',
+    docs: QMK + 'tap_hold#tapping-term',
+  },
+  combos: {
+    title: 'Key chords',
+    qmkName: 'Combos',
+    body: [
+      'Press two to four keys at the same moment and the keyboard sends something else instead of them. Pressed one after the other, they type as usual.',
+      'A chord works on its own once saved, on every layer. The keys are named by what they send (J, K), not by where they are, so a chord follows a key you move. How close together the presses must be is a typing setting (Typing feel page).',
+    ],
+    example: 'J and K together for Esc: no need to reach for the corner.',
+    docs: QMK + 'features/combo',
+  },
+  'key-overrides': {
+    title: 'Shortcut replacements',
+    qmkName: 'Key overrides',
+    body: [
+      'When a key is pressed with certain modifiers held, the keyboard sends something else instead. The modifiers can be kept or taken away from what is sent.',
+      'It works on its own once saved, on the layers you pick.',
+    ],
+    example: 'Shift + Backspace sends Delete, with Shift taken away so it isn’t Shift + Delete.',
+    docs: QMK + 'features/key_overrides',
+  },
+  'override-modifiers': {
+    title: 'Modifiers in a shortcut replacement',
+    qmkName: 'trigger_mods, negative_mod_mask, suppressed_mods',
+    body: [
+      'Trigger: the modifiers that must be held. Ctrl means either Ctrl key; tick Left or Right only to tell them apart.',
+      'Must not be held: if any of these is down, the replacement doesn’t happen. Taken away: modifiers held for the trigger that are let go while the replacement is sent, so Shift + Backspace gives Delete rather than Shift + Delete.',
+    ],
+    docs: QMK + 'features/key_overrides',
+  },
+  'override-options': {
+    title: 'When a shortcut replacement starts and ends',
+    qmkName: 'ko_option_*',
+    body: [
+      'By default it starts whichever comes last: the key pressed with the modifiers held, a modifier pressed while the key is held, or a modifier it must not see let go. Untick any of these to be stricter.',
+      '“Any one of the modifiers” makes one of the trigger modifiers enough. The last two decide what happens to the original key afterwards; leave them alone unless something feels wrong.',
+    ],
+    docs: QMK + 'features/key_overrides#key-override-options',
+  },
+  'alt-repeat': {
+    title: 'Repeat rules',
+    qmkName: 'Alt repeat key, QK_AREP',
+    body: [
+      'The alternate repeat key does the “opposite” of the key you pressed last: after Ctrl + Z, Ctrl + Y; after Page Up, Page Down. A rule says what it sends after a given key; without a rule it has a few built in (arrows, Page Up/Down …).',
+      'It needs the key itself on the keyboard: on the Keys page, click a key and pick “Alt Repeat” under Repeat keys.',
+    ],
+    example: 'After Ctrl + Z, the alternate repeat key sends Ctrl + Y: undo with one hand, redo with the other.',
+    docs: QMK + 'features/repeat_key',
+  },
+  'repeat-options': {
+    title: 'Repeat rule options',
+    qmkName: 'Alt repeat options',
+    body: [
+      'Modifiers it allows: the rule still applies when these are held with the last key (Shift + Ctrl + Z, for example). Both ways: after the second key, the repeat key sends the first one. Left or right the same: a right Ctrl counts like a left one.',
+      '“Fallback for every other key”: after any key that no rule covers, the alternate repeat key sends this rule’s key.',
+    ],
+    docs: QMK + 'features/repeat_key',
+  },
 } satisfies Record<string, HelpTopic>
 
 export type HelpTopicId = keyof typeof topics

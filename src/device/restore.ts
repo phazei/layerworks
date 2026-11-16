@@ -367,7 +367,7 @@ export function planRestore(
 }
 
 /** An entry that does nothing: all keycodes 0. Unused slots beyond a keyboard's count aren't worth mentioning. */
-function isEmptyEntry(kind: EntryKind, entry: object): boolean {
+export function isEmptyEntry(kind: EntryKind, entry: object): boolean {
   const e = entry as Record<string, unknown>
   const keys: Record<EntryKind, string[]> = {
     tapDance: ['onTap', 'onHold', 'onDoubleTap', 'onTapHold'],

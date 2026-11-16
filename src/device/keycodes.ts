@@ -167,6 +167,8 @@ export function keyPalette(): PaletteGroup[] {
     { id: 'lighting', title: 'Lighting controls', keys: entries(tables.KEYCODES_LIGHTING_RGB.filter((k) => SHARED_LIGHTING.has(k.qmkId))) },
     { id: 'keyboard', title: 'This keyboard', keys: entries(tables.KEYCODES_USER) },
     { id: 'macros', title: 'Macros', keys: entries(tables.KEYCODES_MACRO_M) },
+    { id: 'tapDance', title: 'Multi-tap keys', keys: entries(tables.KEYCODES_TAP_DANCE) },
+    { id: 'repeat', title: 'Repeat keys', keys: entries(tables.KEYCODES_BEHAVIOR_REPEAT) },
   ]
   return groups.filter((group) => group.keys.length > 0)
 }

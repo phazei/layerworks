@@ -28,7 +28,7 @@ async function show(path = '#/shortcuts', { unlocked = false } = {}): Promise<vo
   render(<Shell />)
 }
 
-const macroList = () => screen.getByRole('navigation', { name: 'Macros' })
+const macroList = () => screen.getByRole('region', { name: 'Macros' })
 const steps = () => within(screen.getByRole('region', { name: 'Steps' }))
 const savedMacro = (i: number) => {
   const { keyboard, macros } = deviceStore.getState()
@@ -51,28 +51,24 @@ afterEach(async () => {
 })
 
 describe('the list', () => {
-  it('shows every macro with what it does, where it is and the space they share', async () => {
+  it('shows the macros in use with what they do, where they are and the space they share', async () => {
     await show()
     const list = macroList()
     const links = within(list).getAllByRole('link')
-    expect(links).toHaveLength(16)
+    expect(links).toHaveLength(3)
+    expect(list).toHaveTextContent('3 of 16 used')
     expect(links[0]).toHaveTextContent('Macro 1M0')
     expect(links[0]).toHaveTextContent('Types “hello@example.com”')
     expect(links[1]).toHaveTextContent('Ctrl + A, waits 0.05 s, Ctrl + C')
     expect(links[0]).toHaveTextContent('on 1 key')
-    expect(links[15]).toHaveTextContent('Empty')
     expect(screen.getByText(/Room for about \d+ more characters · \d+ of 926 bytes used/)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Pick a macro' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Pick a shortcut' })).toBeInTheDocument()
   })
 
-  it('has the other kinds of shortcut under More options, coming soon', async () => {
+  it('opens the next free macro with Add', async () => {
     await show()
-    const more = screen.getByRole('button', { name: 'More options' })
-    if (more.getAttribute('aria-expanded') !== 'true') fireEvent.click(more)
-    const kinds = screen.getByRole('list', { name: 'Other kinds of shortcut' })
-    expect(kinds).toHaveTextContent('Multi-tap keysTap danceComing soon')
-    expect(kinds).toHaveTextContent('Key chordsCombos')
-    expect(kinds).toHaveTextContent('This keyboard has room for 16.')
+    fireEvent.click(screen.getByRole('button', { name: 'Add a macro' }))
+    await waitFor(() => expect(location.hash).toBe('#/shortcuts/macro/4'))
   })
 })
 
