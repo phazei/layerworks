@@ -21,7 +21,9 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
   recording; multi-tap keys, key chords, shortcut replacements and repeat rules, each with an inline editor;
   drafts saved with "Save to keyboard"), Typing feel (the keyboard's QMK settings by what they feel like, with
   search; Keychron debounce and Snap Click; undoable; reset all). Keys also has "Tap or hold" (mod-tap,
-  layer-tap) and names macros and multi-tap keys in the palette. Lighting has Key by key (paint colours) and
+  layer-tap) and names macros and multi-tap keys in the palette; the palette also has Typing helpers (Caps
+  Word, Layer Lock, Esc/` key, Space Cadet), Swapped and disabled keys (QMK's "magic"), International keys,
+  and a closed "More keys" fold (features on and off, restart, firmware update). Lighting has Key by key (paint colours) and
   Mixed zones (areas with their own effects) for Keychron keyboards; their editors open below the effect
   grid. No page is a placeholder any more.
 - **A first-run tour** (six steps over the real shell) starts by itself once on Home and again from Help or
@@ -47,25 +49,14 @@ Keep building without waiting for approval of mock-ups: build real pages on the 
 section, and let the user react to the result. The user reviews in the browser afterwards, so every package ends
 with screenshots (see `AGENTS.md`) and notes on what to look at.
 
-## In progress right now
-
-One delegated agent is running in the background, session `ses_e1debfc70ffey83TnPHv8IaaIG` (the one that built
-the Keys inspector and palette): **the keys other configurators offer that the palette lacks**. It compares the
-palette with Pipette's and Vial's key lists (joystick buttons, programmable buttons, the "Magic" keys and the
-rest), checks each family against the firmware, adds the ones worth having in plain words, and makes what is
-already there findable ("magic" is on Typing feel as "Swapped and disabled keys"). Files: `src/device/keycodes.ts`,
-`src/pages/keys/*`, help topics and glossary entries for what it adds. Screenshots on port 5195. Its work is
-uncommitted until reviewed.
-
-**When it reports:** run `pnpm typecheck`, `pnpm lint`, `pnpm test` (twice), `pnpm vitest run --sequence.shuffle
-src/pages src/shell src/ui src/device src/help`, `pnpm build`; check its firmware claims against `../vial_qmk`;
-read the screenshots in `%TEMP%\opencode\layerworks-shots\`; commit; delete this section; tell the user what was
-added, what was left out and why.
-
 ## Waiting on the user
 
 - Decided by the user: macros keep their numbers; no moving or swapping. Vial's "negative mods" (a shortcut
   replacement's "must not be held") gets no more attention for now.
+- **For the user to decide** (none urgent): whether key chords may send the new palette groups (they are kept
+  off the Shortcuts page's pickers); whether "make this the base layer permanently" (QMK's `PDF`) joins Switch
+  layer; joystick and programmable buttons are left out of the palette (this firmware has neither; F13-F24 do
+  that job on any keyboard) and stay reachable by typing the QMK code.
 - The user is testing page by page and reports bugs as found; the dev server (`pnpm dev`) is open while agents
   edit, so the user sees work in progress.
 - **To try on the real keyboard** (take a backup first):
