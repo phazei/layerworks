@@ -94,6 +94,9 @@ If the script leaves a server behind (it was killed half-way):
   lighting without telling the app: call `deviceStore.refreshLighting()` before trusting `state.lighting`.
 - Knob turns are not in the key matrix. The Test page sees a turn only through what it sends to the browser
   (volume and media keys, ordinary keys, the mouse wheel).
+- Macros and multi-tap keys are numbered by QMK's own number, on purpose: "Macro 1" is `M1` (the key Keychron
+  prints M1), `M0` is "Macro 0" and comes last in lists and in Add. Don't shift it to count from 1.
+- The tour starts by itself only on Home with no URL options, so screenshots never show it; `?tour=N` forces it.
 - Knob directions: 0 is counter-clockwise (left), 1 is clockwise (right), in Vial's commands and in the store.
 - Changes (`assign`, `undo`, `redo`, `setLighting`) run one at a time inside the store, in the order asked for.
 - WebHID has no serial numbers. The receiver is recognised by its product ID (`0xD000`-`0xDFFF`).

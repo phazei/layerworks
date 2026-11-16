@@ -14,7 +14,8 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
 - **Built pages:** Home (at a glance, what the keyboard can do, shortcuts), Keys (click a key or knob direction;
   a key, a shortcut, a layer key, More options), Lighting (effect grid with previews, lights on/off, brightness,
   speed, colour, plugin panel slot; no keyboard picture until there is a live preview), Settings (theme, layer
-  names, about), Help (topic list), Test (keys seen from browser key events and, once unlocked, from the key
+  names, about, the tour), Help (a guide: topics grouped the way the app is, search that knows QMK's names, a
+  glossary, each topic with its own address), Test (keys seen from browser key events and, once unlocked, from the key
   matrix; knob turns from what they send to the browser), Device (backup and restore to one file, Vial `.vil`
   import and export, sleep timers, keyboard information), Shortcuts & macros (macros with a step editor and
   recording; multi-tap keys, key chords, shortcut replacements and repeat rules, each with an inline editor;
@@ -23,6 +24,11 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
   layer-tap) and names macros and multi-tap keys in the palette. Lighting has Key by key (paint colours) and
   Mixed zones (areas with their own effects) for Keychron keyboards; their editors open below the effect
   grid. No page is a placeholder any more.
+- **A first-run tour** (six steps over the real shell) starts by itself once on Home and again from Help or
+  Settings. The "?" buttons toggle the help panel.
+- **Numbering:** macros and multi-tap keys carry QMK's own number ("Macro 1" is `M1`, the key Keychron prints
+  M1; "Multi-tap 1" is `TD(1)`); number 0 is listed last and used last by Add. Key chords, shortcut
+  replacements and repeat rules count from 1. The user's real keymap holds `M1`-`M5` on its M1-M5 keys.
 - **The keyboard stage** takes at most half of the space it shares with the page and has a resize handle.
 - **Checked by the user on the real keyboard:** assigning keys, undo / redo, lighting, unlock and lock, the Test
   page unlocked (M1-M5, Mute, Fn and Fn2 register), backup, restore and `.vil` restore. The user likes the look,
@@ -41,39 +47,6 @@ Keep building without waiting for approval of mock-ups: build real pages on the 
 section, and let the user react to the result. The user reviews in the browser afterwards, so every package ends
 with screenshots (see `AGENTS.md`) and notes on what to look at.
 
-## In progress right now
-
-Two delegated agents are running in the background (launched with `background: true`; the orchestrator is told
-when each finishes). Their work is uncommitted in the working tree until reviewed. Nothing else should edit their
-files meanwhile.
-
-1. **Help guide and first-run tour** (phase 7), session `ses_e1dbde8fdffe6vAbqPoj1rjpio`. Files: `src/help/*`,
-   `src/pages/Help.tsx`, `src/pages/help/*`, new tour files in `src/ui/` and `src/shell/`, a mount in
-   `src/shell/Shell.tsx`, an entry in Settings, `HelpButton` (the "?" toggles the help panel). Screenshots on
-   port 5196. It was stopped once by the account's rate limit and resumed; if it stops again, resume the same
-   session with "continue from where you stopped".
-2. **The user's feedback on Keys and Shortcuts**, session `ses_e1debfc70ffey83TnPHv8IaaIG`. Files:
-   `src/pages/keys/*`, `src/pages/shortcuts/*`, `src/pages/device/*` (unlock-then-refresh only),
-   `src/ui/picture-labels.ts`, `src/ui/KeyboardPicture.tsx`, `src/device/macros.ts`, `entries.ts`, `keycodes.ts`,
-   `src/demo/*`, `src/shell/StatusLine.tsx`, `unsaved.ts`, `UnlockDialog.tsx`, `unlock-dialog.ts`. Screenshots on
-   port 5195. What it is doing, all decided by the user:
-   - Macros and multi-tap keys carry QMK's own number: "Macro 1" is `M1` (the key Keychron prints M1), "Multi-tap
-     1" is `TD(1)`; number 0 is listed last and used last by Add. Key chords, shortcut replacements and repeat
-     rules keep counting from 1. The demo's example macros move to `M1`-`M3`. The user's real keymap was never
-     changed: its M1-M5 keys hold `M1`-`M5`.
-   - Tap or hold starts from the key's current plain key. No modifier ticked by default ("Modifier for the next
-     key only", "With modifiers held too"). The tap-toggle sentence says the number of taps and where it is set.
-   - Layer keys in the picture read "Hold" over the layer's name instead of `MO(4)`.
-   - "Unlock to save…" saves by itself once unlocking finishes (a restore only refreshes its plan).
-   - Shortcuts & macros: kinds in use, or open, are listed above the "More options" fold.
-
-**When an agent reports:** wait until both are done if they touched shared files (`README.md`,
-`src/help/topics.ts`, `src/main.tsx`, `src/ui/*`, `src/shell/Shell.tsx`). Then run `pnpm typecheck`, `pnpm lint`,
-`pnpm test` (twice), `pnpm vitest run --sequence.shuffle src/pages src/shell src/ui src/device src/help`, and
-`pnpm build`; read the new screenshots in `%TEMP%\opencode\layerworks-shots\`; commit in two commits (feedback,
-then help and tour; shared files with the first); delete this section and move what was learned to its home;
-tell the user what to try.
-
 ## Waiting on the user
 
 - **Open for discussion:**
@@ -81,7 +54,11 @@ tell the user what to try.
     "Swap with another macro" (the two keys trade what they run) or "Copy to…" if the need shows up; "put this
     macro on a key" already covers "I want it on the M3 key".
 - The user is testing page by page and reports bugs as found; the dev server (`pnpm dev`) is open while agents
-  edit, so the user sees work in progress.- **To try on the real keyboard** (take a backup first):
+  edit, so the user sees work in progress.
+- **To try on the real keyboard** (take a backup first):
+  - The newest changes: the printed M1 key reads "Macro 1" in the picture and palette; "Unlock to save…" on a
+    macro saves by itself once the keyboard is unlocked; the tap-toggle sentence on Switch layer shows the
+    keyboard's own tap count; the tour (Settings or Help, "Take the tour").
   - Macros: unlock, edit Macro 1, save, press its key, then Undo and press it again; the other macros should be
     untouched.
   - Shortcuts: J + K → Esc as a key chord; Shift + Backspace → Delete as a shortcut replacement; a multi-tap
@@ -99,21 +76,22 @@ tell the user what to try.
 
 ## Next
 
-Every page in the spec's section 7 is built (phases 1 to 6). Each item below is sized for one delegated agent;
+Every page in the spec's section 7 is built, and the help guide and tour of phase 7. What is left is the small
+things below, the user's bug reports as they come, and the optional extras under "Later". Each item below is sized for one delegated agent;
 two at most run at a time (`AGENTS.md`).
-
-### Phase 7 (spec section 12)
-
-- **Help content and first-run tour**: the Help page as a browsable guide (topics grouped by page, searchable),
-  and a short first-run tour of the shell (the picture, layers, the inspector, undo, where changes are kept).
 
 ### Small things from review
 
 - Device: the restore plan is worked out when the file is opened; an Undo or Redo before pressing Restore isn't
   reflected in it. "Unlock first…" always gives macros as the reason, also when it is the bootloader key.
-- Shortcuts: no test for "edits made while a save is running are kept". The status line says "Macro 3", not the
-  macro's own name. Editor headers show QMK's plural ("Combos") beside a single item. Summaries use the key
+- Shortcuts: no test for "edits made while a save is running are kept". Editor headers show QMK's plural ("Combos") beside a single item. Summaries use the key
   tables' names ("Escape", "` and ~"). The chord picture is small at 1000×700.
+- Help: searching "backup" lists "Restoring a backup" above "Backing up". No "?" yet on Settings' Appearance,
+  Typing feel's Other settings card and the stage's resize handle. In headless screenshots the tour's ring can
+  sit a little off a mid-page target (README "Help and the tour"); in a real browser it lines up.
+- `src/ui/KeyboardPicture.tsx` imports the layer names from `src/shell/layer-names.ts`, the one place `ui`
+  reaches into the shell; move the names store down (`src/device` or `src/ui`) when it is next touched.
+- The picture: "Hold" over a long layer name ("Windows Fn") takes three lines on a 1u key; tight but legible.
 - Typing feel: clicking a group in the side list scrolls to it but doesn't move keyboard focus there.
 - Lighting: a zone slot's play time can't be set while it is the zone's only effect (harmless). The picture in
   the key colours editor is small at 1000×700. Read back while the lights are off, the keyboard can report the
