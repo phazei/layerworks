@@ -48,7 +48,7 @@ If the script leaves a server behind (it was killed half-way):
 - `pnpm typecheck`, `pnpm lint` and `pnpm test` pass before every hand-over.
 - Git: the orchestrator may stage and commit in this repo after reviewing a package; delegated agents never run a
   git command that changes anything. Commit messages in the user's style (`feat(device): ...`, `docs: ...`).
-  The remote is `origin` (github.com/phazei/layerworks, private): push only when the user says so. Never amend
+  The remote is `origin` (github.com/phazei/layerworks, private); the user pushes, agents never do. Never amend
   or rewrite history. In `../pipette` and the parent project, nothing without the user asking.
 - UI text is plain language for someone who has never heard of QMK: friendly name first, the QMK name beside it.
   Every setting has a help topic (`src/help/topics.ts`): a sentence or two, an example, a link to the QMK docs.

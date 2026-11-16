@@ -29,7 +29,7 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
   values after a restore followed by an effect change, restoring macros while locked (should be skipped), the
   sleep timers.
 - The user has given permission to stage and commit in this repo, section by section. The remote is
-  `origin` = github.com/phazei/layerworks (private); push only when the user says so.
+  `origin` = github.com/phazei/layerworks (private); the user does the pushing.
 
 ## Standing instruction from the user
 
@@ -42,7 +42,6 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
 - To try on the real keyboard (take a backup first): unlock, edit Macro 1 on Shortcuts & macros, save, press its
   key, then Undo and press it again; the other macros should be untouched. The stage's resize handle. The
   lighting after a restore (what the page shows matches the keyboard after picking another effect).
-- Whether to push after every reviewed commit from now on, or only when asked.
 ## Next
 
 The first six work packages (shell, Keys, Home and Settings, Lighting, Test and unlock, Device) are built and the
