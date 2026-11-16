@@ -42,12 +42,17 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
 
 ## Waiting on the user
 
-- **Decisions:**
-  - Macro numbering: the key printed "M1" runs QMK's M1, which the app calls "Macro 2" (it counts from 1).
-    Number macros from 0 like the layers (the first reads "Macro 0"), or keep counting from 1 and explain.
-  - Layer keys in the picture read "MO(4)"; friendlier would be "Hold" over the layer's name.
-  - "Unlock to save…" could save by itself once the unlock finishes, instead of a second press.
-- **To try on the real keyboard** (take a backup first):
+- **Open for discussion:**
+  - Moving a macro to another number. Recommendation: don't renumber; the number is what keys point at. Offer
+    "Swap with another macro" (the two keys trade what they run) or "Copy to…" if the need shows up; "put this
+    macro on a key" already covers "I want it on the M3 key".
+  - Whether Key by key and Mixed zones belong at the end of the effect grid ("Set per key or zone") or
+    somewhere more prominent.
+- **In progress from the user's feedback** (decided): macros and multi-tap keys carry QMK's own number
+  ("Macro 1" is `M1`; number 0 is listed and used last); layer keys in the picture read "Hold" over the layer's
+  name; "Unlock to save…" saves by itself after unlocking; Tap or hold starts from the key's current plain key;
+  no modifier ticked by default; the tap-toggle sentence says the number of taps; Shortcuts kinds in use sit
+  above the fold; "?" toggles the help panel.- **To try on the real keyboard** (take a backup first):
   - Macros: unlock, edit Macro 1, save, press its key, then Undo and press it again; the other macros should be
     untouched.
   - Shortcuts: J + K → Esc as a key chord; Shift + Backspace → Delete as a shortcut replacement; a multi-tap
