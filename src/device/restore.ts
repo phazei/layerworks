@@ -44,6 +44,8 @@ export interface KeyboardContents {
   debounce?: Debounce
   /** As stored in the browser: an empty name means the default. */
   layerNames?: string[]
+  /** As stored in the browser: an empty name means the default. */
+  macroNames?: string[]
 }
 
 /** Who a file says it is for. Parts the file doesn't say are null. */
@@ -149,6 +151,8 @@ export interface RestorePlan {
   debounce: Debounce | null
   /** Names for the browser to keep; null when they already match. */
   layerNames: string[] | null
+  /** Macro names for the browser to keep; null when they already match. */
+  macroNames: string[] | null
   /** What the file holds that this keyboard can't take, one sentence each. */
   ignored: string[]
 }
@@ -168,6 +172,7 @@ export type RestorePart =
   | 'wireless'
   | 'debounce'
   | 'layerNames'
+  | 'macroNames'
 
 /** The parts' names in sentences: friendly first, the QMK name in brackets where there is one. */
 export const PART_NAMES: Record<RestorePart, { one: string; many: string; qmk?: string }> = {
@@ -184,6 +189,7 @@ export const PART_NAMES: Record<RestorePart, { one: string; many: string; qmk?: 
   wireless: { one: 'wireless timers', many: 'wireless timers' },
   debounce: { one: 'debounce', many: 'debounce' },
   layerNames: { one: 'layer names', many: 'layer names' },
+  macroNames: { one: 'macro names', many: 'macro names' },
 }
 
 /** "3 multi-tap keys (tap dance)" */
@@ -209,9 +215,15 @@ function parseSlotKey(key: string): number[] | null {
 
 /**
  * The writes that make the connected keyboard match `contents`. Parts the file leaves out, and parts the keyboard
- * hasn't been read yet, are left alone. `storedNames` are the layer names this browser keeps for the keyboard.
+ * hasn't been read yet, are left alone. `storedNames` and `storedMacroNames` are the layer and macro names this
+ * browser keeps for the keyboard.
  */
-export function planRestore(contents: KeyboardContents, state: DeviceState, storedNames: string[] = []): RestorePlan {
+export function planRestore(
+  contents: KeyboardContents,
+  state: DeviceState,
+  storedNames: string[] = [],
+  storedMacroNames: string[] = [],
+): RestorePlan {
   const kb = state.keyboard
   const plan: RestorePlan = {
     keys: [],
@@ -226,6 +238,7 @@ export function planRestore(contents: KeyboardContents, state: DeviceState, stor
     wireless: null,
     debounce: null,
     layerNames: null,
+    macroNames: null,
     ignored: [],
   }
   if (!kb) return plan
@@ -343,6 +356,12 @@ export function planRestore(contents: KeyboardContents, state: DeviceState, stor
     const now = pad(storedNames)
     if (wanted.some((name, i) => name !== now[i])) plan.layerNames = wanted
   }
+  if (contents.macroNames) {
+    const pad = (names: string[]) => Array.from({ length: kb.macroCount }, (_, i) => names[i]?.trim() ?? '')
+    const wanted = pad(contents.macroNames)
+    const now = pad(storedMacroNames)
+    if (wanted.some((name, i) => name !== now[i])) plan.macroNames = wanted
+  }
 
   return plan
 }
@@ -396,7 +415,8 @@ export const isEmptyPlan = (plan: RestorePlan): boolean =>
   plan.lighting === null &&
   plan.wireless === null &&
   plan.debounce === null &&
-  plan.layerNames === null
+  plan.layerNames === null &&
+  plan.macroNames === null
 
 export interface PlanLine {
   part: RestorePart
@@ -445,5 +465,6 @@ export function describePlan(plan: RestorePlan, layerNames: string[], boot: numb
   }
   if (plan.debounce) lines.push({ part: 'debounce', text: `Debounce (${plan.debounce.time} ms)`, needsUnlock: false })
   if (plan.layerNames) lines.push({ part: 'layerNames', text: 'Layer names (kept in this browser)', needsUnlock: false })
+  if (plan.macroNames) lines.push({ part: 'macroNames', text: 'Macro names (kept in this browser)', needsUnlock: false })
   return lines
 }

@@ -13,7 +13,7 @@ import {
   useDevice,
   VIL_EXTENSION,
 } from '../../device'
-import { storedLayerNames } from '../../shell/layer-names'
+import { storedLayerNames, storedMacroNames } from '../../shell/layer-names'
 import { Button, Spinner } from '../../ui/controls'
 import { downloadText } from '../../ui/files'
 import { Card, Disclosure, HelpButton, Notice } from '../../ui/layout'
@@ -25,7 +25,7 @@ export function saveBackup(now = new Date()): string | null {
   const kb = state.keyboard
   if (!kb) return null
   const fileName = backupFileName(kb.name, now)
-  downloadText(fileName, backupText(createBackup(state, storedLayerNames(kb.uid), now)))
+  downloadText(fileName, backupText(createBackup(state, storedLayerNames(kb.uid), now, storedMacroNames(kb.uid))))
   return fileName
 }
 
@@ -63,7 +63,7 @@ export function Backup() {
         <div className="flex flex-col gap-2">
           <h3 className="font-medium">Save everything on this keyboard to a file</h3>
           <p className="text-[13px] text-muted">
-            Every key on every layer, the knob, macros, typing settings, lighting and your layer names. Saving only
+            Every key on every layer, the knob, macros, typing settings, lighting, and the names you gave layers and macros. Saving only
             reads; nothing on the keyboard changes.
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-3">

@@ -197,6 +197,20 @@ describe('parseBackup', () => {
     expect(error({ ...valid(), macros: [1, 2, 256] })).toMatch(/the macros/)
   })
 
+  it('carries macro names, and reads files from before they were added', () => {
+    const backup = createBackup(store.getState(), [], NOW, ['', 'Sign-off'])
+    expect(backup.macroNames).toEqual(['', 'Sign-off', '', ''])
+    expect(backupContents(parseBackup(backupText(backup))).macroNames).toEqual(['', 'Sign-off', '', ''])
+
+    const old = parseBackup(JSON.stringify({ ...valid(), macroNames: undefined }))
+    expect(old.macroNames).toBeUndefined()
+    expect(backupContents(old)).not.toHaveProperty('macroNames')
+
+    const plan = planRestore(backupContents(backup), store.getState(), [], ['Old name'])
+    expect(plan.macroNames).toEqual(['', 'Sign-off', '', ''])
+    expect(isEmptyPlan(planRestore(backupContents(backup), store.getState(), [], ['', 'Sign-off']))).toBe(true)
+  })
+
   it('accepts parts that could not be read', () => {
     const backup = parseBackup(JSON.stringify({ ...valid(), macros: null, entries: null, settings: null, lighting: null, keychron: null }))
 

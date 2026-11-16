@@ -6,7 +6,7 @@ the browser (Chrome or Edge, over WebHID), on the cable or through the 2.4 GHz r
 
 The design is in the Alice-Keyboard project: `../docs/spec/layerworks.md`. What exists so far: the connection
 layer, the shell (sidebar, keyboard stage, status line, help panel, themes), the unlock flow and a page for every
-section; Home, Keys, Lighting, Test, Device and Settings are built (see "The built pages"), the rest are still
+section; Home, Keys, Shortcuts & macros (macros so far), Lighting, Test, Device and Settings are built (see "The built pages"), the rest are still
 placeholders.
 
 ## Run it
@@ -32,6 +32,7 @@ Options in the URL, before the `#`:
 | `?demo-effect=<id>` | Starts the demo keyboard on another lighting effect (VialRGB id, e.g. `25`), for screenshots |
 | `?demo-unlocked` | Starts the demo keyboard unlocked (the Test page reads every key) |
 | `?demo-wireless` | The demo keyboard is reached through the 2.4 GHz receiver, reports a battery level (76 %) and has the K15 Max's wireless timers and debounce, for screenshots of the wireless parts |
+| `?macro-draft`, `?macro-draft=problem` | The macro opened first (`#/shortcuts/macro/1`) gets an unsaved change: a text step and Enter (with `problem`, text a macro can't type), for screenshots of the unsaved state |
 | `?restore-sample` | The Device page opens a made-up backup of the connected keyboard (a few keys, a knob turn, a macro and the colour changed) once it is read, for screenshots of the restore review |
 | `?demo-press=2,2;2,3;0,1+3,14` | The demo presses keys (row,col) by itself from a second after connecting: each step in turn, keys joined by `+` together, the last step stays held |
 | `?demo-turn=1;0` | Turns the demo's knob by itself from a second after connecting (1 clockwise, 0 counter-clockwise): the page gets what the knob sends on the base layer as a browser event, as a real turn would |
@@ -68,6 +69,7 @@ src/
     vil.ts             Vial's .vil files in and out (through the vendored vil-compat and macro code)
     keyboard-file.ts   opens a file to restore from: a backup or a Vial file
     wireless.ts        Keychron's wireless timers: limits, choices, durations in words
+    macros.ts          macros as steps: to and from the shared macro buffer, sizes, problems, recording
     useDevice.ts       the app's store and its React hook
     api.ts, index.ts   the public surface; pages, plugins and the shell import from here
   demo/              the demo keyboard: a K15 Max inside the page (k15-max.json, demo-link.ts)
@@ -84,12 +86,15 @@ src/
     theme.ts           dark / light / system, applied as the `dark` class on <html>
     KeyboardPicture.tsx  the keyboard for one layer; wraps the vendored keyboard widget
     KeyTile.tsx        KeyTile (a palette key drawn like a keycap) and KeyCap (one key, not clickable)
+    ResizeHandle.tsx   a drag handle on a box's bottom edge (pointer and keyboard), and clamp
+    useElementSize.ts  an element's size as it changes (ResizeObserver)
   shell/             the frame around the pages
     Shell.tsx          the frame: sidebar, page title, stage, page, status line, help panel; picks the page
     Sidebar.tsx        app name, device card, pages grouped main / plugins ("Extras") / app
     DeviceCard.tsx     the connected keyboard: name, cable or 2.4 GHz, battery, locked (unlock / lock), disconnect
     UnlockDialog.tsx   the unlock flow on screen; unlock-dialog.ts opens it (openUnlock)
-    Stage.tsx          the keyboard stage: layer stack beside the picture, pressed keys, selection
+    Stage.tsx          the keyboard stage: layer stack beside the picture, pressed keys, selection, resize handle
+    stage-size.ts      how tall the stage is: automatic, chosen, minimum and cap
     LayerStack.tsx     the layers: pick, rename in place, active one marked, "Follow the keyboard"
     StatusLine.tsx     saved / saving / write error, parts still loading or not readable, undo / redo
     HelpPanel.tsx      the help topic, sliding in from the right
@@ -100,7 +105,8 @@ src/
     layer-names.ts     layer names, kept in the browser per keyboard
     pressed-keys.ts    held keys, from the browser's key events
   pages/             the built-in sections, one file each, registered as the "core" plugin (index.ts);
-                     a page's own parts in a folder beside it (home/, keys/, settings/, lighting/, test/, device/)
+                     a page's own parts in a folder beside it (home/, keys/, settings/, lighting/, test/, device/,
+                     shortcuts/)
   plugins/api.ts     definePlugin: pages and panels, for built-in sections and plugins alike
   help/              help topics (topics.ts) and which one the help panel shows
   vendor/pipette/    code copied from Pipette, unmodified (VENDOR.md)
@@ -136,9 +142,9 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
 - **Theme**: dark by default; Settings offers dark, light and "Like the system". Stored with `prefs.ts`
   (`theme`); a small script in `index.html` applies it before the app loads, so nothing flashes.
 - Sized for 1280 × 800 and usable down to about 1000 px wide. When the stage itself is narrower than 768 px (a
-  container query; a window of about 1050 px), the layer stack becomes a row of chips above the picture. In a short
-  window the picture gives up height (no taller than the window less 30rem, at least 10rem) so the page under it
-  stays in view.
+  container query; a window of about 1050 px), the layer stack becomes a row of chips above the picture. The stage
+  takes at most half of the height it shares with the page (see "The keyboard stage and selection"), so the page
+  under it always keeps the other half.
 
 ## Pages and plugins
 
@@ -242,8 +248,15 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
   with modifiers, by its key) or a mouse wheel movement for the wheel keycodes (`howHeard`). It is lit for 250 ms,
   then marked seen; ordinary mouse scrolling counts too where the knob scrolls. The widget has no state for knob
   directions, so `KeyboardPicture`'s `knobsTurned` / `knobsSeen` recolour them with a CSS rule scoped to the
-  picture (`[data-encoder-pos]` circles). A note says so, and names any direction the active layer sends
-  something the page can't see (lighting keys, layer keys ...).
+  picture (`[data-encoder-pos]` circles).
+
+  Not everything arrives (`test/knob.ts`, `visibility`): Chrome on Windows keeps the volume keys (Volume Up / Down,
+  Mute) from the page, and the media keys (next / previous track, play / pause, stop) often go to the browser's own
+  media handling. The note names what the active layer's knob sends that the page can't or may not see, and where
+  to turn it instead: the first layer the keyboard can reach from its base (the base layer's layer keys) on which
+  every direction is seen, e.g. "Hold Fn2 and turn it: there it scrolls, which this page can see." The knob count is
+  out of the directions the page can check on some reachable layer ("1 of 2 knob turns", or "Knob turns can't be
+  checked here"), and only those count towards "Every key works". A volume key that does arrive still counts.
 
   A note under the picture says which source is in use; locked, it names what can't be seen and offers "Unlock to
   see every key…". Seen keys survive a visit to another page (`test/seen.ts`), not another keyboard.
@@ -268,6 +281,36 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     QMK settings it has room for. *Technical details* (a `Disclosure`): USB IDs (and the receiver's), Vial keyboard
     ID, protocol versions, Keychron feature bits, the raw firmware string, matrix size, layout options, feature
     flags, macro memory, QMK setting IDs, lighting, and the transport's request counters, refreshed every second.
+- **Shortcuts & macros** (`Shortcuts.tsx`, `shortcuts/`): full height, no stage (the editor needs the room, and
+  the keys a macro is on are listed and linked instead). A list on the left and the one picked on the right, two
+  columns from 42rem; no tabs. The page's own addresses: `#/shortcuts/macro/1` opens Macro 1 (`shortcuts/route.ts`).
+  - *The list* (`shortcuts/MacroList.tsx`): the shared macro space as a bar ("Room for about 863 more characters ·
+    63 of 926 bytes used"), then every macro: its name (the user's, or "Macro 1"), QMK's name (M0), "Not saved"
+    while it has a draft, how many keys run it, and a one-line summary (`shortcuts/describe.ts`: "Types
+    “hello@example.com”", "Ctrl + A, waits 0.05 s, Ctrl + C", "Empty"). Under *More options*, the other kinds of
+    shortcut (multi-tap keys, key chords, shortcut replacements, repeat rules), each with its QMK name and how many
+    the keyboard has room for, marked "Coming soon"; each becomes a section of the list like the macros'.
+  - *The editor* (`shortcuts/MacroEditor.tsx`): the name (an inline field; names live in the browser per keyboard,
+    `shell/layer-names.ts` `renameMacro`), whether it matches the keyboard or is "Not saved yet", and while it isn't:
+    "Save to keyboard" (or, locked, "Unlock and save…", which opens the unlock dialog and writes nothing), Revert,
+    what stands in the way (steps to fix, no room, locked). "Runs when you press": the keys and knob turns with this
+    macro, as layer and key ("Windows Fn: the P key"); a click shows that key on the Keys page (`stage.showLayer`,
+    `stage.select`). None: how to put it on a key, and a button to the Keys page. Then the steps
+    (`shortcuts/StepRow.tsx`), numbered, each edited in place, with move up, move down and remove: *Type text* (a
+    field), *Tap a key* (keycaps and the key in words; "Change key…" opens the Keys page's palette with Ctrl, Shift,
+    Alt and Win to tick, `shortcuts/KeyPicker.tsx`), *Wait* (seconds, with 0.05 – 1 s choices); under *More
+    options*, *Hold a key down* and *Let a key go*, with why. A step's problem shows under it in red
+    (`stepProblem`). *Record what I type* (`shortcuts/Recorder.tsx`) and the bytes this macro takes against the
+    room left close the card.
+  - *Drafts* (`shortcuts/drafts.ts`): an edit is a draft per keyboard and macro, kept outside React, so leaving the
+    page and coming back finds it; a draft equal to the saved macro is dropped. While any draft exists the browser
+    asks before the tab is closed or reloaded. Navigation inside the app is never blocked.
+  - *Recording*: while recording, key events in the window are captured (and kept from doing anything else) and
+    turned into steps by `stepsFromRecording`: a press and release is a tap, keys tapped with only modifiers held
+    become shortcuts (Ctrl + C), runs of printable keys become text (US layout, as the firmware types it), anything
+    else stays hold and let go; keys still held at the end are let go. "Keep the pauses as waits" keeps gaps over
+    150 ms. Stop with the mouse; leaving the window stops it too. Fn and layer keys, and shortcuts Windows or the
+    browser keep (Alt + Tab, Ctrl + W, the Windows key), can't be recorded.
 
 ## Unlocking
 
@@ -311,6 +354,17 @@ stage pages keeps the layer and selection:
   into a slot with `toSlot(selection, shownLayer(...))` for `deviceStore.assign`. On `stage: 'view'` pages the
   picture is not clickable and no selection is drawn, but the selection is kept for when the user comes back.
 - A different keyboard connecting (or none) resets the stage.
+- **Height** (`stage-size.ts`, applied as CSS in `Stage.tsx`): the stage shares the main area between the page
+  title and the status line with the page. Left alone it is as tall as the picture wants at this width (the picture
+  shrinks with the width and never grows past its own drawing size), at most half of that shared space. The picture
+  fits the box it is given, width and height, keeping its shape (`KeyboardPicture`'s `fit`). The handle on its
+  bottom edge (`ui/ResizeHandle.tsx`) makes it shorter or taller by dragging (mouse or touch) or with the
+  keyboard (arrows, Page Up / Down, Home / End; it is a focusable separator); double-click or Enter goes back to
+  automatic. The chosen size is remembered in the browser as a share of the shared space (pref `stage-size`), so it
+  follows the window. It never goes below room for a 120 px picture (and, with the layers as a row above it, the
+  row), and that minimum wins over the cap in a very short window. Beside the picture, the layer stack scrolls
+  within itself when the stage is shorter than it; as a row above the picture it is always shown whole. Pages under
+  the stage, like the Keys inspector, take the rest and follow the handle as it moves.
 
 ## Screenshots
 
@@ -343,10 +397,42 @@ one shot (theme, "More options" open) shows in another. `EDGE=<path>` points it 
   back and when a held layer is let go (the lighting keys sit on the Fn layers).
 - `deviceStore.lock()` locks the keyboard (see "Unlocking").
 - `deviceStore.restore(plan, onProgress)` writes a restore plan (see "Backups") as one change in the queue.
+- `deviceStore.saveMacro(index, steps)` saves one macro (see "Macros"). Undo and redo take a saved macro back and
+  forth like a key, but only while the keyboard is unlocked; locked, they leave the step where it is and set
+  `writeError` to `MACRO_UNDO_LOCKED`.
 - `deviceStore.setWirelessTimers({ backlitTime, idleTime })` sets Keychron's wireless timers (`0xA7 0x0C`); the
   keyboard saves them itself. Pairs the firmware would refuse (lights-off under 5 s, sleep under 60 s) or that put
   sleep before lights-off are not sent (`timersProblem`). Writing them while wirelessly connected makes the
   firmware nudge the mouse pointer once.
+
+## Macros
+
+The keyboard keeps its macros (16 on the K15 Max) one after another in one shared buffer (926 bytes), each ended by
+a 0 byte. `device/macros.ts` turns them into steps and back:
+
+```ts
+type MacroStep =
+  | { kind: 'text'; text: string }          // typed as on a US layout: printable ASCII only
+  | { kind: 'tap'; key: number }            // press and release; a shortcut keycode (Ctrl + C) brings its modifiers
+  | { kind: 'down'; key: number }           // hold
+  | { kind: 'up'; key: number }             // let go
+  | { kind: 'wait'; ms: number }            // up to 65 024 ms
+```
+
+- The bytes are vial-gui's, through the vendored `macro.ts`: Vial protocol 2 and later prefix each action with 1,
+  have waits and 16-bit keys; protocol 1 has neither (`stepProblem` says so for those steps).
+- `readMacros(buffer, protocol, count)` gives every macro's steps; `encodeMacro` / `decodeMacro` one macro's bytes.
+  `macroSize` is a macro's bytes plus its ending 0; `macroSpace` what all of them take and what is left.
+- `replaceMacro` builds the new buffer with one macro replaced and every other one byte for byte as it was (so a
+  macro the app doesn't fully understand is never rewritten), padded with 0, or says by how much it is too long.
+- `stepProblem` explains a step that can't be saved: text with characters a macro can't type (named; "Use a Tap a
+  key step for Enter or Tab"), a key not picked, a wait out of range, what protocol 1 lacks.
+- `DeviceStore.saveMacro(index, steps)` resolves `'saved'`, `'unchanged'`, `'locked'` (nothing sent: via.c ignores
+  macro writes until unlocked), `'too-big'`, `'invalid'` or `'failed'`. It writes only the 28-byte pieces of the
+  buffer that change, through the store's change queue, and is one undo step.
+- `macroUses(keyboard, index)` lists the keys and knob turns whose keycode is that macro (`macroKeycode`: QMK's M0 …).
+- The names users give macros live in the browser per keyboard (`shell/layer-names.ts`: `useStoredMacroNames`,
+  `renameMacro`, `setMacroNames`), and travel in the backup file.
 
 ## Backups
 
@@ -356,6 +442,7 @@ One JSON file, `<keyboard-name>-<date>.layerworks.json` (`device/backup.ts`):
 { "format": "layerworks-backup", "version": 1, "savedAt": "2026-11-15T10:30:00.000Z",
   "keyboard": { name, vendorId, productId, uid, rows, cols, layers, knobs, viaProtocol, vialProtocol, firmware },
   "layerNames": ["", "My Fn", ...],             one per layer, as stored in the browser ("" = default name)
+  "macroNames": ["", "Sign-off", ...],          one per macro, likewise; missing in files saved before it existed
   "keymap": [[[keycode, ...] row] layer],        keymap[layer][row][col], every matrix position
   "knobs": [[[left, right] knob] layer],         left = counter-clockwise (direction 0)
   "layoutOptions": 0,
@@ -380,7 +467,7 @@ keymap."); a higher `version` is refused with "made by a newer version of Layerw
   per firmware definition, not per keyboard).
 - `planRestore` compares with what the store holds and keeps only differences: keys and knob directions, layout
   options, the macro buffer (whole, padded to the keyboard's size), entries by index, QMK settings by value
-  (whatever their width in the file), lighting, wireless timers, debounce, layer names. What the keyboard can't
+  (whatever their width in the file), lighting, wireless timers, debounce, layer and macro names. What the keyboard can't
   take (more layers, more entries, unknown settings, an effect it lacks) is listed in `plan.ignored`.
   `describePlan` puts the plan in words, one line per part.
 - `DeviceStore.restore` writes the plan through the store's change queue, part by part. Every write is tried; one
@@ -389,8 +476,8 @@ keymap."); a higher `version` is refused with "made by a newer version of Layerw
   ignore or alter are skipped and reported, not attempted: the macro buffer (via.c ignores it), and QK_BOOT in a
   knob direction or entry (vial.c turns it into nothing). QK_BOOT on a key is skipped too, as Vial asks first.
   Lighting is saved at once. All key and knob writes become one undo step; macros, entries, settings, lighting and
-  timers are not undoable. Layer names are written by the page afterwards (they live in the browser,
-  `setLayerNames`).
+  timers are not undoable. Layer and macro names are written by the page afterwards (they live in the browser,
+  `setLayerNames`, `setMacroNames`).
 
 **Vial files** (`device/vil.ts`): `exportVil` writes vial-gui's format (keys and knob by QMK name, macros as
 action lists, settings as numbers, the uid as a bare number) through Pipette's vendored `vil-compat.ts`;
@@ -416,6 +503,10 @@ and the other entries, QMK settings, layout options, and Keychron's wireless tim
 in knob and entry writes becomes 0, as in vial-qmk. On the cable its Keychron commands report the default layer
 only; `?demo-wireless` connects it through the receiver with the K15 Max's wireless features, timers (10 min,
 2 h), debounce, a battery of 76 % and the real firmware string (`v1.1.2 1970-01-01-00:00:00`).
+
+Its macro buffer starts with three examples (`DEMO_MACROS` in `demo-link.ts`): an e-mail address, Ctrl + A then
+Ctrl + C, and Win + R, wait, "notepad", Enter. Macro 1 is also on Fn + P on the Windows layers; the K15's own M1 –
+M5 keys already run macros 2 – 6.
 
 ## How it talks to the keyboard
 

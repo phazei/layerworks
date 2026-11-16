@@ -61,6 +61,26 @@ export {
   timersProblem,
 } from './wireless'
 export type { WirelessTimers } from './wireless'
+export { MACRO_UNDO_LOCKED } from './store'
+export type { MacroSaveResult } from './store'
+export {
+  canTypeText,
+  decodeMacro,
+  encodeMacro,
+  macroKeycode,
+  macroSize,
+  macroSpace,
+  macroUses,
+  MAX_WAIT_MS,
+  rawMacros,
+  readMacros,
+  replaceMacro,
+  sameSteps,
+  stepProblem,
+  stepsFromRecording,
+  untypable,
+} from './macros'
+export type { MacroSpace, MacroStep, RecordedKey, RecordOptions } from './macros'
 
 export { posKey } from '../vendor/pipette/shared/kle/pos-key'
 export type { KleKey, KeyboardLayout } from '../vendor/pipette/shared/kle/types'

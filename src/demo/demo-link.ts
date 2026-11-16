@@ -5,10 +5,33 @@
 
 import { FakeLink, fakeKeyboard, fakeKeyboardConfig, report } from '../device/fake-keyboard'
 import type { HidLink } from '../device/link'
+import { encodeMacro, type MacroStep } from '../device/macros'
 import { browserEventFor, usageOf } from '../shell/pressed-keys'
 import data from './k15-max.json'
 
 const WINDOWS_LAYER = 2
+
+/** Example macros, so the Shortcuts page has something to show (the keyboard's real buffer is empty). */
+const DEMO_MACROS: MacroStep[][] = [
+  [{ kind: 'text', text: 'hello@example.com' }],
+  // Ctrl+A, then Ctrl+C: copy everything.
+  [{ kind: 'tap', key: 0x0104 }, { kind: 'wait', ms: 50 }, { kind: 'tap', key: 0x0106 }],
+  // Win+R, wait for the Run box, type notepad, Enter.
+  [{ kind: 'tap', key: 0x0815 }, { kind: 'wait', ms: 300 }, { kind: 'text', text: 'notepad' }, { kind: 'tap', key: 0x28 }],
+]
+const DEMO_MACRO_BYTES = 926
+
+function demoMacros(): number[] {
+  const buffer = DEMO_MACROS.flatMap((steps) => [...encodeMacro(steps, 6), 0])
+  return [...buffer, ...new Array<number>(DEMO_MACRO_BYTES - buffer.length).fill(0)]
+}
+
+/** QMK's M0 for Vial protocol 6, put on Fn + P on the Windows layers, so the page shows a macro in use. */
+const M0 = 0x7700
+function withMacroKey(keymap: number[][][]): number[][][] {
+  keymap[WINDOWS_LAYER + 1][2][11] = M0
+  return keymap
+}
 
 /** The plain demo's Keychron commands: the default layer only. */
 const DEMO_KEYCHRON = { protocol: 2, features: 0x01, firmware: 'demo' }
@@ -87,11 +110,11 @@ export function createDemoLink(): DemoLink {
     layers: data.keymap.length,
     rows: data.definition.matrix.rows,
     cols: data.definition.matrix.cols,
-    keymap: structuredClone(data.keymap),
+    keymap: withMacroKey(structuredClone(data.keymap)),
     knob: structuredClone(data.knob) as [number, number][],
     counts: { tapDance: 16, combo: 16, keyOverride: 16, altRepeatKey: 16, featureFlags: 0x03 },
     macroCount: 16,
-    macros: new Array<number>(926).fill(0),
+    macros: demoMacros(),
     // A copy: the fake keyboard keeps what is written in it.
     keychron: { ...(wireless ? K15_KEYCHRON : DEMO_KEYCHRON) },
     layer: { base: WINDOWS_LAYER, held: 0 },

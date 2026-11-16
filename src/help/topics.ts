@@ -160,7 +160,7 @@ const topics = {
     body: [
       'Press every key once: each lights up while it is down and stays marked afterwards, so a key that never lights is one that doesn’t work.',
       'While the keyboard is locked, the app sees keys the way any web page does, through the browser: only the keys that type something, and only while this window is in front. Fn and other layer keys send nothing the browser can see. Unlocked, the app reads every switch straight from the keyboard, Fn included.',
-      'Turning the knob is not a switch, so it shows only when what it sends reaches the browser, locked or not: volume, media keys, ordinary keys or scrolling. On a layer where it changes the lighting, say, turning it can’t be seen; the page tells you which.',
+      'Turning the knob is not a switch, so it shows only when what it sends reaches the browser, locked or not: ordinary keys or scrolling. The volume keys stay with the computer, and the media keys often go to the browser itself, so a knob on volume can’t be checked here; nor can one that changes the lighting. The page says which, and on which layer the knob can be checked instead.',
     ],
     example: 'Unlock, then hold Fn: its key lights up although your computer never hears about it.',
     docs: QMK + 'faq_debug',
@@ -226,6 +226,53 @@ const topics = {
       'The version numbers under Technical details say which commands the keyboard understands; they matter when asking for help or comparing with other apps.',
     ],
     docs: QMK + 'newbs',
+  },
+  macros: {
+    title: 'Macros',
+    qmkName: 'Dynamic macros, M0 – M15',
+    body: [
+      'A macro does several things when you press one key: types a piece of text, taps a shortcut, waits a moment, and so on, one step after another. It lives in the keyboard, so it works on any computer.',
+      'Build one from steps, or record it as you type. Save it to the keyboard, then put it on a key from the Keys page, where the macros are listed under Macros.',
+      'All the macros share one small space in the keyboard (926 bytes on the K15 Max): each typed character takes one byte, each key or wait a few.',
+    ],
+    example: 'A macro that types your e-mail address, on Fn + E.',
+    docs: 'https://get.vial.today/manual/macros.html',
+  },
+  'macro-unlock': {
+    title: 'Why saving a macro needs unlocking',
+    qmkName: 'Vial unlock',
+    body: [
+      'A macro can type anything, including commands, so the keyboard only takes macro changes while it is unlocked: a web page can’t plant one behind your back.',
+      'You can edit a macro while the keyboard is locked; the changes wait in the app until you unlock and save. Undoing a saved macro needs the keyboard unlocked too.',
+    ],
+    example: 'Click “Unlock and save…”, hold Esc and Enter until the bar is full, then save.',
+  },
+  'macro-hold': {
+    title: 'Holding a key down and letting it go',
+    qmkName: 'SS_DOWN, SS_UP',
+    body: [
+      '“Tap a key” presses and releases a key in one go, with Ctrl, Shift, Alt or Win if ticked. For a key that must stay down while other steps happen, use “Hold a key down”, then “Let a key go” later.',
+      'Let every held key go before the macro ends, or the computer thinks it is still held until you press it yourself.',
+    ],
+    example: 'Hold Alt, tap Tab, tap Tab, let Alt go: switches to the window two back.',
+    docs: QMK + 'feature_macros#sendstring',
+  },
+  'macro-wait': {
+    title: 'Waiting',
+    qmkName: 'SS_DELAY',
+    body: [
+      'A pause between steps, for a program that needs a moment: a window opening, a menu appearing. Up to about 65 seconds per wait.',
+    ],
+    example: 'Win + R, wait 0.3 s for the Run box, then type “notepad” and tap Enter.',
+    docs: QMK + 'feature_macros#sendstring',
+  },
+  'macro-record': {
+    title: 'Recording a macro',
+    body: [
+      'While recording, what you type becomes steps: letters and symbols become text, shortcuts such as Ctrl + C become one key step, and keys held across others become hold and let-go steps. Tick “Keep the pauses” to keep how long you waited between keys.',
+      'Only keys that reach the browser can be recorded: not Fn or layer keys, and not shortcuts Windows or the browser keep for themselves. Text is typed as on a US keyboard layout.',
+    ],
+    example: 'Record, type “Kind regards,”, tap Enter, type your name, stop.',
   },
 } satisfies Record<string, HelpTopic>
 

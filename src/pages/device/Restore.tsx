@@ -23,7 +23,13 @@ import {
   type RestorePlan,
   type RestoreReport,
 } from '../../device'
-import { setLayerNames, storedLayerNames, useConnectedLayerNames } from '../../shell/layer-names'
+import {
+  setLayerNames,
+  setMacroNames,
+  storedLayerNames,
+  storedMacroNames,
+  useConnectedLayerNames,
+} from '../../shell/layer-names'
 import { openUnlock } from '../../shell/unlock-dialog'
 import { Button } from '../../ui/controls'
 import { FileButton, readText } from '../../ui/files'
@@ -35,7 +41,7 @@ type Step =
   | { kind: 'error'; fileName: string; message: string }
   | { kind: 'review'; fileName: string; file: KeyboardFile; warnings: string[]; plan: RestorePlan }
   | { kind: 'running'; fileName: string; done: number; total: number }
-  | { kind: 'done'; fileName: string; report: RestoreReport; names: boolean }
+  | { kind: 'done'; fileName: string; report: RestoreReport; names: Partial<Record<RestorePart, number>> }
 
 const ICON = 15
 
@@ -50,7 +56,7 @@ function savedWhen(file: KeyboardFile): string {
 /** "3 keys, 2 knob turns and lighting" */
 function listParts(counts: Partial<Record<RestorePart, number>>): string {
   const parts = Object.entries(counts).map(([part, n]) =>
-    ['macros', 'lighting', 'wireless', 'debounce', 'layerNames', 'layoutOptions'].includes(part)
+    ['macros', 'lighting', 'wireless', 'debounce', 'layerNames', 'macroNames', 'layoutOptions'].includes(part)
       ? countOf(part as RestorePart, 1).replace(/^1 /, '')
       : countOf(part as RestorePart, n ?? 0),
   )
@@ -169,7 +175,7 @@ function Review({ step, onRestore, onCancel }: { step: Extract<Step, { kind: 're
 
 function Report({ step, onDone }: { step: Extract<Step, { kind: 'done' }>; onDone: () => void }) {
   const { report } = step
-  const written = { ...report.written, ...(step.names ? { layerNames: 1 } : {}) }
+  const written = { ...report.written, ...step.names }
   const nothing = Object.keys(written).length === 0
   return (
     <section aria-label="Restore finished" className="flex flex-col gap-3 rounded-control border border-edge p-4">
@@ -266,7 +272,7 @@ export function Restore() {
         setStep({ kind: 'error', fileName, message: fit.reason })
         return
       }
-      const plan = planRestore(file.contents, state, storedLayerNames(kb.uid))
+      const plan = planRestore(file.contents, state, storedLayerNames(kb.uid), storedMacroNames(kb.uid))
       setStep({ kind: 'review', fileName, file, warnings: fit.warnings, plan })
     } catch (error) {
       setStep({ kind: 'error', fileName, message: error instanceof Error ? error.message : String(error) })
@@ -277,9 +283,16 @@ export function Restore() {
     const uid = deviceStore.getState().keyboard?.uid
     setStep({ kind: 'running', fileName, done: 0, total: 0 })
     const report = await deviceStore.restore(plan, ({ done, total }) => setStep({ kind: 'running', fileName, done, total }))
-    // Layer names live in the browser, not on the keyboard: kept once the keyboard part went through.
-    const names = plan.layerNames !== null && !report.stopped && uid !== undefined
-    if (names && uid) setLayerNames(uid, plan.layerNames ?? [])
+    // Layer and macro names live in the browser, not on the keyboard: kept once the keyboard part went through.
+    const names: Partial<Record<RestorePart, number>> = {}
+    if (uid && !report.stopped && plan.layerNames) {
+      setLayerNames(uid, plan.layerNames)
+      names.layerNames = 1
+    }
+    if (uid && !report.stopped && plan.macroNames) {
+      setMacroNames(uid, plan.macroNames)
+      names.macroNames = 1
+    }
     setStep({ kind: 'done', fileName, report, names })
   }
 

@@ -44,6 +44,7 @@ import {
   type RestorePlan,
 } from './restore'
 import { timersProblem, type WirelessTimers } from './wireless'
+import { encodeMacro, rawMacros, replaceMacro, stepProblem, type MacroStep } from './macros'
 
 export interface LinkInfo {
   kind: LinkKind
@@ -130,10 +131,29 @@ export type Slot =
   | { kind: 'key'; layer: number; row: number; col: number }
   | { kind: 'knob'; layer: number; knob: number; direction: 0 | 1 }
 
-/** One step of undo: a single assignment, or every key and knob change of a restore. */
+/** One step of undo: a single assignment, every key and knob change of a restore, or a saved macro. */
 interface Edit {
   changes: { slot: Slot; from: number; to: number }[]
+  /** The macro buffer before and after a macro was saved. */
+  macros?: { from: number[]; to: number[] }
 }
+
+/** How saving a macro went. */
+export type MacroSaveResult =
+  | 'saved'
+  /** The keyboard already holds it. */
+  | 'unchanged'
+  /** Not attempted: macro writes need the keyboard unlocked. */
+  | 'locked'
+  /** Not attempted: it doesn't fit in the space the macros share. */
+  | 'too-big'
+  /** Not attempted: a step can't be saved as it is (`stepProblem`), or the macros haven't been read. */
+  | 'invalid'
+  /** Tried, and the write failed (`writeError` says why). */
+  | 'failed'
+
+/** Said when undo or redo would write the macro buffer while the keyboard is locked. */
+export const MACRO_UNDO_LOCKED = 'Undoing a macro change needs the keyboard unlocked. Unlock it, then undo again.'
 
 export interface RestoreProgress {
   done: number
@@ -197,6 +217,10 @@ const LIGHTING_SAVE_DELAY_MS = 1500
 
 const NOT_CONNECTED = 'The keyboard is not connected'
 
+/** VIA's macro buffer write: [0x0F, offset (big-endian), size, up to 28 bytes]. */
+const VIA_MACRO_SET_BUFFER = 0x0f
+const MACRO_CHUNK = 28
+
 /** One write: what to send, and what to change in the state once it reached the keyboard. */
 interface WriteJob {
   send: () => Promise<void>
@@ -233,6 +257,12 @@ export interface DeviceStore {
   unlock(): Promise<UnlockResult>
   /** Locks the keyboard again. */
   lock(): Promise<void>
+  /**
+   * Saves macro `index` as `steps`, rewriting the parts of the shared macro buffer that change; every other macro
+   * stays byte for byte. Needs the keyboard unlocked: while locked it resolves 'locked' without sending anything.
+   * A saved macro is one undo step (undo needs the keyboard unlocked too).
+   */
+  saveMacro(index: number, steps: MacroStep[]): Promise<MacroSaveResult>
   /**
    * Writes a restore plan (./restore) to the keyboard, part by part, as one change in the queue. Writes that need
    * the keyboard unlocked are skipped while it is locked. Key and knob changes become one undo step. Layer names
@@ -507,6 +537,15 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
   async function step(from: 'undo' | 'redo'): Promise<void> {
     const edit = (from === 'undo' ? undoStack : redoStack).at(-1)
     if (!edit) return
+    if (edit.macros) {
+      // Locked, the keyboard would ignore the write: say so and keep the step.
+      if (!state.unlock?.unlocked) {
+        set({ writeError: MACRO_UNDO_LOCKED })
+        return
+      }
+      const [before, after] = from === 'undo' ? [edit.macros.to, edit.macros.from] : [edit.macros.from, edit.macros.to]
+      if (!(await writeMacroBuffer(before, after))) return
+    }
     // A group is taken back last change first. If a write fails the step stays, so it can be tried again; the
     // writes that did go through are harmless to repeat.
     const changes = from === 'undo' ? [...edit.changes].reverse() : edit.changes
@@ -562,6 +601,41 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     } catch {
       // A missed refresh leaves the values as they were; the next one or the next change puts them right.
     }
+  }
+
+  /**
+   * Writes the macro buffer, only the 28-byte pieces that differ from `before` (what the keyboard holds), then
+   * shows it. Locked, the keyboard would ignore it: callers check first.
+   */
+  function writeMacroBuffer(before: number[], after: number[]): Promise<boolean> {
+    return write(
+      async () => {
+        const transport = session?.transport
+        if (!transport) throw new Error(NOT_CONNECTED)
+        for (let offset = 0; offset < after.length; offset += MACRO_CHUNK) {
+          const chunk = after.slice(offset, offset + MACRO_CHUNK)
+          if (chunk.every((b, i) => before[offset + i] === b)) continue
+          await transport.request([VIA_MACRO_SET_BUFFER, offset >> 8, offset & 0xff, chunk.length, ...chunk])
+        }
+      },
+      () => ({ macros: [...after] }),
+    )
+  }
+
+  async function saveMacro(index: number, steps: MacroStep[]): Promise<MacroSaveResult> {
+    const kb = state.keyboard
+    const buffer = state.macros
+    if (!kb || !buffer || index < 0 || index >= kb.macroCount) return 'invalid'
+    if (steps.some((s) => stepProblem(s, kb.vialProtocol) !== null)) return 'invalid'
+    const bytes = encodeMacro(steps, kb.vialProtocol)
+    const now = rawMacros(buffer, kb.macroCount)[index]
+    if (now.length === bytes.length && now.every((b, i) => b === bytes[i])) return 'unchanged'
+    const next = replaceMacro(buffer, kb.macroCount, kb.macroBytes, index, bytes)
+    if (!next.buffer) return 'too-big'
+    if (!state.unlock?.unlocked) return 'locked'
+    if (!(await writeMacroBuffer(buffer, next.buffer))) return 'failed'
+    remember({ changes: [], macros: { from: buffer, to: next.buffer } })
+    return 'saved'
   }
 
   let unlocking: Promise<UnlockResult> | null = null
@@ -833,6 +907,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     refreshLighting: () => inOrder(refreshLighting),
     unlock,
     lock: () => inOrder(lock),
+    saveMacro: (index, steps) => inOrder(() => saveMacro(index, steps)),
     restore: (plan, onProgress) => inOrder(() => restore(plan, onProgress)),
     setWirelessTimers: (timers) => inOrder(() => setWirelessTimers(timers)),
     watchMatrix,

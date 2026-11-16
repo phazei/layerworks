@@ -45,6 +45,8 @@ export interface Backup {
   keyboard: BackupKeyboard
   /** One per layer, as stored in the browser; an empty name means the default. */
   layerNames: string[]
+  /** One per macro, as stored in the browser; an empty name means the default. Missing in older files. */
+  macroNames?: string[]
   /** keymap[layer][row][col] = keycode */
   keymap: number[][][]
   /** knobs[layer][knob] = [left (counter-clockwise), right (clockwise)] */
@@ -79,8 +81,16 @@ function keychronBackup(kc: KeychronState): BackupKeychron {
   }
 }
 
-/** The backup of the connected keyboard. `layerNames` are the ones stored in the browser (empty for a default). */
-export function createBackup(state: DeviceState, layerNames: string[], now: Date = new Date()): Backup {
+/**
+ * The backup of the connected keyboard. `layerNames` and `macroNames` are the ones stored in the browser (empty for a
+ * default).
+ */
+export function createBackup(
+  state: DeviceState,
+  layerNames: string[],
+  now: Date = new Date(),
+  macroNames: string[] = [],
+): Backup {
   const kb = state.keyboard
   const identity = keyboardIdentity(state)
   if (!kb || !identity) throw new Error('No keyboard is connected.')
@@ -107,6 +117,7 @@ export function createBackup(state: DeviceState, layerNames: string[], now: Date
       firmware: state.keychron?.firmwareVersion || null,
     },
     layerNames: range(kb.layers).map((i) => layerNames[i]?.trim() ?? ''),
+    macroNames: range(kb.macroCount).map((i) => macroNames[i]?.trim() ?? ''),
     keymap: range(kb.layers).map((l) => range(kb.rows).map((r) => range(kb.cols).map((c) => kb.keymap[`${l},${r},${c}`] ?? 0))),
     knobs: range(kb.layers).map((l) =>
       range(kb.knobCount).map((k): [number, number] => [kb.knobs[`${l},${k},0`] ?? 0, kb.knobs[`${l},${k},1`] ?? 0]),
@@ -268,6 +279,7 @@ export function parseBackup(text: string): Backup {
     savedAt: typeof data.savedAt === 'string' ? data.savedAt : '',
     keyboard,
     layerNames,
+    ...(Array.isArray(data.macroNames) ? { macroNames: data.macroNames.map((n) => (typeof n === 'string' ? n : '')) } : {}),
     keymap,
     knobs,
     layoutOptions: isInt(data.layoutOptions, 0xffffffff) ? data.layoutOptions : 0,
@@ -297,6 +309,7 @@ export function backupContents(backup: Backup): KeyboardContents {
     }),
   )
   const contents: KeyboardContents = { keymap, knobs, layoutOptions: backup.layoutOptions, layerNames: backup.layerNames }
+  if (backup.macroNames) contents.macroNames = backup.macroNames
   if (backup.macros) contents.macros = backup.macros
   if (backup.entries) contents.entries = backup.entries
   if (backup.settings) {
