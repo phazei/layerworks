@@ -146,6 +146,15 @@ export {
   snapClickRule,
 } from './keychron-typing'
 export type { Debounce, DebounceType, SnapClickEntry, SnapClickRule } from './keychron-typing'
+export {
+  keyLeds,
+  PER_KEY_EFFECT,
+  PER_KEY_STYLE_COUNT,
+  zoneEffectChoices,
+  zoneEffectNumbers,
+  ZONES_EFFECT,
+} from './keychron-rgb'
+export type { Hsv, ZoneEffect, ZoneNumbers } from './keychron-rgb'
 
 export { posKey } from '../vendor/pipette/shared/kle/pos-key'
 export type { KleKey, KeyboardLayout } from '../vendor/pipette/shared/kle/types'

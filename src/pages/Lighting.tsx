@@ -5,7 +5,7 @@
 
 import { useEffect, useId, useMemo, useRef, type ReactNode } from 'react'
 import { Lightbulb } from 'lucide-react'
-import { deviceStore, useDevice, type Lighting, type LightingChange } from '../device'
+import { deviceStore, PER_KEY_EFFECT, useDevice, ZONES_EFFECT, type Lighting, type LightingChange } from '../device'
 import { activePanels, activePlugins, type PageDef } from '../plugins/api'
 import { OptionButton, Slider, Spinner, Toggle } from '../ui/controls'
 import { Card, HelpButton, Notice } from '../ui/layout'
@@ -14,6 +14,26 @@ import { colourName, hsvCss, HUE_TRACK, percent, satTrack } from './lighting/col
 import { EffectPreview } from './lighting/EffectPreview'
 import { effectGroups, effectInfo, OFF, type EffectInfo, type EffectRename, type Use } from './lighting/effects'
 import { useLatestQueue } from './lighting/latest'
+import { KeyColours } from './lighting/KeyColours'
+import { Zones } from './lighting/Zones'
+
+/**
+ * Keychron's own effects, on keyboards whose firmware lists them, only once the Keychron commands say the keyboard
+ * can be painted (they are read last; until then the tiles stay, so they don't come and go on keyboards that have
+ * them). A VialRGB keyboard without Keychron lighting never shows them.
+ */
+function useKeychronEffects(): { perKey: boolean; zones: boolean; hide: ReadonlySet<number> } {
+  const capabilities = useDevice((s) => s.capabilities)
+  const reading = useDevice((s) => s.loading.includes('keychron'))
+  return useMemo(() => {
+    const perKey = !!capabilities?.has('perKeyLighting')
+    const zones = !!capabilities?.has('lightingZones')
+    const hide = new Set<number>()
+    if (!reading && !perKey) hide.add(PER_KEY_EFFECT)
+    if (!reading && !zones) hide.add(ZONES_EFFECT)
+    return { perKey, zones, hide }
+  }, [capabilities, reading])
+}
 
 /** Plugins active for this keyboard: their panels for this page, and their names for effects. */
 function usePlugins() {
@@ -108,7 +128,11 @@ function LightingControls({ lighting, renames }: { lighting: Lighting; renames: 
   // What the keyboard is showing (or about to): the store's values with the changes still on their way.
   const now = { ...lighting, ...pending }
   const on = now.mode !== OFF
-  const groups = useMemo(() => effectGroups(lighting.effects, renames), [lighting.effects, renames])
+  const keychron = useKeychronEffects()
+  const groups = useMemo(
+    () => effectGroups([...lighting.effects].filter((id) => !keychron.hide.has(id)), renames),
+    [lighting.effects, renames, keychron.hide],
+  )
   const offered = groups.flatMap((group) => group.effects)
 
   // The effect to come back to when the lights are turned on again, kept per keyboard.
@@ -125,47 +149,74 @@ function LightingControls({ lighting, renames }: { lighting: Lighting; renames: 
 
   const effect = effectInfo(on ? now.mode : (lastEffect ?? OFF), renames)
 
-  return (
-    // Side by side down to narrow windows, the settings staying in view while the effects scroll.
-    <div className="grid items-start gap-4 @2xl:grid-cols-[minmax(0,1fr)_18rem] @4xl:grid-cols-[minmax(0,1fr)_20rem]">
-      <Card title="Effect" help="lighting-effect">
-        <div className="-mt-1 flex flex-col gap-3">
-          {groups.map((group) => (
-            <section key={group.id} aria-label={group.title}>
-              <h3 className="mb-1.5 text-[13px] font-medium text-muted">{group.title}</h3>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2">
-                {group.effects.map((fx) => (
-                  <OptionButton
-                    key={fx.id}
-                    selected={on && now.mode === fx.id}
-                    onClick={() => change({ mode: fx.id })}
-                    className="py-1! pl-1!"
-                  >
-                    <EffectPreview effect={fx} hue={now.hue} sat={now.sat} speed={now.speed} />
-                    <span className="text-[13px] leading-tight">{fx.name}</span>
-                  </OptionButton>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      </Card>
+  // Keychron's own effects bring their editor: the keyboard to paint on.
+  const openedOn = useRef(lighting.mode)
+  const editor =
+    on && now.mode === PER_KEY_EFFECT && keychron.perKey ? (
+      <KeyColours />
+    ) : on && now.mode === ZONES_EFFECT && keychron.zones ? (
+      <Zones renames={renames} />
+    ) : null
 
-      <Card className="@2xl:sticky @2xl:top-0">
-        <Toggle
-          checked={on}
-          onChange={turnOn}
-          label={<span className="font-medium">Lights on</span>}
-          help={<HelpButton topic="lighting-on" />}
-          hint={on ? undefined : 'Off for now. Turning them on brings back your effect.'}
-        />
-        <div className="mt-4 border-t border-edge pt-4">
-          <CurrentEffect effect={effect} hue={now.hue} sat={now.sat} speed={now.speed} on={on} />
-          {on && <EffectSettings effect={effect} now={now} change={change} />}
-        </div>
-      </Card>
-    </div>
+  return (
+    <>
+      {/* The editor comes first: with these effects, painting the keys is what there is to do. */}
+      {editor && (
+        <EditorPlace key={now.mode} picked={now.mode !== openedOn.current}>
+          {editor}
+        </EditorPlace>
+      )}
+      {/* Side by side down to narrow windows, the settings staying in view while the effects scroll. */}
+      <div className="grid items-start gap-4 @2xl:grid-cols-[minmax(0,1fr)_18rem] @4xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <Card title="Effect" help="lighting-effect">
+          <div className="-mt-1 flex flex-col gap-3">
+            {groups.map((group) => (
+              <section key={group.id} aria-label={group.title}>
+                <h3 className="mb-1.5 text-[13px] font-medium text-muted">{group.title}</h3>
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2">
+                  {group.effects.map((fx) => (
+                    <OptionButton
+                      key={fx.id}
+                      selected={on && now.mode === fx.id}
+                      onClick={() => change({ mode: fx.id })}
+                      className="py-1! pl-1!"
+                    >
+                      <EffectPreview effect={fx} hue={now.hue} sat={now.sat} speed={now.speed} />
+                      <span className="text-[13px] leading-tight">{fx.name}</span>
+                    </OptionButton>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="@2xl:sticky @2xl:top-0">
+          <Toggle
+            checked={on}
+            onChange={turnOn}
+            label={<span className="font-medium">Lights on</span>}
+            help={<HelpButton topic="lighting-on" />}
+            hint={on ? undefined : 'Off for now. Turning them on brings back your effect.'}
+          />
+          <div className="mt-4 border-t border-edge pt-4">
+            <CurrentEffect effect={effect} hue={now.hue} sat={now.sat} speed={now.speed} on={on} />
+            {on && <EffectSettings effect={effect} now={now} change={change} />}
+          </div>
+        </Card>
+      </div>
+    </>
   )
+}
+
+/** Brings the editor into view when it appears for an effect just picked (`picked`), not when the page opens on one. */
+function EditorPlace({ picked, children }: { picked: boolean; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (picked) ref.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+    // Once, as it appears.
+  }, [])
+  return <div ref={ref}>{children}</div>
 }
 
 function CurrentEffect({ effect, hue, sat, speed, on }: { effect: EffectInfo; hue: number; sat: number; speed: number; on: boolean }) {

@@ -29,6 +29,7 @@ Options in the URL, before the `#`:
 | `?help=<topic>` | Opens the help panel at a topic from `src/help/topics.ts` |
 | `?select=3,2`, `?select=knob,0,1` | Selects a key (row, column) or a knob direction once a keyboard is in, for screenshots of the Keys inspector |
 | `?layer=<n>` | Shows layer n on the stage instead of following the keyboard |
+| `?choice=tapHold` | The Keys inspector opens on that choice (`key`, `shortcut`, `layer`, `tapHold`) rather than the one the key's assignment belongs to, for screenshots; with `?select=` |
 | `?demo-effect=<id>` | Starts the demo keyboard on another lighting effect (VialRGB id, e.g. `25`), for screenshots |
 | `?demo-unlocked` | Starts the demo keyboard unlocked (the Test page reads every key) |
 | `?demo-wireless` | The demo keyboard is reached through the 2.4 GHz receiver, reports a battery level (76 %) and has the K15 Max's wireless timers and debounce, for screenshots of the wireless parts |
@@ -74,6 +75,7 @@ src/
     entries.ts         tap dance, combos, key overrides, alt repeat: defaults, problems, option bits, modifiers
     settings.ts        the QMK settings catalogue: names, explanations, controls, groups; values in and out
     keychron-typing.ts Keychron's key bounce filter types and Snap Click rules in words, pair checks
+    keychron-rgb.ts    Keychron's key colours and zones: packets, the LED under each key, zone effect numbers
     useDevice.ts       the app's store and its React hook
     api.ts, index.ts   the public surface; pages, plugins and the shell import from here
   demo/              the demo keyboard: a K15 Max inside the page (k15-max.json, demo-link.ts)
@@ -89,6 +91,7 @@ src/
     prefs.ts           what the app remembers in the browser (usePref)
     theme.ts           dark / light / system, applied as the `dark` class on <html>
     KeyboardPicture.tsx  the keyboard for one layer; wraps the vendored keyboard widget
+    picture-labels.ts  the picture's friendly labels: "Macro 1", "Multi-tap 1", a tap / hold key as hold over tap
     KeyTile.tsx        KeyTile (a palette key drawn like a keycap; `empty` draws it faint) and KeyCap (one key)
     ChoiceGrid.tsx     one of a few choices like Segmented, as a grid, so four labels fit a narrow column
     PageLink.tsx       a link in running text to another page of the app ("#/typing")
@@ -97,6 +100,9 @@ src/
     KeyCapture.tsx     "press a key": a button that takes the next key pressed as its value
     latest.ts          sends changes one at a time, only the newest waiting (dragged sliders)
     useElementSize.ts  an element's size as it changes (ResizeObserver)
+    colour.ts          lighting colours (QMK hue and saturation) as CSS, names, tracks, light or dark
+    ColourChooser.tsx  ready colours, recent ones, colour and vividness sliders
+    PaintSurface.tsx   press and drag across the picture's keys to paint them, one stroke at a time
   shell/             the frame around the pages
     Shell.tsx          the frame: sidebar, page title, stage, page, status line, help panel; picks the page
     Sidebar.tsx        app name, device card, pages grouped main / plugins ("Extras") / app
@@ -151,7 +157,9 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
   Shortcuts drafts for theirs. Beside it: the parts still being read in the background, or the ones that could not
   be read. Undo and redo call `deviceStore.undo` / `redo`.
 - **The help panel** slides in over the right edge of the page (not over the status line) when anything calls
-  `openHelp(topic)`, usually a `HelpButton`. Esc or the close button hides it; the page stays usable.
+  `openHelp(topic)`, usually a `HelpButton`. Esc or the close button hides it; the page stays usable. A topic's
+  link says where it goes ("Read more in the QMK documentation", "… the Vial manual", "… Keychron’s guide";
+  `help/docs-site.ts`).
 - **Theme**: dark by default; Settings offers dark, light and "Like the system". Stored with `prefs.ts`
   (`theme`); a small script in `index.html` applies it before the app loads, so nothing flashes.
 - Sized for 1280 × 800 and usable down to about 1000 px wide. When the stage itself is narrower than 768 px (a
@@ -226,8 +234,8 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     (mod-tap, `LCTL_T(kc)` …: Ctrl, Shift, Alt, Win to tick) or a layer (layer-tap, `LT(layer, kc)`, the layers by
     name; only 0-15 fit in the keycode); "Tap for" a key from a palette of plain keys (the shortcut palette's: the
     firmware keeps 8 bits for the tap). Nothing is written until the button, named by the result ("Use Tap: Escape
-    · Hold: Ctrl"). A line links to the Typing feel page for how long counts as a hold, and one under the palette
-    points to multi-tap keys for anything that isn't a plain key. Under "Left- or right-hand modifier", the side
+    · Hold: Ctrl"). A note under the palette (under it, so in a small window the palette starts high) points to
+    multi-tap keys for anything that isn't a plain key, and to the Typing feel page for how long counts as a hold. Under "Left- or right-hand modifier", the side
     (QMK can't mix sides in one key; opened by itself for a right-hand key).
   - *More options* (`keys/MoreOptions.tsx`): Nothing, Same as the layer below, a modifier for the next key only
     (QMK's one-shot modifier, `OSM`: Ctrl, Shift, Alt, Win and Right-hand to tick, then "Use Shift for the next
@@ -271,6 +279,10 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     sliders show the value at once, from what is still on its way.
   - A plugin can rename effects with `lightingEffects: { 41: { name, description } }` in its `definePlugin`, for
     firmware that puts its own effect in a standard slot (the K15's ripple is Solid Splash, VialRGB id 41).
+  - Keychron's two effects ("Key by key", "Mixed zones") bring an editor above the grid, scrolled into view when
+    picked: `lighting/KeyColours.tsx` and `lighting/Zones.tsx` (see "Key colours and zones"). Their tiles only show
+    on keyboards with Keychron lighting (`perKeyLighting`, `lightingZones`); until the Keychron part is read they
+    stay, so they don't flicker on keyboards that have them.
 - **Typing feel** (`Typing.tsx`, `typing/`): full height, no stage (no setting here needs the picture; Snap Click
   keys are pressed on the keyboard instead). A sentence on what the page is for and a search field, then one `Card`
   per group, each with its QMK name small beside the title, a one-sentence description and a help topic. On a wide
@@ -368,7 +380,8 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     ("Room for about 863 more characters · 63 of 926 bytes used").
   - *The other editors* (`shortcuts/EntryEditor.tsx` with `ChordEditor`, `OverrideEditor`, `TapDanceEditor`,
     `RepeatEditor`): a title ("Key chord 3", "Combos"), saved or "Not saved yet" with Save to keyboard, Revert and
-    what stands in the way (`entryProblem`; "Unlock and save…" only when it holds QK_BOOT where the firmware checks),
+    what stands in the way (`entryProblem`; "Unlock to save…" only when it holds QK_BOOT where the firmware checks;
+    `shortcuts/SaveBar.tsx`, shared with the macro editor; edits made while a save is on its way stay a draft),
     a sentence or two on the idea and a "Try: …" button that fills in a ready example, then the fields, More
     options, and "Clear this …". A key is keycaps, its name and "Change…" (the Keys page's palette with Ctrl, Shift,
     Alt and Win to tick); optional ones can be removed. Modifiers are Ctrl, Shift, Alt and Win checkboxes meaning
@@ -387,7 +400,7 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
       the alternate repeat key (QK_AREP) is.
   - *The editor* (`shortcuts/MacroEditor.tsx`): the name (an inline field; names live in the browser per keyboard,
     `shell/layer-names.ts` `renameMacro`), whether it matches the keyboard or is "Not saved yet", and while it isn't:
-    "Save to keyboard" (or, locked, "Unlock and save…", which opens the unlock dialog and writes nothing), Revert,
+    "Save to keyboard" (or, locked, "Unlock to save…", which opens the unlock dialog and writes nothing), Revert,
     what stands in the way (steps to fix, no room, locked). "Runs when you press": the keys and knob turns with this
     macro, as layer and key ("Windows Fn: the P key"); a click shows that key on the Keys page (`stage.showLayer`,
     `stage.select`). None: how to put it on a key, and a button to the Keys page. Then the steps
@@ -450,6 +463,12 @@ stage pages keeps the layer and selection:
   into a slot with `toSlot(selection, shownLayer(...))` for `deviceStore.assign`. On `stage: 'view'` pages the
   picture is not clickable and no selection is drawn, but the selection is kept for when the user comes back.
 - A different keyboard connecting (or none) resets the stage.
+- **Labels**: the picture (`ui/KeyboardPicture.tsx`, everywhere it is drawn) uses the keycode tables' labels, except
+  where those are only QMK's names (`ui/picture-labels.ts`): a macro reads "Macro 1" (M0), a multi-tap key
+  "Multi-tap 1" (TD(0)), each on two lines, and a tap / hold key is split as the widget draws such keys, the hold
+  above ("Ctrl", "Layer 3") and the tap below ("Esc"); a knob direction gets the same text, tap above hold. Keys
+  go to the widget's `labelOverrides`; for knobs, which have none, the text takes the keycode's place. Layer keys
+  keep QMK's names (MO(4)).
 - **Height** (`stage-size.ts`, applied as CSS in `Stage.tsx`): the stage shares the main area between the page
   title and the status line with the page. Left alone it is as tall as the picture wants at this width (the picture
   shrinks with the width and never grows past its own drawing size), at most half of that shared space, but never
@@ -506,6 +525,43 @@ one shot (theme, "More options" open) shows in another. `EDGE=<path>` points it 
   firmware nudge the mouse pointer once.
 - `deviceStore.setSetting(qsid, value)`, `setDebounce({ type, time })` and `setSnapClick(index, entry)` change one
   typing setting (see "Typing settings"); `resetSettings()` puts every QMK setting back to the firmware's defaults.
+- `deviceStore.setKeyColours(colours, undoKey)`, `setKeyStyle(style)`, `setZones(regions, undoKey)` and
+  `setZoneEffects(zone, effects)` change Keychron's key colours and zones (see "Key colours and zones").
+
+## Key colours and zones
+
+Keychron's own lighting (`0xA8`, `device/keychron-rgb.ts`; the firmware is `../vial_qmk/keyboards/keychron/
+common/rgb/`), shown on keyboards whose Keychron features include it (`0xA2` bit 0x80). The store reads it with the
+other Keychron data into `DeviceState.keychron.rgb`: the LED count, the LED under each key (`keyLeds` keeps the rows
+and columns the keyboard has; the read asks for 8 rows whatever the matrix), the colour of every LED, the per-key
+style, the zone of every LED and each zone's effect slots.
+
+- **Writing**: every command changes the running copy, shown on the next frame; `0xA8 0x02` saves all of it at
+  once with `eeprom_update_block`, which only writes bytes that changed. The store therefore sends changes as they
+  are made and saves 1.5 s after the last one, like the main lighting. Colours go nine LEDs to a packet, zones 28,
+  effect slots three, and only the stretches that change (`colourPackets`, `regionPackets`); each reply is checked
+  (status 0). A stroke (`undoKey`) is one undo step; the editors send through `ui/latest.ts`, so a fast drag sends
+  the newest table and never floods the keyboard.
+- **Key colours**: hue and saturation only. Every per-key style replaces a key's brightness with the keyboard's
+  (`per_key_rgb.c`), so the app writes 255 and the page's Brightness slider sets it for all keys. Styles (0 – 4):
+  steady, breathing, light up when pressed, glow around pressed keys, splash; speed is the main Speed slider.
+- **Zones**: 2 zones on the K15 Max, every LED in one; each zone has 5 effect slots, played in turn for their time
+  (ms) with a one-second fade, effect 0 being empty. Each slot has its own hue, saturation and speed; brightness is
+  the keyboard's. Zone effects use the keyboard's own effect numbers (QMK's `RGB_MATRIX_*` order), not VialRGB ids:
+  `zoneEffectNumbers` numbers the effects the keyboard lists in `rgb_matrix_effects.inc` order (the K15 Max: Solid
+  Color 1 ... Solid Splash 22, Direct 23, per-key 24, mixed 25), and a zone takes any below mixed except Direct.
+- While mixed lighting runs, each zone puts its colour and speed in the keyboard's running settings every frame;
+  `refreshLighting` keeps the store's colour and speed then, so the next effect gets the user's.
+- **The editors** draw the keyboard with `KeyboardPicture`'s `fills` (a colour per key; labels dark or light by
+  the colour's luminance, `isLightColour`) and `outlines` (zones), inside `ui/PaintSurface.tsx`, which turns a press
+  and drag over keys into one stroke. Key colours: ready colours, recent colours, colour and vividness
+  (`ui/ColourChooser.tsx`), paint or pick up a colour, colour a group at once (letters, numbers, F-keys, arrows,
+  modifiers from the base layer's keycodes, and each matrix row; `lighting/key-groups.ts`), three starting
+  points, and the style. Zones: pick a zone and paint keys into it; per zone, its effects with the grid's names and
+  previews, their colour, vividness and speed where the effect uses them, and how long each plays when there are
+  several.
+- **Restore** writes them back (`keyColours`, `zones` in the plan), from the Keychron state the backup keeps, and
+  only on a keyboard with as many lights and zones; Snap Click too (`snapClick`).
 
 ## Typing settings
 
@@ -615,7 +671,8 @@ One JSON file, `<keyboard-name>-<date>.layerworks.json` (`device/backup.ts`):
 
 `null` is a part that couldn't be read (or the keyboard doesn't have). Keycodes are numbers. Vendor and product
 come from the keyboard's definition, else from the cable link (a receiver has its own IDs). `keychron.state` is
-everything else the Keychron commands returned, for reference; restore doesn't use it. `parseBackup` checks
+everything else the Keychron commands returned; restore takes Snap Click, the key colours and the lighting zones from
+it (`backupContents`; a damaged part is left out, not the whole file). `parseBackup` checks
 every part and throws a `BackupError` that says what is wrong ("The backup file is damaged: layer 1, row 0 of the
 keymap."); a higher `version` is refused with "made by a newer version of Layerworks".
 
@@ -627,7 +684,8 @@ keymap."); a higher `version` is refused with "made by a newer version of Layerw
   per firmware definition, not per keyboard).
 - `planRestore` compares with what the store holds and keeps only differences: keys and knob directions, layout
   options, the macro buffer (whole, padded to the keyboard's size), entries by index, QMK settings by value
-  (whatever their width in the file), lighting, wireless timers, debounce, layer and macro names. What the keyboard can't
+  (whatever their width in the file), lighting, wireless timers, debounce, Snap Click slots, key colours and style,
+  lighting zones and their effects, layer and macro names. What the keyboard can't
   take (more layers, more entries, unknown settings, an effect it lacks) is listed in `plan.ignored`.
   `describePlan` puts the plan in words, one line per part.
 - `DeviceStore.restore` writes the plan through the store's change queue, part by part. Every write is tried; one
@@ -650,7 +708,9 @@ Keychron settings or layer names, so restoring one leaves those alone.
 until the page is reloaded. It is for trying and screenshotting the app with nothing plugged in. Refresh its
 data with `node scripts/demo-data.mjs` after the firmware definition or the keymap backup changes. Its lighting
 is the real keyboard's: the 25 VialRGB effects the Vial build lists, maximum brightness 255, starting on Solid
-Splash in indigo (`?demo-effect=` picks another). The test fake keeps its own small list (`RGB_EFFECTS`).
+Splash in indigo (`?demo-effect=` picks another; 48 and 49 open the key colour and zone editors). The test fake
+keeps its own small list (`RGB_EFFECTS`). Its Keychron lighting is the K15 Max's as its firmware starts out: the
+real LED map, red Esc and Enter, blue letters, yellow around them, W A S D in zone 2.
 
 The keys of whatever keyboard is typed on stand in for the demo's switches: each browser key event presses the
 demo key that sends the same key on its base layer, so holding Esc and Enter unlocks it, and once unlocked the Test

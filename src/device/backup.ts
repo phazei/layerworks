@@ -8,6 +8,8 @@ import type { KeychronState } from '../vendor/pipette/shared/types/keychron'
 import { keyboardIdentity, type Debounce, type FileIdentity, type KeyboardContents, type LightingValues } from './restore'
 import type { DeviceState, Entries } from './store'
 import type { WirelessTimers } from './wireless'
+import type { SnapClickEntry } from './keychron-typing'
+import type { Hsv, ZoneEffect } from './keychron-rgb'
 
 export const BACKUP_FORMAT = 'layerworks-backup'
 export const BACKUP_VERSION = 1
@@ -318,5 +320,50 @@ export function backupContents(backup: Backup): KeyboardContents {
   if (backup.lighting) contents.lighting = backup.lighting
   if (backup.keychron?.wireless) contents.wireless = backup.keychron.wireless
   if (backup.keychron?.debounce) contents.debounce = backup.keychron.debounce
+  Object.assign(contents, keychronExtras(backup.keychron?.state ?? {}))
   return contents
+}
+
+const byte = (v: unknown): v is number => isInt(v, 0xff)
+
+/**
+ * Snap Click and Keychron's per-key and zone lighting, from the Keychron state the backup keeps as read
+ * (KeychronState, with its Maps as objects). Each part is taken only if it is whole and well-formed; a damaged one
+ * is left out rather than failing the whole file.
+ */
+function keychronExtras(state: Record<string, unknown>): Pick<KeyboardContents, 'snapClick' | 'keyColours' | 'zones'> {
+  const out: Pick<KeyboardContents, 'snapClick' | 'keyColours' | 'zones'> = {}
+  const snap = state.snapClickEntries
+  if (state.hasSnapClick === true && Array.isArray(snap) && snap.every((e) => isRecord(e) && byte(e.type) && byte(e.key1) && byte(e.key2))) {
+    out.snapClick = (snap as SnapClickEntry[]).map(({ type, key1, key2 }) => ({ type, key1, key2 }))
+  }
+  const rgb = state.rgb
+  if (state.hasRgb !== true || !isRecord(rgb)) return out
+  const colours = rgb.perKeyColors
+  if (
+    Array.isArray(colours) &&
+    colours.length > 0 &&
+    colours.every((c) => Array.isArray(c) && c.length === 3 && c.every(byte)) &&
+    byte(rgb.perKeyRGBType)
+  ) {
+    out.keyColours = { colours: (colours as Hsv[]).map((c) => [...c] as Hsv), style: rgb.perKeyRGBType }
+  }
+  const regions = rgb.mixedRGBRegions
+  const effects = rgb.mixedRGBEffects
+  const isEffect = (e: unknown) =>
+    isRecord(e) && byte(e.effect) && byte(e.hue) && byte(e.sat) && byte(e.speed) && isInt(e.time, 0xffffffff)
+  if (
+    Array.isArray(regions) &&
+    regions.length > 0 &&
+    regions.every(byte) &&
+    Array.isArray(effects) &&
+    effects.length > 0 &&
+    effects.every((list) => Array.isArray(list) && list.every(isEffect))
+  ) {
+    out.zones = {
+      regions: [...(regions as number[])],
+      effects: (effects as ZoneEffect[][]).map((list) => list.map(({ effect, hue, sat, speed, time }) => ({ effect, hue, sat, speed, time }))),
+    }
+  }
+  return out
 }

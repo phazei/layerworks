@@ -43,6 +43,8 @@ export type Feature =
   | 'qmkSettings'
   | 'lighting'
   | 'perKeyLighting'
+  /** Keychron's mixed lighting: zones of keys, each playing its own effects. */
+  | 'lightingZones'
   | 'liveLayer'
   | 'battery'
   | 'wirelessTimers'
@@ -125,7 +127,12 @@ export function buildCapabilities(sources: CapabilitySources): Capabilities {
         // The keyboard always lists Off (0); anything else is an effect to choose from.
         return lighting.effects.size > 1 ? yes : no('The keyboard’s firmware doesn’t offer any lighting effects.')
       case 'perKeyLighting':
-        return keychronOnly((kc) => kc.hasRgb)
+        // The LED map is what puts a colour on a key; without it there is nothing to paint.
+        return keychronOnly((kc) => kc.hasRgb && !!kc.rgb && kc.rgb.ledCount > 0 && kc.rgb.ledMatrix.size > 0)
+      case 'lightingZones':
+        return keychronOnly(
+          (kc) => kc.hasRgb && !!kc.rgb && kc.rgb.ledCount > 0 && kc.rgb.ledMatrix.size > 0 && kc.rgb.mixedRGBLayers > 0,
+        )
       case 'liveLayer':
         return keychronOnly((kc) => kc.hasDefaultLayer)
       case 'battery':

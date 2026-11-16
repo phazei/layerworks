@@ -93,20 +93,59 @@ const demoSnapClick = () => [
   ...Array.from({ length: 19 }, () => ({ type: 0, key1: 0, key2: 0 })),
 ]
 
+/**
+ * The K15 Max's Keychron lighting as its firmware starts out (vial-qmk keyboards/keychron/k15_max/ansi_encoder/rgb/
+ * rgb.c and common/rgb/keychron_rgb.c's reset): the LED under each key (g_led_config), the default per-key colours
+ * (Esc and Enter red, the letter block blue, the keys around it yellow), the default zones (W, A, S, D in zone 2)
+ * and the zones' default effects (zone 1: a rainbow wave, number 5; zone 2: red breathing, number 2). `__` is no LED.
+ */
+const __ = 0xff
+const K15_LED_AT = [
+  [__, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+  [15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+  [31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46],
+  [47, 48, 49, 50, 51, 52, __, 53, 54, 55, 56, 57, 58, 59, 60, 61],
+  [62, 63, __, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76],
+  [77, 78, 79, 80, __, 81, __, 82, __, 83, 84, 85, __, 86, 87, 88],
+]
+const HSV = { R: [0, 255, 255], Y: [43, 255, 255], B: [170, 255, 255] } as const
+const K15_KEY_COLOURS = ['RYYYYYYYYYYYYYY', 'YBBBBBBBBBBBBBYY', 'YYBBBBBBBBBBBBYY', 'YYBBBBBBBBBBBRY', 'YYBBBBBBBBBBBYY', 'YYYYBYBYYYYY']
+  .join('')
+  .split('')
+  .map((c) => [...HSV[c as keyof typeof HSV]] as [number, number, number])
+const K15_ZONES = Array.from({ length: 89 }, (_, led) => ([34, 49, 50, 51].includes(led) ? 1 : 0))
+const zoneSlots = (first: { effect: number; hue: number; sat: number; speed: number; time: number }) => [
+  first,
+  ...Array.from({ length: 4 }, () => ({ effect: 0, hue: 0, sat: 0, speed: 0, time: 0 })),
+]
+const k15Rgb = () => ({
+  ledAt: K15_LED_AT,
+  colours: K15_KEY_COLOURS.map((c) => [...c] as [number, number, number]),
+  style: 0,
+  regions: [...K15_ZONES],
+  effects: [
+    zoneSlots({ effect: 5, hue: 0, sat: 255, speed: 127, time: 5000 }),
+    zoneSlots({ effect: 2, hue: 0, sat: 255, speed: 127, time: 5000 }),
+  ],
+  mixedEffect: 25,
+})
+
 /** The K15 Max's key bounce filter as read from the real keyboard: react at once, 50 ms (its info.json default). */
 const K15_DEBOUNCE = { type: 4, time: 50 }
 
 /**
- * The plain demo's Keychron commands: the default layer, and the typing settings the Typing feel page shows (key
- * bounce filter and Snap Click, `0xA2` bits 0x20 and 0x40, misc bits 0x04 and 0x08). No wireless features.
+ * The plain demo's Keychron commands: the default layer, the typing settings the Typing feel page shows (key
+ * bounce filter and Snap Click, `0xA2` bits 0x20 and 0x40, misc bits 0x04 and 0x08), and Keychron's lighting (bit
+ * 0x80: key colours and zones). No wireless features.
  */
 const DEMO_KEYCHRON = {
   protocol: 2,
-  features: 0x01 | 0x20 | 0x40,
+  features: 0x01 | 0x20 | 0x40 | 0x80,
   firmware: 'demo',
   misc: 0x04 | 0x08,
   debounce: K15_DEBOUNCE,
   snapClick: demoSnapClick(),
+  rgb: k15Rgb(),
 }
 
 /**
@@ -118,13 +157,14 @@ const DEMO_KEYCHRON = {
  */
 const K15_KEYCHRON = {
   protocol: 2,
-  features: 0x01 | 0x02 | 0x04 | 0x10 | 0x20 | 0x40,
+  features: 0x01 | 0x02 | 0x04 | 0x10 | 0x20 | 0x40 | 0x80,
   firmware: 'v1.1.2 1970-01-01-00:00:00',
   misc: 0x04 | 0x08 | 0x10,
   lpm: { backlitTime: 600, idleTime: 7200 },
   debounce: K15_DEBOUNCE,
   snapClick: demoSnapClick(),
   battery: 76,
+  rgb: k15Rgb(),
 }
 
 /**

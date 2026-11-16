@@ -147,6 +147,24 @@ export interface FakeKeychron {
   snapClick?: { type: number; key1: number; key2: number }[]
   /** The Snap Click table as last saved (`0xA7 0x0A`). */
   snapClickSaved?: { type: number; key1: number; key2: number }[]
+  /** Keychron's own lighting (`0xA8`, feature bit 0x80): per-key colours and mixed zones. */
+  rgb?: FakeKeychronRgb
+}
+
+export interface FakeKeychronRgb {
+  /** ledAt[row][col]: the LED under each key, 0xFF for none (rgb.c's g_led_config). */
+  ledAt: number[][]
+  /** One [hue, saturation, value] per LED. */
+  colours: [number, number, number][]
+  style: number
+  /** The zone of each LED; the number of zones is `effects.length`. */
+  regions: number[]
+  /** effects[zone][slot] */
+  effects: { effect: number; hue: number; sat: number; speed: number; time: number }[][]
+  /** The keyboard's own number of its mixed effect: zone effects must be below it (keychron_rgb.c). */
+  mixedEffect: number
+  /** What the save command (`0xA8 0x02`) last kept. */
+  saved?: { colours: [number, number, number][]; style: number; regions: number[]; effects: FakeKeychronRgb['effects'] }
 }
 
 /** QK_BOOT in Vial protocol 6: the firmware turns it into 0 in knob and entry writes while locked. */
@@ -403,9 +421,84 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
     }
   }
 
+  /**
+   * Keychron's lighting group (`0xA8`), as keychron_rgb.c answers it: `[0xA8, sub, status, ...data]`, status 1
+   * for anything it refuses, with the same limits (9 colours, 29 / 28 zones, 3 effects to a packet).
+   */
+  const keychronRgb = (rgb: FakeKeychronRgb, request: Uint8Array): number[] => {
+    const sub = request[1]
+    const ok = (...data: number[]) => [0xa8, sub, 0, ...data]
+    const fail = [0xa8, sub, 1]
+    const leds = rgb.colours.length
+    const zones = rgb.effects.length
+    const slots = rgb.effects[0]?.length ?? 0
+    const [a, b, c] = [request[2], request[3], request[4]]
+    switch (sub) {
+      case 0x01:
+        return ok(1, 0)
+      case 0x02:
+        rgb.saved = structuredClone({ colours: rgb.colours, style: rgb.style, regions: rgb.regions, effects: rgb.effects })
+        return ok()
+      case 0x03:
+        return ok(0x02, 0, 0, 0, 0xff)
+      case 0x05:
+        return ok(leds)
+      case 0x06: {
+        // row, then a 3-byte column mask; one LED index per column, 0xFF for none. Rows past the matrix fail.
+        const row = rgb.ledAt[a]
+        if (!row) return fail
+        return ok(...row)
+      }
+      case 0x07:
+        return ok(rgb.style)
+      case 0x08:
+        if (a >= 5) return fail
+        rgb.style = a
+        return ok()
+      case 0x09:
+        if (b > 9) return fail
+        return ok(...rgb.colours.slice(a, a + b).flat())
+      case 0x0a:
+        if (b > 9 || a + b > leds) return fail
+        for (let i = 0; i < b; i++) rgb.colours[a + i] = [request[4 + i * 3], request[5 + i * 3], request[6 + i * 3]]
+        return ok()
+      case 0x0b:
+        return ok(zones, slots)
+      case 0x0c:
+        if (b > 29 || a + b > leds) return fail
+        return ok(...rgb.regions.slice(a, a + b))
+      case 0x0d: {
+        if (b > 28 || a + b > leds) return fail
+        const values = Array.from(request.subarray(4, 4 + b))
+        if (values.some((z) => z >= zones)) return fail
+        rgb.regions.splice(a, b, ...values)
+        return ok()
+      }
+      case 0x0e: {
+        if (c > 3 || a >= zones || b + c > slots) return fail
+        return ok(
+          ...rgb.effects[a].slice(b, b + c).flatMap((e) => [e.effect, e.hue, e.sat, e.speed, ...le16(e.time & 0xffff), ...le16(e.time >>> 16)]),
+        )
+      }
+      case 0x0f: {
+        if (c > 3 || a >= zones || b + c > slots) return fail
+        const records = Array.from({ length: c }, (_, i) => {
+          const r = request.subarray(5 + i * 8, 13 + i * 8)
+          return { effect: r[0], hue: r[1], sat: r[2], speed: r[3], time: (r[4] | (r[5] << 8) | (r[6] << 16) | (r[7] << 24)) >>> 0 }
+        })
+        if (records.some((r) => r.effect >= rgb.mixedEffect)) return fail
+        rgb.effects[a].splice(b, c, ...records)
+        return ok()
+      }
+      default:
+        return [0xff]
+    }
+  }
+
   const keychron = (request: Uint8Array): number[] => {
     const kc = config.keychron
     if (!kc) return [0xff]
+    if (request[0] === 0xa8) return kc.rgb ? keychronRgb(kc.rgb, request) : [0xff]
     switch (request[0]) {
       case 0xa0:
         return [0xa0, kc.protocol]

@@ -13,6 +13,8 @@ import type {
 import { parseKeycode } from './keycodes'
 import type { DeviceState, Entries, Slot } from './store'
 import { formatDuration, timersProblem, type WirelessTimers } from './wireless'
+import { snapClickProblem, type SnapClickEntry } from './keychron-typing'
+import { PER_KEY_STYLE_COUNT, type Hsv, type ZoneEffect } from './keychron-rgb'
 
 export interface LightingValues {
   mode: number
@@ -42,6 +44,12 @@ export interface KeyboardContents {
   lighting?: LightingValues
   wireless?: WirelessTimers
   debounce?: Debounce
+  /** Keychron Snap Click, every slot. */
+  snapClick?: SnapClickEntry[]
+  /** Keychron per-key lighting: one colour per LED index, and the style (./keychron-rgb). */
+  keyColours?: { colours: Hsv[]; style: number }
+  /** Keychron mixed lighting: the zone of each LED, and each zone's effect slots in the keyboard's numbering. */
+  zones?: { regions: number[]; effects: ZoneEffect[][] }
   /** As stored in the browser: an empty name means the default. */
   layerNames?: string[]
   /** As stored in the browser: an empty name means the default. */
@@ -149,6 +157,12 @@ export interface RestorePlan {
   lighting: LightingValues | null
   wireless: WirelessTimers | null
   debounce: Debounce | null
+  /** Snap Click slots that differ. */
+  snapClick: { index: number; entry: SnapClickEntry }[]
+  /** Per-key colours and style; a part that already matches is null. */
+  keyColours: { colours: Hsv[] | null; style: number | null } | null
+  /** Zone map and the zones whose effects differ. */
+  zones: { regions: number[] | null; effects: { zone: number; effects: ZoneEffect[] }[] } | null
   /** Names for the browser to keep; null when they already match. */
   layerNames: string[] | null
   /** Macro names for the browser to keep; null when they already match. */
@@ -171,6 +185,9 @@ export type RestorePart =
   | 'lighting'
   | 'wireless'
   | 'debounce'
+  | 'snapClick'
+  | 'keyColours'
+  | 'zones'
   | 'layerNames'
   | 'macroNames'
 
@@ -188,6 +205,9 @@ export const PART_NAMES: Record<RestorePart, { one: string; many: string; qmk?: 
   lighting: { one: 'lighting', many: 'lighting' },
   wireless: { one: 'wireless timers', many: 'wireless timers' },
   debounce: { one: 'debounce', many: 'debounce' },
+  snapClick: { one: 'Snap Click pair', many: 'Snap Click pairs', qmk: 'SOCD' },
+  keyColours: { one: 'key colours', many: 'key colours', qmk: 'per-key RGB' },
+  zones: { one: 'lighting zones', many: 'lighting zones', qmk: 'mixed RGB' },
   layerNames: { one: 'layer names', many: 'layer names' },
   macroNames: { one: 'macro names', many: 'macro names' },
 }
@@ -237,6 +257,9 @@ export function planRestore(
     lighting: null,
     wireless: null,
     debounce: null,
+    snapClick: [],
+    keyColours: null,
+    zones: null,
     layerNames: null,
     macroNames: null,
     ignored: [],
@@ -349,6 +372,64 @@ export function planRestore(
     else if (d.type !== kc.debounceType || d.time !== kc.debounceTime) plan.debounce = { ...d }
   }
 
+  // Keychron: Snap Click.
+  if (contents.snapClick) {
+    if (!kc?.hasSnapClick) plan.ignored.push('Snap Click: this keyboard doesn’t have it.')
+    else {
+      const slots = kc.snapClickEntries
+      let beyond = 0
+      let unusable = 0
+      contents.snapClick.forEach((entry, index) => {
+        if (index >= slots.length) {
+          if (entry.type !== 0) beyond++
+          return
+        }
+        if (snapClickProblem(entry) !== null) {
+          unusable++
+          return
+        }
+        const now = slots[index]
+        if (now.type !== entry.type || now.key1 !== entry.key1 || now.key2 !== entry.key2) {
+          plan.snapClick.push({ index, entry: { type: entry.type, key1: entry.key1, key2: entry.key2 } })
+        }
+      })
+      if (beyond > 0) plan.ignored.push(`${countOf('snapClick', beyond)} beyond the ${slots.length} this keyboard has.`)
+      if (unusable > 0) plan.ignored.push(`${countOf('snapClick', unusable)} the keyboard wouldn’t take.`)
+    }
+  }
+
+  // Keychron: per-key colours and zones. Tables are per LED, so they only go back on a keyboard with as many.
+  const rgb = kc?.hasRgb ? kc.rgb : null
+  if (contents.keyColours) {
+    const { colours, style } = contents.keyColours
+    if (!rgb || rgb.ledCount === 0) plan.ignored.push('Key colours: this keyboard can’t give each key its own colour.')
+    else if (colours.length !== rgb.ledCount) plan.ignored.push('Key colours: this keyboard has a different number of lights.')
+    else {
+      const sameColours = colours.every((c, i) => rgb.perKeyColors[i]?.every((v, j) => v === c[j]))
+      const wantedStyle = style >= 0 && style < PER_KEY_STYLE_COUNT && style !== rgb.perKeyRGBType ? style : null
+      if (!sameColours || wantedStyle !== null) {
+        plan.keyColours = { colours: sameColours ? null : colours.map((c) => [...c] as Hsv), style: wantedStyle }
+      }
+    }
+  }
+  if (contents.zones) {
+    const { regions, effects } = contents.zones
+    if (!rgb || rgb.mixedRGBLayers === 0) plan.ignored.push('Lighting zones: this keyboard has none.')
+    else if (regions.length !== rgb.ledCount || effects.length !== rgb.mixedRGBLayers) {
+      plan.ignored.push('Lighting zones: this keyboard has a different number of lights or zones.')
+    } else {
+      const sameRegions = regions.every((z, i) => z === rgb.mixedRGBRegions[i])
+      const changed = effects.flatMap((list, zone) => {
+        const now = rgb.mixedRGBEffects[zone] ?? []
+        const same = list.length === now.length && list.every((e, i) => sameEntry(e, now[i]))
+        return same || list.length !== rgb.mixedRGBEffectsPerLayer ? [] : [{ zone, effects: list.map((e) => ({ ...e })) }]
+      })
+      if (!sameRegions || changed.length > 0) {
+        plan.zones = { regions: sameRegions || regions.some((z) => z >= rgb.mixedRGBLayers) ? null : [...regions], effects: changed }
+      }
+    }
+  }
+
   // Layer names, kept in the browser.
   if (contents.layerNames) {
     const pad = (names: string[]) => Array.from({ length: kb.layers }, (_, i) => names[i]?.trim() ?? '')
@@ -415,6 +496,9 @@ export const isEmptyPlan = (plan: RestorePlan): boolean =>
   plan.lighting === null &&
   plan.wireless === null &&
   plan.debounce === null &&
+  plan.snapClick.length === 0 &&
+  plan.keyColours === null &&
+  plan.zones === null &&
   plan.layerNames === null &&
   plan.macroNames === null
 
@@ -464,6 +548,15 @@ export function describePlan(plan: RestorePlan, layerNames: string[], boot: numb
     })
   }
   if (plan.debounce) lines.push({ part: 'debounce', text: `Debounce (${plan.debounce.time} ms)`, needsUnlock: false })
+  if (plan.snapClick.length) lines.push({ part: 'snapClick', text: countOf('snapClick', plan.snapClick.length), needsUnlock: false })
+  if (plan.keyColours) {
+    const what = [plan.keyColours.colours && 'colours', plan.keyColours.style !== null && 'how they light up'].filter(Boolean)
+    lines.push({ part: 'keyColours', text: `Key by key lighting: ${what.join(' and ')} (per-key RGB)`, needsUnlock: false })
+  }
+  if (plan.zones) {
+    const what = [plan.zones.regions && 'which keys are in each zone', plan.zones.effects.length > 0 && 'the zones’ effects'].filter(Boolean)
+    lines.push({ part: 'zones', text: `Lighting zones: ${what.join(' and ')} (mixed RGB)`, needsUnlock: false })
+  }
   if (plan.layerNames) lines.push({ part: 'layerNames', text: 'Layer names (kept in this browser)', needsUnlock: false })
   if (plan.macroNames) lines.push({ part: 'macroNames', text: 'Macro names (kept in this browser)', needsUnlock: false })
   return lines

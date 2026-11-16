@@ -2,12 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { clearPrefs } from '../../../ui/prefs'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '../..'
 import { createBackup, deviceStore, planRestore } from '../../../device'
 import { backupContents } from '../../../device/backup'
 import { FakeLink, fakeKeyboard, fakeKeyboardConfig, type FakeKeyboardConfig } from '../../../device/fake-keyboard'
-import { definePlugin } from '../../../plugins/api'
+import { definePlugin, removePlugin } from '../../../plugins/api'
 import { Shell } from '../../../shell/Shell'
 
 const EFFECTS = [2, 6, 13, 25, 30, 41]
@@ -35,11 +36,13 @@ beforeEach(() => {
   vi.spyOn(console, 'log').mockImplementation(() => {})
   vi.spyOn(console, 'warn').mockImplementation(() => {})
   localStorage.clear()
+  clearPrefs()
 })
 
 afterEach(async () => {
   await act(() => deviceStore.disconnect())
   location.hash = ''
+  removePlugin('test-lighting')
 })
 
 describe('the Lighting page after a restore', () => {

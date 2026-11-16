@@ -51,6 +51,18 @@ import { entryProblem, sameEntry, type AnyEntry, type EntryOf } from './entries'
 import type { EntryKind } from './restore'
 import { decodeSetting, largestValue, settingWidth, withSettingValue } from './settings'
 import { debounceMax, snapClickProblem, type Debounce, type SnapClickEntry } from './keychron-typing'
+import {
+  accepted,
+  colourPackets,
+  effectPackets,
+  PER_KEY_STYLE_COUNT,
+  regionPackets,
+  savePacket,
+  stylePacket,
+  ZONES_EFFECT,
+  type Hsv,
+  type ZoneEffect,
+} from './keychron-rgb'
 
 export interface LinkInfo {
   kind: LinkKind
@@ -330,6 +342,18 @@ export interface DeviceStore {
   /** Sets one Snap Click pair (type 0 empties the slot) and saves the table on the keyboard. One undo step. */
   setSnapClick(index: number, entry: SnapClickEntry): Promise<boolean>
   /**
+   * Keychron per-key colours ("Key by key"): the whole table, one colour per LED index. Only the keys that change
+   * are sent, nine to a packet; the keyboard shows them at once and they are saved on it after a short pause.
+   * Changes with the same `undoKey` (one paint stroke) in quick succession are one undo step.
+   */
+  setKeyColours(colours: Hsv[], undoKey?: string): Promise<boolean>
+  /** How the per-key colours light up (Keychron's per-key style, 0 – 4). One undo step. */
+  setKeyStyle(style: number): Promise<boolean>
+  /** Keychron mixed lighting ("Mixed zones"): the zone of every LED. Like `setKeyColours`. */
+  setZones(regions: number[], undoKey?: string): Promise<boolean>
+  /** Every effect slot of one zone, in the keyboard's own effect numbering (./keychron-rgb). One undo step. */
+  setZoneEffects(zone: number, effects: ZoneEffect[]): Promise<boolean>
+  /**
    * Reads every key straight from the keyboard while it is unlocked; `listener` gets the keys down ("row,col")
    * whenever they change. Polling runs while anyone watches and the keyboard is unlocked, and stops when the last
    * watcher leaves, the keyboard locks or goes away. Returns the stop function.
@@ -527,6 +551,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
   let undoStack: Edit[] = []
   let redoStack: Edit[] = []
   let lightingSaveTimer: ReturnType<typeof setTimeout> | null = null
+  let keyLightingSaveTimer: ReturnType<typeof setTimeout> | null = null
 
   let changes: Promise<unknown> = Promise.resolve()
 
@@ -542,6 +567,8 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     redoStack = []
     if (lightingSaveTimer) clearTimeout(lightingSaveTimer)
     lightingSaveTimer = null
+    if (keyLightingSaveTimer) clearTimeout(keyLightingSaveTimer)
+    keyLightingSaveTimer = null
   }
 
   /** Runs one write, keeping `writing` and `writeError` in step. Resolves with whether it reached the keyboard. */
@@ -665,7 +692,11 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     if (!current || state.lighting?.kind !== 'vialrgb') return
     try {
       const values = await protocol.getVialRGBMode()
-      if (session === current && state.lighting) set({ lighting: { ...state.lighting, ...values } })
+      if (session !== current || !state.lighting) return
+      // While Keychron's mixed lighting runs, each zone puts its own colour and speed in the running settings every
+      // frame (mixed_rgb.c); those aren't the user's. Keep the ones the store has, so another effect gets them.
+      const read = values.mode === ZONES_EFFECT ? { mode: values.mode, val: values.val } : values
+      set({ lighting: { ...state.lighting, ...read } })
     } catch {
       // A missed refresh leaves the values as they were; the next one or the next change puts them right.
     }
@@ -917,6 +948,69 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       })
     }
 
+    for (const { index, entry } of plan.snapClick) {
+      steps.push({
+        part: 'snapClick',
+        what: `Snap Click pair ${index + 1}`,
+        needsUnlock: false,
+        send: async () => {
+          if (!(await setKeychronSnapClick(index, entry.type, entry.key1, entry.key2))) {
+            throw new Error('The keyboard refused this Snap Click pair.')
+          }
+          if (!(await saveKeychronSnapClick())) throw new Error('The keyboard didn’t save Snap Click.')
+        },
+        applied: () => {
+          if (!state.keychron) return {}
+          const entries = [...state.keychron.snapClickEntries]
+          entries[index] = { ...entry }
+          return { keychron: { ...state.keychron, snapClickEntries: entries } }
+        },
+      })
+    }
+
+    // Keychron's per-key colours and zones: written, then saved with the command that saves them all.
+    if (plan.keyColours) {
+      const { colours, style } = plan.keyColours
+      steps.push({
+        part: 'keyColours',
+        what: 'key colours',
+        needsUnlock: false,
+        send: async () => {
+          const packets = [
+            ...(colours ? colourPackets(state.keychron?.rgb?.perKeyColors ?? [], colours) : []),
+            ...(style !== null ? [stylePacket(style)] : []),
+          ]
+          await sendKeyLighting([...packets, savePacket()], 'The keyboard refused the key colours.')
+        },
+        applied: () =>
+          withKeyLighting({
+            ...(colours ? { perKeyColors: colours.map((c) => [...c] as Hsv) } : {}),
+            ...(style !== null ? { perKeyRGBType: style } : {}),
+          }),
+      })
+    }
+
+    if (plan.zones) {
+      const { regions, effects } = plan.zones
+      steps.push({
+        part: 'zones',
+        what: 'lighting zones',
+        needsUnlock: false,
+        send: async () => {
+          const packets = [
+            ...(regions ? regionPackets(state.keychron?.rgb?.mixedRGBRegions ?? [], regions) : []),
+            ...effects.flatMap((z) => effectPackets(z.zone, z.effects)),
+          ]
+          await sendKeyLighting([...packets, savePacket()], 'The keyboard refused the lighting zones.')
+        },
+        applied: () => {
+          const list = [...(state.keychron?.rgb?.mixedRGBEffects ?? [])]
+          for (const z of effects) list[z.zone] = z.effects.map((e) => ({ ...e }))
+          return withKeyLighting({ ...(regions ? { mixedRGBRegions: [...regions] } : {}), mixedRGBEffects: list })
+        },
+      })
+    }
+
     const todo = steps.filter((s) => {
       if (unlocked || !s.needsUnlock) return true
       report.skipped.push({ part: s.part, what: s.what })
@@ -1072,6 +1166,121 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     return true
   }
 
+  /**
+   * Sends Keychron lighting packets (0xA8) in order, each checked: the firmware answers status 1 for a write it
+   * refuses. Every one of them only changes the running copy; `saveKeyLightingSoon` keeps it.
+   */
+  async function sendKeyLighting(packets: Uint8Array[], refused: string): Promise<void> {
+    const current = session
+    if (!current) throw new Error(NOT_CONNECTED)
+    for (const p of packets) {
+      if (!accepted(await current.transport.request(p))) throw new Error(refused)
+    }
+  }
+
+  function saveKeyLightingSoon(): void {
+    if (keyLightingSaveTimer) clearTimeout(keyLightingSaveTimer)
+    keyLightingSaveTimer = setTimeout(() => {
+      keyLightingSaveTimer = null
+      void write(() => sendKeyLighting([savePacket()], 'The keyboard didn’t save the key lighting.'), () => ({}))
+    }, LIGHTING_SAVE_DELAY_MS)
+  }
+
+  /** The Keychron lighting part of the state with `patch` applied, for `applied`. */
+  function withKeyLighting(patch: Partial<NonNullable<KeychronState['rgb']>>): Partial<DeviceState> {
+    const kc = state.keychron
+    if (!kc?.rgb) return {}
+    return { keychron: { ...kc, rgb: { ...kc.rgb, ...patch } } }
+  }
+
+  async function writeKeyColours(colours: Hsv[]): Promise<boolean> {
+    const before = state.keychron?.rgb?.perKeyColors ?? []
+    const sent = await write(
+      () => sendKeyLighting(colourPackets(before, colours), 'The keyboard refused these key colours.'),
+      () => withKeyLighting({ perKeyColors: colours.map((c) => [...c] as Hsv) }),
+    )
+    if (sent) saveKeyLightingSoon()
+    return sent
+  }
+
+  /** A whole table for the keyboard: one entry per LED. */
+  const fits = (values: readonly unknown[], count: number) => values.length === count
+
+  async function setKeyColours(colours: Hsv[], undoKey = 'key-colours'): Promise<boolean> {
+    const rgb = state.keychron?.rgb
+    if (!state.keychron?.hasRgb || !rgb || !fits(colours, rgb.ledCount)) return false
+    const to = colours.map(([h, s, v]) => [h & 0xff, s & 0xff, v & 0xff] as Hsv)
+    const from = rgb.perKeyColors.map((c) => [...c] as Hsv)
+    if (same(from, to)) return true
+    if (!(await writeKeyColours(to))) return false
+    rememberValue(undoKey, from, to, (v) => writeKeyColours(v as Hsv[]))
+    return true
+  }
+
+  async function writeKeyStyle(style: number): Promise<boolean> {
+    const sent = await write(
+      () => sendKeyLighting([stylePacket(style)], 'The keyboard refused this style.'),
+      () => withKeyLighting({ perKeyRGBType: style }),
+    )
+    if (sent) saveKeyLightingSoon()
+    return sent
+  }
+
+  async function setKeyStyle(style: number): Promise<boolean> {
+    const rgb = state.keychron?.rgb
+    if (!rgb || !Number.isInteger(style) || style < 0 || style >= PER_KEY_STYLE_COUNT) return false
+    const from = rgb.perKeyRGBType
+    if (from === style) return true
+    if (!(await writeKeyStyle(style))) return false
+    rememberValue('key-style', from, style, (v) => writeKeyStyle(v as number))
+    return true
+  }
+
+  async function writeZones(regions: number[]): Promise<boolean> {
+    const before = state.keychron?.rgb?.mixedRGBRegions ?? []
+    const sent = await write(
+      () => sendKeyLighting(regionPackets(before, regions), 'The keyboard refused these zones.'),
+      () => withKeyLighting({ mixedRGBRegions: [...regions] }),
+    )
+    if (sent) saveKeyLightingSoon()
+    return sent
+  }
+
+  async function setZones(regions: number[], undoKey = 'zones'): Promise<boolean> {
+    const rgb = state.keychron?.rgb
+    if (!rgb || !fits(regions, rgb.ledCount)) return false
+    if (regions.some((z) => !Number.isInteger(z) || z < 0 || z >= rgb.mixedRGBLayers)) return false
+    const from = [...rgb.mixedRGBRegions]
+    if (same(from, regions)) return true
+    if (!(await writeZones(regions))) return false
+    rememberValue(undoKey, from, [...regions], (v) => writeZones(v as number[]))
+    return true
+  }
+
+  async function writeZoneEffects(zone: number, effects: ZoneEffect[]): Promise<boolean> {
+    const sent = await write(
+      () => sendKeyLighting(effectPackets(zone, effects), 'The keyboard refused these zone effects.'),
+      () => {
+        const list = [...(state.keychron?.rgb?.mixedRGBEffects ?? [])]
+        list[zone] = effects.map((e) => ({ ...e }))
+        return withKeyLighting({ mixedRGBEffects: list })
+      },
+    )
+    if (sent) saveKeyLightingSoon()
+    return sent
+  }
+
+  async function setZoneEffects(zone: number, effects: ZoneEffect[]): Promise<boolean> {
+    const rgb = state.keychron?.rgb
+    const now = rgb?.mixedRGBEffects[zone]
+    if (!rgb || !now || effects.length !== rgb.mixedRGBEffectsPerLayer) return false
+    const from = now.map((e) => ({ ...e }))
+    if (same(from, effects)) return true
+    if (!(await writeZoneEffects(zone, effects))) return false
+    rememberValue(`zone-effects:${zone}`, from, effects, (v) => writeZoneEffects(zone, v as ZoneEffect[]))
+    return true
+  }
+
   function watchMatrix(listener: (down: ReadonlySet<string>) => void): () => void {
     matrixWatchers.add(listener)
     syncMatrix()
@@ -1119,6 +1328,10 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     resetSettings: () => inOrder(resetSettings),
     setDebounce: (debounce) => inOrder(() => setDebounce(debounce)),
     setSnapClick: (index, entry) => inOrder(() => setSnapClick(index, entry)),
+    setKeyColours: (colours, undoKey) => inOrder(() => setKeyColours(colours, undoKey)),
+    setKeyStyle: (style) => inOrder(() => setKeyStyle(style)),
+    setZones: (regions, undoKey) => inOrder(() => setZones(regions, undoKey)),
+    setZoneEffects: (zone, effects) => inOrder(() => setZoneEffects(zone, effects)),
     watchMatrix,
 
     async connect(link) {
