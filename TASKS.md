@@ -20,7 +20,8 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
   recording; multi-tap keys, key chords, shortcut replacements and repeat rules, each with an inline editor;
   drafts saved with "Save to keyboard"), Typing feel (the keyboard's QMK settings by what they feel like, with
   search; Keychron debounce and Snap Click; undoable; reset all). Keys also has "Tap or hold" (mod-tap,
-  layer-tap) and names macros and multi-tap keys in the palette. No page is a placeholder any more.
+  layer-tap) and names macros and multi-tap keys in the palette. Lighting has Key by key (paint colours) and
+  Mixed zones (areas with their own effects) for Keychron keyboards. No page is a placeholder any more.
 - **The keyboard stage** takes at most half of the space it shares with the page and has a resize handle.
 - **Checked by the user on the real keyboard:** assigning keys, undo / redo, lighting, unlock and lock, the Test
   page unlocked (M1-M5, Mute, Fn and Fn2 register), backup, restore and `.vil` restore. The user likes the look,
@@ -41,53 +42,66 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
 
 ## Waiting on the user
 
-- To try on the real keyboard (take a backup first): unlock, edit Macro 1 on Shortcuts & macros, save, press its
-  key, then Undo and press it again; the other macros should be untouched. Add J + K → Esc as a key chord and
-  Shift + Backspace → Delete as a shortcut replacement; put a multi-tap key on a key and tap / double-tap it;
-  undo each. Keys: Caps Lock as tap Escape / hold Ctrl, Space as tap Space / hold Fn2. Typing feel: change the
-  hold time and undo; "Windows keys do nothing" on and off (the firmware releases all held keys on that
-  write); a Snap Click pair (A and D), then replug to see it was saved; debounce (the keyboard is at 50 ms);
-  "Reset all typing settings…" last. The stage's resize handle. The
-  lighting after a restore (what the page shows matches the keyboard after picking another effect).
+- **Decisions:**
+  - Macro numbering: the key printed "M1" runs QMK's M1, which the app calls "Macro 2" (it counts from 1).
+    Number macros from 0 like the layers (the first reads "Macro 0"), or keep counting from 1 and explain.
+  - Layer keys in the picture read "MO(4)"; friendlier would be "Hold" over the layer's name.
+  - "Unlock to save…" could save by itself once the unlock finishes, instead of a second press.
+- **To try on the real keyboard** (take a backup first):
+  - Macros: unlock, edit Macro 1, save, press its key, then Undo and press it again; the other macros should be
+    untouched.
+  - Shortcuts: J + K → Esc as a key chord; Shift + Backspace → Delete as a shortcut replacement; a multi-tap
+    key put on a key, tapped and double-tapped; undo each.
+  - Keys: Caps Lock as tap Escape / hold Ctrl; Space as tap Space / hold Fn2.
+  - Typing feel: change the hold time and undo; "Windows keys do nothing" on and off (the firmware releases all
+    held keys on that write); a Snap Click pair (A and D), then replug to see it was saved; debounce (the
+    keyboard is at 50 ms); "Reset all typing settings…" last.
+  - Lighting: paint a few keys in Key by key (they change at once; replug after 2 s and they stay); a starting
+    point, then undo a stroke; in Mixed zones paint keys into zone 2 and change its effect (the effect shown
+    is the one picked: this checks the zone effect numbering); the main colour after going from Mixed zones
+    to another effect; a restore that includes key colours; the lighting after a restore (what the page shows
+    matches the keyboard after picking another effect).
+  - The stage's resize handle.
+
 ## Next
 
-The first six work packages (shell, Keys, Home and Settings, Lighting, Test and unlock, Device) are built and the
-user's first reactions are applied. Each item below is sized for one delegated agent; two at most run at a time
-(`AGENTS.md`).
-### Phase 6 packages (spec section 7)
+Every page in the spec's section 7 is built (phases 1 to 6). Each item below is sized for one delegated agent;
+two at most run at a time (`AGENTS.md`).
 
-- **Lighting, per key**: Keychron per-key RGB and mixed zones (the data is in the backup already, not restored).
+### Phase 7 (spec section 12)
+
+- **Help content and first-run tour**: the Help page as a browsable guide (topics grouped by page, searchable),
+  and a short first-run tour of the shell (the picture, layers, the inspector, undo, where changes are kept).
 
 ### Small things from review
 
-- The keyboard picture still labels keys with the tables' raw names ("M0", "TD(0)", "LCTL_T" over "Esc");
-  the inspector and palette use the friendly ones.
-- The help panel says "Read more in the QMK documentation" for every link, also Keychron's and Vial's.
-- Restore doesn't write Snap Click (nor per-key RGB) yet.
-- Typing feel, wording to verify against the firmware: chordal hold (how a key's hand is decided), two Auto
-  Shift options ("Also with Ctrl, Alt or Win held", "Repeat only after a tap"), whether the delay for taps
-  the keyboard sends itself also applies to knob turns.
-- Keys at 1000×700: the Tap or hold palette starts below the fold.
-- Shortcuts: the chord picture is small at 1000×700; summaries use the key tables' names ("Escape", "` and ~").
-- Tailwind's "narrower than" container variants (`@max-3xl:`) had no effect in headless Edge; write narrow
-  styles the other way round.
+- Device: the restore plan is worked out when the file is opened; an Undo or Redo before pressing Restore isn't
+  reflected in it. "Unlock first…" always gives macros as the reason, also when it is the bootloader key.
+- Shortcuts: no test for "edits made while a save is running are kept". The status line says "Macro 3", not the
+  macro's own name. Editor headers show QMK's plural ("Combos") beside a single item. Summaries use the key
+  tables' names ("Escape", "` and ~"). The chord picture is small at 1000×700.
+- Typing feel: clicking a group in the side list scrolls to it but doesn't move keyboard focus there.
+- Lighting: a zone slot's play time can't be set while it is the zone's only effect (harmless). The picture in
+  the key colours editor is small at 1000×700. Read back while the lights are off, the keyboard can report the
+  saved colour rather than the last one sent; turning the lights on sends the values the page shows.
+- Keys in a short window: the palette shows five columns and feels crowded.
+- Device card: the quiet "Unlock…" and "Lock" buttons read as plain text; give them a slightly stronger style.
 - Macro text is typed as on a US layout (on a German layout "y" comes out as "z"); the help says so.
 - Test: where the knob scrolls, ordinary mouse scrolling marks it as seen too; the browser can't tell them apart.
-- Lighting: read back while the lights are off, the keyboard can report the saved colour rather than the last
-  one sent. Turning the lights on sends the values the page shows.
-- Device card: the quiet "Unlock…" and "Lock" buttons read as plain text; give them a slightly stronger style.
-- Keys in a short window: the palette shows five columns and feels crowded.
-- Restore doesn't write per-key RGB or Snap Click yet (they are in the backup file).
 - The plain demo keyboard has no wireless features (Home's tests expect that); `?demo-wireless` turns them on.
 - `readFirmware` lives in `src/pages/device/firmware.ts` and Home imports it from there; move it to `src/device`
   when something else needs it.
+- The vendored keycode tests fail when run in shuffled order (upstream's; left alone).
 - The build warns that the main chunk is over 500 kB; split the vendored keycode tables or the pages when it
   matters.
+
 ## Later
 
 The user's order: finish the remaining functionality first; extras that need our own firmware come at the end
 and are optional (a plugin or a capability), so the app stays useful on any Vial keyboard.
 
+- **Phase 8, plugins**: the Ripple plugin for the K15 Max (names effect 41, sliders for the ripple's settings
+  through a firmware command; see `../TASKS.md` "Firmware extensions").
 - **"Put back the firmware's key"** (firmware extra): no VIA or Vial command reads the keymap compiled into the
   firmware; ours can add one (`keycode_at_keymap_location_raw` and the encoder equivalent), giving the Keys
   inspector "the firmware's own key here is Page Up" and a put-back button where the firmware has the command.
@@ -98,6 +112,7 @@ and are optional (a plugin or a capability), so the app stays useful on any Vial
   doesn't read. Make it write a known format instead (a `.layerworks.json` holding only keys and knob, with the
   app accepting such partial files, is the least work; `.vil` needs QMK key names in Python), and point
   `scripts/demo-data.mjs` at the new file.
-- Knob turns on the Test page for any assignment need the keyboard to report them (the planned key push).- Phase 7 (help content, first-run tour), 8 (Ripple plugin with its firmware command; see `../TASKS.md` "Firmware extensions").
-- Upstream candidate: Pipette's web transport hands layer reports to waiting requests
-  (`../docs/research/spike-results.md`, finding 1). A fix would be a branch in `../pipette`.
+- Knob turns on the Test page for any assignment need the keyboard to report them (the planned key push).
+- Upstream candidates for Pipette (branches in `../pipette`): its web transport hands layer reports to waiting
+  requests (`../docs/research/spike-results.md`, finding 1); its mixed-RGB editor uses the wrong effect
+  numbering for zones (zones use the keyboard's own effect numbers; see `src/device/keychron-rgb.ts`).
