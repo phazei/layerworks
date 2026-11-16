@@ -4,10 +4,10 @@
 // dragged; see lighting/latest.ts) and the device store saves them on the keyboard after a pause.
 
 import { useEffect, useId, useMemo, useRef, type ReactNode } from 'react'
-import { Lightbulb } from 'lucide-react'
+import { ArrowDown, Lightbulb } from 'lucide-react'
 import { deviceStore, PER_KEY_EFFECT, useDevice, ZONES_EFFECT, type Lighting, type LightingChange } from '../device'
 import { activePanels, activePlugins, type PageDef } from '../plugins/api'
-import { OptionButton, Slider, Spinner, Toggle } from '../ui/controls'
+import { Button, OptionButton, Slider, Spinner, Toggle } from '../ui/controls'
 import { Card, HelpButton, Notice } from '../ui/layout'
 import { usePref } from '../ui/prefs'
 import { colourName, hsvCss, HUE_TRACK, percent, satTrack } from './lighting/colour'
@@ -160,12 +160,6 @@ function LightingControls({ lighting, renames }: { lighting: Lighting; renames: 
 
   return (
     <>
-      {/* The editor comes first: with these effects, painting the keys is what there is to do. */}
-      {editor && (
-        <EditorPlace key={now.mode} picked={now.mode !== openedOn.current}>
-          {editor}
-        </EditorPlace>
-      )}
       {/* Side by side down to narrow windows, the settings staying in view while the effects scroll. */}
       <div className="grid items-start gap-4 @2xl:grid-cols-[minmax(0,1fr)_18rem] @4xl:grid-cols-[minmax(0,1fr)_20rem]">
         <Card title="Effect" help="lighting-effect">
@@ -202,12 +196,27 @@ function LightingControls({ lighting, renames }: { lighting: Lighting; renames: 
           <div className="mt-4 border-t border-edge pt-4">
             <CurrentEffect effect={effect} hue={now.hue} sat={now.sat} speed={now.speed} on={on} />
             {on && <EffectSettings effect={effect} now={now} change={change} />}
+            {editor && (
+              <Button size="sm" className="mt-4" icon={<ArrowDown size={14} aria-hidden />} onClick={showEditor}>
+                {now.mode === ZONES_EFFECT ? 'Set up the zones' : 'Paint the keys'}
+              </Button>
+            )}
           </div>
         </Card>
       </div>
+      {/* The editor follows the effect that brings it: pick the tile, paint below. */}
+      {editor && (
+        <EditorPlace key={now.mode} picked={now.mode !== openedOn.current}>
+          {editor}
+        </EditorPlace>
+      )}
     </>
   )
 }
+
+const EDITOR_ID = 'lighting-editor'
+
+const showEditor = () => document.getElementById(EDITOR_ID)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
 
 /** Brings the editor into view when it appears for an effect just picked (`picked`), not when the page opens on one. */
 function EditorPlace({ picked, children }: { picked: boolean; children: ReactNode }) {
@@ -216,7 +225,11 @@ function EditorPlace({ picked, children }: { picked: boolean; children: ReactNod
     if (picked) ref.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
     // Once, as it appears.
   }, [])
-  return <div ref={ref}>{children}</div>
+  return (
+    <div ref={ref} id={EDITOR_ID}>
+      {children}
+    </div>
+  )
 }
 
 function CurrentEffect({ effect, hue, sat, speed, on }: { effect: EffectInfo; hue: number; sat: number; speed: number; on: boolean }) {
