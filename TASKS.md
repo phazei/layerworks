@@ -49,20 +49,6 @@ Keep building without waiting for approval of mock-ups: build real pages on the 
 section, and let the user react to the result. The user reviews in the browser afterwards, so every package ends
 with screenshots (see `AGENTS.md`) and notes on what to look at.
 
-## In progress right now
-
-One delegated agent is running in the background, session `ses_e1debfc70ffey83TnPHv8IaaIG` (Keys and palette):
-**the Shortcuts page's key pickers offer what the firmware runs there, and nothing else** (the user's rule).
-From the firmware source: key chords, multi-tap keys, macro steps and repeat rules put their key through the
-full key processing, so any key works, the new palette groups included; a shortcut replacement only sends basic
-keys with modifiers (`process_key_override.c`). One table in `src/device/` decides it, used by the pickers and by
-validation. It also names a key holding `PDF(n)` in plain words. Screenshots on port 5195; uncommitted until
-reviewed.
-
-**When it reports:** run `pnpm typecheck`, `pnpm lint`, `pnpm test` (twice), `pnpm vitest run --sequence.shuffle
-src/pages src/shell src/ui src/device src/help`, `pnpm build`; read the screenshots; commit; delete this section;
-tell the user what to try.
-
 ## Waiting on the user
 
 - Decided by the user: macros keep their numbers; no moving or swapping. Vial's "negative mods" (a shortcut
@@ -74,6 +60,9 @@ tell the user what to try.
 - The user is testing page by page and reports bugs as found; the dev server (`pnpm dev`) is open while agents
   edit, so the user sees work in progress.
 - **To try on the real keyboard** (take a backup first):
+  - The Shortcuts pickers: a key chord that sends Caps Word; a macro with a step "Swap Caps Lock and left
+    Ctrl", pressed twice with Caps Lock tried in between; Shift + Backspace → Delete opens with no lighting
+    keys in its "To send instead" list.
   - The newest changes: the printed M1 key reads "Macro 1" in the picture and palette; "Unlock to save…" on a
     macro saves by itself once the keyboard is unlocked; the tap-toggle sentence on Switch layer shows the
     keyboard's own tap count; the tour (Settings or Help, "Take the tour").
