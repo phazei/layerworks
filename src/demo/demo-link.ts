@@ -63,7 +63,7 @@ const AREP_ENABLED = 0x08
 /**
  * Example entries, as the keyboard stores them (vial.h's structs, little-endian), one or two of each kind:
  * multi-tap keys Esc / Caps Lock and copy / paste (TD(1) and TD(2): multi-tap keys go by QMK's number, like
- * macros, and TD(0) stays empty); key chords J + K → Esc and D + F → Tab; Shift + Backspace → Delete and Shift + Esc
+ * macros, and TD(0) stays empty); key chords J + K → Esc, D + F → Tab and both Shifts → Caps Word; Shift + Backspace → Delete and Shift + Esc
  * → ~; after Ctrl + Z the repeat key sends Ctrl + Y, and after Home, End.
  */
 const DEMO_ENTRIES = {
@@ -75,6 +75,8 @@ const DEMO_ENTRIES = {
   combo: [
     [...le16(0x0d), ...le16(0x0e), ...le16(0), ...le16(0), ...le16(0x29)],
     [...le16(0x07), ...le16(0x09), ...le16(0), ...le16(0), ...le16(0x2b)],
+    // Both Shifts together: Caps Word, one of the palette's less common keys.
+    [...le16(0xe1), ...le16(0xe5), ...le16(0), ...le16(0), ...le16(0x7c73)],
   ],
   keyOverride: [
     [...le16(0x2a), ...le16(0x4c), ...le16(0xffff), SHIFT_EITHER, 0, SHIFT_EITHER, KO_ENABLED | 0b111],

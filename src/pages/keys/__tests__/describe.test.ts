@@ -8,6 +8,7 @@ import {
   layerTapKeycode,
   modTapKeycode,
   oneShotModKeycode,
+  parseKeycode,
   shortcutKeycode,
   type KeyboardData,
 } from '../../../device'
@@ -34,6 +35,8 @@ describe('describeKeycode', () => {
     expect(describeKeycode(shortcutKeycode(0x01, 0x06), NAMES)).toBe('Ctrl + C')
     expect(describeKeycode(layerKeycode('MO', 4), NAMES)).toBe('While held, use Fn2')
     expect(describeKeycode(layerKeycode('TG', 3), NAMES)).toBe('Turn Windows Fn on or off')
+    // QMK's PDF(n): named where a key holds one, not offered (the Mac / Windows switch decides the base at start).
+    expect(describeKeycode(parseKeycode('PDF(2)')!, NAMES)).toBe('Make Windows the base layer and remember it')
   })
 })
 

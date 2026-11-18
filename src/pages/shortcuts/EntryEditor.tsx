@@ -20,6 +20,7 @@ import {
   type EntryKind,
   type EntryOf,
   type EntrySaveResult,
+  type KeyUse,
 } from '../../device'
 import type { HelpTopicId } from '../../help/topics'
 import { openUnlock } from '../../shell/unlock-dialog'
@@ -124,6 +125,8 @@ export function EntryFrame<K extends EntryKind>({ kind, index, draft, intro, exa
               savedText={entryIsEmpty(kind, saved) ? 'Empty on the keyboard' : 'As on the keyboard'}
             />
           </div>
+          {/* What is saved can hold something the keyboard won't do (a replacement it can't send): said even unchanged. */}
+          {!dirty && problem && <Notice tone="danger">{problem}</Notice>}
           {(dirty || (result !== null && SAVE_PROBLEMS[result])) && (
             <SaveBar
               dirty={dirty}
@@ -184,14 +187,17 @@ interface KeyFieldProps {
   shortcuts?: boolean
   /** Can be left empty ("Nothing"). */
   optional?: boolean
-  /** Palette groups left out (see KeyPicker). */
-  exclude?: string[]
+  /** Where the key goes: decides the keys the picker offers (device/sendable.ts). */
+  use: KeyUse
   help?: HelpTopicId
 }
 
 /** One key: its keycaps and name, "Change…" for the palette, and for an optional one "Nothing". */
-export function KeyField({ label, value, onChange, shortcuts = false, optional = false, exclude, help }: KeyFieldProps) {
-  const [open, setOpen] = useState(false)
+/** `?open-picker=Sends` in the URL: the key field with that label opens its picker, for screenshots. */
+const pickerFromUrl = (): string | null => (typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('open-picker'))
+
+export function KeyField({ label, value, onChange, shortcuts = false, optional = false, use, help }: KeyFieldProps) {
+  const [open, setOpen] = useState(() => pickerFromUrl() === label)
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-3">
@@ -214,7 +220,7 @@ export function KeyField({ label, value, onChange, shortcuts = false, optional =
         <KeyPicker
           current={value}
           shortcuts={shortcuts}
-          exclude={exclude}
+          use={use}
           onPick={(code) => {
             onChange(code)
             setOpen(false)

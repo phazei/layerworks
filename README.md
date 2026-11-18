@@ -30,6 +30,7 @@ Options in the URL, before the `#`:
 | `?select=3,2`, `?select=knob,0,1` | Selects a key (row, column) or a knob direction once a keyboard is in, for screenshots of the Keys inspector |
 | `?layer=<n>` | Shows layer n on the stage instead of following the keyboard |
 | `?choice=tapHold` | The Keys inspector opens on that choice (`key`, `shortcut`, `layer`, `tapHold`) rather than the one the key's assignment belongs to, for screenshots; with `?select=` |
+| `?open-picker=Sends` | On Shortcuts & macros, the key field with that label ("Sends", "To send instead" …) opens its picker, for screenshots |
 | `?key-search=magic` | The key palette opens with that search typed, for screenshots; with `?select=` |
 | `?demo-effect=<id>` | Starts the demo keyboard on another lighting effect (VialRGB id, e.g. `25`), for screenshots |
 | `?demo-unlocked` | Starts the demo keyboard unlocked (the Test page reads every key) |
@@ -238,8 +239,8 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     place, drawn faint with a dashed edge, still pickable. Both groups have "Set up on Shortcuts & macros" beside
     their title. The palette does this itself, so the Shortcuts page's key pickers show the same tiles.
 
-    After the everyday groups the Keys page (`keyPalette(features)`; the Shortcuts page's pickers call it without,
-    and get the everyday groups only) adds, each with its own "?" and, where it helps, a short note under its title:
+    After the everyday groups the Keys page (`keyPalette(features)`; the Shortcuts page's pickers take what fits their
+    place, see "What each picker offers" under Shortcuts & macros) adds, each with its own "?" and, where it helps, a short note under its title:
     *Typing helpers* (Caps Word, the Esc and ` key, the seven Space Cadet keys, Layer Lock), *Swapped and disabled
     keys* (QMK's Magic keycodes, worded like the Typing feel switches they change, with a link there; NKRO on / off
     included, the split-keyboard ones left out) and *International keys* (ISO, Japanese and the language keys); then,
@@ -437,7 +438,20 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     a sentence or two on the idea and a "Try: …" button that fills in a ready example, then the fields, More
     options, and "Clear this …". A key is keycaps, its name and "Change…" (the Keys page's palette with Ctrl, Shift,
     Alt and Win to tick); optional ones can be removed. Modifiers are Ctrl, Shift, Alt and Win checkboxes meaning
-    either side; left and right apart only under More options.
+    either side; left and right apart only under More options. A saved entry holding something the keyboard won't
+    do (a replacement it can't send) shows the problem in red even unchanged, and can't be saved as it is.
+  - *What each picker offers* (`device/sendable.ts`, `KEY_USES`, `groupsFor`, `canSend`; each with the vial-qmk
+    function it is read from): what the firmware runs in that place and nothing else. A chord's output, a multi-tap
+    key's four keys, a repeat rule's "sends" and a macro's "Tap a key" step go through the firmware's whole key
+    handling, so they offer every group of the Keys page, the less common ones and "More keys" included (two-byte
+    keycodes travel in a macro as Vial's `VIAL_MACRO_EXT_*` steps on protocol 2 and later). Left out for sense,
+    not ability: multi-tap and repeat keys there, and macros too in a macro step. "Hold a key down" / "Let a key
+    go" offer the everyday groups, typing helpers and international keys (a swap or restart held does what a tap
+    does). A chord's own keys and the key a repeat rule follows are what keys on the keyboard send: the everyday
+    groups. A shortcut replacement's trigger and replacement are ordinary keys only (up to `0xFF`, the replacement
+    with modifiers up to `0x1FFF`): vial-qmk registers them with `register_code(uint8_t)`, so lighting, "This
+    keyboard", macro, layer and the less common keys are not offered, and `entryProblem` names one a saved entry
+    holds. The pickers ask the same `paletteFeatures` as the Keys page for the feature switches.
     - *Key chord*: the keys are clicked on a small picture of the base layer (marked once in the chord, a click
       again takes one out), with each as a keycap and an × beside it; a chord holds what those keys send there (J,
       K), not their positions, so it follows a key that moves. Then what it sends. More options: a key from the
@@ -569,7 +583,8 @@ stage pages keeps the layer and selection:
   where those are only QMK's names (`ui/picture-labels.ts`): a macro reads "Macro 1" (M1), a multi-tap key
   "Multi-tap 1" (TD(1)), each on two lines; a layer key reads its kind's short word over the layer's name, as the
   Switch layer sentences say it ("Hold" over "Fn2" for MO, "Hold/tap" for TT, "Toggle", "Next key", "Switch to",
-  "Base"; "Hold +Ctrl" for LM; a long name on two lines); and a tap / hold key is split as the widget draws such
+  "Base"; "Hold +Ctrl" for LM; "Base, kept" for QMK's PDF, which the app names but doesn't offer, as a
+  Mac / Windows switch sets the base layer at every start; a long name on two lines); and a tap / hold key is split as the widget draws such
   keys, the hold above ("Ctrl", "Fn2") and the tap below ("Esc"); a knob direction gets the same text, tap above
   hold. Layer names are the connected keyboard's (`shell/layer-names.ts`; `KeyboardPicture`'s `layerNames` overrides
   them), "Layer 4" where there is none. Keys go to the widget's `labelOverrides`; for knobs, which have none, the
@@ -845,7 +860,7 @@ address, Ctrl + A then Ctrl + C, and Win + R, wait, "notepad", Enter. The K15's 
 M1 – M5, so they run Macros 1 – 5, as on a real Keychron.
 
 It also has two of each other kind (`DEMO_ENTRIES`): multi-tap keys 1 and 2 (TD(0) left empty), Esc / Caps Lock
-(on Fn + Caps Lock on the Windows layers) and Ctrl + C / Ctrl + V; key chords J + K → Esc and D + F → Tab; Shift + Backspace → Delete and
+(on Fn + Caps Lock on the Windows layers) and Ctrl + C / Ctrl + V; key chords J + K → Esc, D + F → Tab and both Shifts → Caps Word; Shift + Backspace → Delete and
 Shift + Esc → ~; after Ctrl + Z the repeat key sends Ctrl + Y, and Home ↔ End. The alternate repeat key is on Fn2 +
 Space. Fn2 also holds the Keys page's examples: Caps Lock tap Esc / hold Ctrl, Tab tap Tab / hold Windows Fn, the
 left Windows key "Windows keys off, or on again" (GU_TOGG) and Esc "Restart" (QK_REBOOT).

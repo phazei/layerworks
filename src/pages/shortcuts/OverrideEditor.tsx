@@ -50,8 +50,8 @@ export function OverrideEditor({ index }: { index: number }) {
       example={{ label: 'Shift + Backspace sends Delete', entry: EXAMPLE }}
     >
       <ModsField label="Hold" value={entry.triggerMods} onChange={(triggerMods) => set({ triggerMods })} />
-      <KeyField label="And press" value={entry.triggerKey} onChange={(triggerKey) => set({ triggerKey })} />
-      <KeyField label="To send instead" value={entry.replacementKey} shortcuts exclude={['tapDance', 'repeat']} onChange={(replacementKey) => set({ replacementKey })} />
+      <KeyField label="And press" use="overrideTrigger" value={entry.triggerKey} onChange={(triggerKey) => set({ triggerKey })} />
+      <KeyField label="To send instead" use="overrideSends" value={entry.replacementKey} shortcuts onChange={(replacementKey) => set({ replacementKey })} />
       <ModsField label="Let go of while sending" value={entry.suppressedMods} onChange={(suppressedMods) => set({ suppressedMods })} />
       <Toggle
         checked={entry.enabled}

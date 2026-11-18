@@ -10,8 +10,9 @@ import type {
   KeyOverrideEntry,
   TapDanceEntry,
 } from '../vendor/pipette/shared/types/protocol'
-import { parseKeycode } from './keycodes'
+import { keycodeTitle, parseKeycode } from './keycodes'
 import { isEmptyEntry, type EntryKind } from './restore'
+import { canSend } from './sendable'
 
 export type { AltRepeatKeyEntry, ComboEntry, KeyOverrideEntry, TapDanceEntry }
 
@@ -163,6 +164,13 @@ export function entryProblem(kind: EntryKind, entry: AnyEntry): string | null {
       const e = entry as KeyOverrideEntry
       if (!e.triggerKey) return 'Pick the key that is replaced.'
       if (!e.replacementKey) return 'Pick what is sent instead.'
+      // process_key_override.c sends ordinary keys only (sendable.ts).
+      if (!canSend('overrideSends', e.replacementKey)) {
+        return `The keyboard can’t send ${keycodeTitle(e.replacementKey)} as a replacement: only ordinary keys, with modifiers if you like. Pick another.`
+      }
+      if (!canSend('overrideTrigger', e.triggerKey)) {
+        return `The keyboard can only replace an ordinary key, not ${keycodeTitle(e.triggerKey)}. Pick another, and the modifiers above.`
+      }
       if (!e.layers) return 'Pick at least one layer it works on.'
       if (!(e.options & 0b111)) return 'Pick at least one way it starts (under More options).'
       return null

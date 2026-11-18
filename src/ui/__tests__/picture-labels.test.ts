@@ -1,7 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { layerKeycode, layerModKeycode, layerTapKeycode, macroKeycode, modTapKeycode, tapDanceKeycode } from '../../device'
+import {
+  keycodeTitle,
+  layerKeycode,
+  layerModKeycode,
+  layerTapKeycode,
+  macroKeycode,
+  modTapKeycode,
+  parseKeycode,
+  tapDanceKeycode,
+} from '../../device'
 import { connectDemo, disconnect } from '../../shell/session'
 import { knobPictureText, pictureLabel } from '../picture-labels'
 
@@ -44,6 +53,12 @@ describe('pictureLabel', () => {
   it('labels the palette’s extra keys as their tiles, and unnamed families by family', () => {
     expect(pictureLabel(0x7002)).toEqual({ outer: 'Toggle\nCaps Ctrl', inner: '', masked: false })
     expect(pictureLabel(0x7103)?.outer).toBe('MIDI')
+  })
+
+  it('names a key that makes a layer the base layer and remembers it', () => {
+    const pdf = parseKeycode('PDF(2)')!
+    expect(pictureLabel(pdf, NAMES)?.outer).toBe('Base, kept\nWindows')
+    expect(keycodeTitle(pdf)).toBe('Make layer 2 the base layer and remember it')
   })
 
   it('leaves keys the tables already name well alone', () => {

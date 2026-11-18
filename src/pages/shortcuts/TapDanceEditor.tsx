@@ -10,8 +10,6 @@ import { Uses } from './Uses'
 
 const EXAMPLE: TapDanceEntry = { onTap: 0x29, onHold: 0, onDoubleTap: 0x39, onTapHold: 0, tappingTerm: DEFAULT_TAPPING_TERM }
 const TERM_CHOICES = [150, 200, 250, 300]
-/** A multi-tap key doesn't run another one, a macro can. */
-const EXCLUDE = ['tapDance', 'repeat']
 
 function TermField({ value, onChange }: { value: number; onChange: (ms: number) => void }) {
   return (
@@ -67,16 +65,16 @@ export function TapDanceEditor({ index }: { index: number }) {
         />
       }
     >
-      <KeyField label="Tap" optional shortcuts exclude={EXCLUDE} value={entry.onTap} onChange={(onTap) => set({ onTap })} />
-      <KeyField label="Hold" optional shortcuts exclude={EXCLUDE} value={entry.onHold} onChange={(onHold) => set({ onHold })} />
-      <KeyField label="Tap twice" optional shortcuts exclude={EXCLUDE} value={entry.onDoubleTap} onChange={(onDoubleTap) => set({ onDoubleTap })} />
+      <KeyField label="Tap" optional shortcuts use="multiTap" value={entry.onTap} onChange={(onTap) => set({ onTap })} />
+      <KeyField label="Hold" optional shortcuts use="multiTap" value={entry.onHold} onChange={(onHold) => set({ onHold })} />
+      <KeyField label="Tap twice" optional shortcuts use="multiTap" value={entry.onDoubleTap} onChange={(onDoubleTap) => set({ onDoubleTap })} />
       <Disclosure id="tap-dance-more" label="More options">
         <div className="flex flex-col gap-4">
           <KeyField
             label="Tap, then hold"
             optional
             shortcuts
-            exclude={EXCLUDE}
+            use="multiTap"
             value={entry.onTapHold}
             onChange={(onTapHold) => set({ onTapHold })}
           />

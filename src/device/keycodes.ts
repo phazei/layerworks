@@ -492,9 +492,9 @@ export const macroTitle = (index: number): string => `Macro ${index}`
 export const tapDanceTitle = (index: number): string => `Multi-tap key ${index}`
 
 /**
- * The keys offered in the palette, grouped the way a person would look for them. With `features` (the Keys page),
- * the extra groups follow the everyday ones (extraGroups); without (the Shortcuts page's pickers, where a macro step
- * or a replacement can't run most of them), the everyday groups only.
+ * The keys offered in the palette, grouped the way a person would look for them. With `features`, the extra groups
+ * follow the everyday ones (extraGroups); without, the everyday groups only. The Shortcuts page's pickers take
+ * theirs through sendable.ts, which knows what the firmware runs in each place.
  */
 export function keyPalette(features?: PaletteFeatures): PaletteGroup[] {
   const groups = everydayGroups()
@@ -570,6 +570,19 @@ export const LAYER_ACTIONS: LayerAction[] = [
   { op: 'DF', sentence: 'Make {layer} the base layer', hint: 'Changes which layer the keyboard rests on until it restarts.', short: 'Base' },
 ]
 
+/**
+ * QMK's PDF(n): makes a layer the base layer and keeps it after a restart. Named in words where a key holds one, but
+ * not offered: on keyboards with a Mac / Windows switch (Keychron's among them) the switch sets the base layer at
+ * every start, so it keeps nothing.
+ */
+export const PERSISTENT_BASE = { sentence: 'Make {layer} the base layer and remember it', short: 'Base, kept' }
+
+/** The layer of a PDF(n) key, or null. */
+export function readPersistentBase(code: number): number | null {
+  const match = /^PDF\((\d+)\)$/.exec(serialize(code))
+  return match ? Number(match[1]) : null
+}
+
 /** QMK's tapping toggle when the keyboard doesn't report it: TAPPING_TOGGLE in vial-qmk's action_tapping.h. */
 export const DEFAULT_TAPPING_TOGGLE = 5
 
@@ -600,6 +613,8 @@ export function keycodeTitle(code: number): string {
   if (code === KC_SAME_AS_BELOW) return 'Same as the layer below'
   const extra = extraByCode(code)
   if (extra) return extra.description
+  const kept = readPersistentBase(code)
+  if (kept !== null) return PERSISTENT_BASE.sentence.replace('{layer}', `layer ${kept}`)
   const family = unnamedFamily(code)
   if (family) return family.title
   const id = serialize(code)

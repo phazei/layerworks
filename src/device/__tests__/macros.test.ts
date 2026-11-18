@@ -230,6 +230,19 @@ describe('saving a macro', () => {
     expect(store.getState()).toMatchObject({ writing: 0, writeError: null, canUndo: true })
   })
 
+  it('carries two-byte keycodes to the keyboard and back (vial-qmk runs them through the whole key handling)', async () => {
+    await connect(true)
+    // Caps Word, swap Caps Lock and Ctrl (low byte 0: the 0xFF00 | high byte form), and Ctrl + C.
+    const steps: MacroStep[] = [{ kind: 'tap', key: 0x7c73 }, { kind: 'tap', key: 0x7000 }, { kind: 'down', key: CTRL_C }, { kind: 'up', key: CTRL_C }]
+    expect(steps.map((step) => stepProblem(step, 6))).toEqual([null, null, null, null])
+    expect(await store.saveMacro(1, steps)).toBe('saved')
+    // dynamic_keymap.c reads [1, VIAL_MACRO_EXT_TAP, low, high]: no 0 byte inside, or the macro would end there.
+    expect(rawMacros(config.macros, 4)[1]).toEqual([1, 5, 0x73, 0x7c, 1, 5, 0x70, 0xff, 1, 6, 0x06, 0x01, 1, 7, 0x06, 0x01])
+    expect(readMacros(config.macros, 6, 4)[1]).toEqual(steps)
+    // On Vial protocol 1, which has no two-byte form, they are refused.
+    expect(stepProblem(steps[0], 1)).toMatch(/plain keys/)
+  })
+
   it('says when there is nothing to save, or no room', async () => {
     await connect(true)
     expect(await store.saveMacro(0, [{ kind: 'text', text: 'one' }])).toBe('unchanged')

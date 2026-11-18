@@ -170,6 +170,7 @@ const topics = {
       'A layer key switches to another layer. The usual kind works while held, like Fn. Others switch a layer on until pressed again, or just for the next key.',
       '“Hold for a layer, or tap it 5 times to keep it on” (TT) works while held too, but that many quick taps leave the layer on until you do it again. The number is the keyboard’s Tapping toggle: a typing setting where the keyboard reports it (Typing feel page), otherwise fixed in its firmware (5).',
       'The key that takes you to a layer should be empty ("same as the layer below") on that layer, or you can get stuck there.',
+      'Some keyboards, Keychron’s among them, have a Mac / Windows switch that picks the base layer again every time the keyboard starts, so “Make … the base layer” lasts only until then.',
     ],
     example: '“While held, use {layer:3|Windows Fn}” on Caps Lock: hold Caps Lock and the keys do what they do while Fn is held.',
     docs: QMK + 'feature_layers#switching-and-toggling-layers',
@@ -445,6 +446,7 @@ const topics = {
     body: [
       '“Tap a key” presses and releases a key in one go, with Ctrl, Shift, Alt or Win if ticked. For a key that must stay down while other steps happen, use “Hold a key down”, then “Let a key go” later.',
       'Let every held key go before the macro ends, or the computer thinks it is still held until you press it yourself.',
+      '“Tap a key” can be any key the Keys page offers, the less common ones (Caps Word, swapped keys) included; holding and letting go offer the keys that mean something while held.',
     ],
     example: 'Hold Alt, tap Tab, tap Tab, let Alt go: switches to the window two back.',
     docs: QMK + 'feature_macros#sendstring',
@@ -478,6 +480,7 @@ const topics = {
     body: [
       'One key that does different things depending on how you press it: a tap, a hold, two quick taps, or a tap followed by a hold. Leave any of them empty if you don’t need it.',
       'It only works once it is on a key: on the Keys page, click a key and pick it under Multi-tap keys.',
+      'Each of them can be any key the Keys page offers, the less common ones (Caps Word, swapped keys, restart) included.',
     ],
     example: 'Tap for Esc, tap twice for Caps Lock: Caps Lock is still there but hard to hit by accident.',
     docs: QMK + 'features/tap_dance',
@@ -502,6 +505,7 @@ const topics = {
     body: [
       'Press two to four keys at the same moment and the keyboard sends something else instead of them. Pressed one after the other, they type as usual.',
       'A chord works on its own once saved, on every layer. The keys are named by what they send (J, K), not by where they are, so a chord follows a key you move. How close together the presses must be is a typing setting (Typing feel page).',
+      'What it sends can be any key the Keys page offers, the less common ones too: a chord is a good place for Caps Word or a key that switches the Windows keys off.',
     ],
     example: 'J and K together for Esc: no need to reach for the corner.',
     docs: QMK + 'features/combo',
@@ -514,6 +518,7 @@ const topics = {
     body: [
       'When a key is pressed with certain modifiers held, the keyboard sends something else instead. The modifiers can be kept or taken away from what is sent.',
       'It works on its own once saved, on the layers you pick.',
+      'It replaces and sends ordinary keys only (letters, numbers, editing, F-keys, media, mouse …), with modifiers if you like; the keyboard can’t send layer keys, macros or lighting keys this way, so the list doesn’t offer them.',
     ],
     example: 'Shift + Backspace sends Delete, with Shift taken away so it isn’t Shift + Delete.',
     docs: QMK + 'features/key_overrides',

@@ -1,28 +1,34 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Picking the key a step presses: the Keys page's palette, with Ctrl, Shift, Alt and Win to tick for a shortcut.
+// Picking the key a shortcut sends or waits for: the Keys page's palette, with Ctrl, Shift, Alt and Win to tick for a
+// shortcut. Which keys it offers is the firmware's to say (device/sendable.ts, `use`): what the keyboard will run in
+// that place, and nothing else.
 
 import { useMemo, useState } from 'react'
-import { canTakeModifiers, keyPalette, readShortcut, shortcutKeycode, useDevice } from '../../device'
+import { canTakeModifiers, groupsFor, paletteFeatures, readShortcut, shortcutKeycode, useDevice, type KeyUse } from '../../device'
 import { Button } from '../../ui/controls'
 import { KeyPalette } from '../keys/KeyPalette'
 import { ModifierBoxes } from '../keys/Modifiers'
 
 interface Props {
   current: number
+  /** Where the key goes: decides the keys offered. */
+  use: KeyUse
   /** Offer the modifiers (taps); holding and letting go take one plain key. */
   shortcuts: boolean
   onPick: (key: number) => void
   onClose: () => void
-  /** Palette groups left out. Default: the keys that run other shortcuts (macros, multi-tap keys, repeat keys). */
-  exclude?: string[]
 }
 
-const SHORTCUT_GROUPS = ['macros', 'tapDance', 'repeat']
-
-export function KeyPicker({ current, shortcuts, onPick, onClose, exclude = SHORTCUT_GROUPS }: Props) {
+export function KeyPicker({ current, use, shortcuts, onPick, onClose }: Props) {
   const keyboard = useDevice((s) => s.keyboard)
+  const settings = useDevice((s) => s.settings)
+  const features = paletteFeatures(keyboard, settings)
   // Built once the keyboard's tables are in.
-  const groups = useMemo(() => (keyboard ? keyPalette().filter((g) => !exclude.includes(g.id)) : []), [keyboard, exclude])
+  const { combos, keyOverrides, autoShift } = features
+  const groups = useMemo(
+    () => (keyboard ? groupsFor(use, { combos, keyOverrides, autoShift }) : []),
+    [keyboard, use, combos, keyOverrides, autoShift],
+  )
   const now = readShortcut(current)
   const [mods, setMods] = useState(shortcuts ? (now?.mods ?? 0) : 0)
   const base = now ? now.key : current

@@ -11,7 +11,9 @@ import {
   keycodeId,
   LAYER_ACTIONS,
   modifierShort,
+  PERSISTENT_BASE,
   readLayerKey,
+  readPersistentBase,
   readLayerMod,
   readLayerTap,
   readMacroKey,
@@ -52,6 +54,8 @@ export function pictureLabel(code: number, layerNames?: readonly string[]): Pict
   const layerKey = readLayerKey(code)
   const action = layerKey && LAYER_ACTIONS.find((a) => a.op === layerKey.op)
   if (layerKey && action) return { outer: `${action.short}\n${fold(nameOf(layerKey.layer, layerNames))}`, inner: '', masked: false }
+  const kept = readPersistentBase(code)
+  if (kept !== null) return { outer: `${PERSISTENT_BASE.short}\n${fold(nameOf(kept, layerNames))}`, inner: '', masked: false }
   const modTap = readModTap(code)
   if (modTap) return { outer: modifierShort(modTap.mods), inner: plainLabel(modTap.key), masked: true }
   const layerTap = readLayerTap(code)

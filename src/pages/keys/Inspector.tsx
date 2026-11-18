@@ -11,6 +11,7 @@ import {
   KC_SAME_AS_BELOW,
   keycodeId,
   keyPalette,
+  paletteFeatures,
   slotKeycode,
   useDevice,
   type KeyboardData,
@@ -33,9 +34,6 @@ import { useTappingToggle } from './tapping-toggle'
 import { TapHoldChoice } from './TapHoldChoice'
 
 const MORE_OPTIONS = 'keys-more'
-
-/** Vial's QMK setting id for Auto Shift on or off: reported only by firmware with Auto Shift. */
-const AUTO_SHIFT_QSID = 3
 
 const BOOT_UNLOCK_REASON = 'The firmware update key only goes on a key while the keyboard is unlocked.'
 
@@ -100,10 +98,11 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
   const current = slotKeycode(keyboard, slot)
   // The tables behind the palette describe the connected keyboard; rebuild them when it changes. The extra groups
   // leave out switches for features the keyboard reports no room for.
-  const autoShift = useDevice((s) => s.settings?.[AUTO_SHIFT_QSID] !== undefined)
+  const settings = useDevice((s) => s.settings)
+  const features = paletteFeatures(keyboard, settings)
   const palette = useMemo(
-    () => keyPalette({ combos: keyboard.counts.combo > 0, keyOverrides: keyboard.counts.keyOverride > 0, autoShift }),
-    [keyboard.uid, keyboard.counts.combo, keyboard.counts.keyOverride, autoShift],
+    () => keyPalette({ combos: features.combos, keyOverrides: features.keyOverrides, autoShift: features.autoShift }),
+    [keyboard.uid, features.combos, features.keyOverrides, features.autoShift],
   )
   const paletteCodes = useMemo(() => new Set(palette.flatMap((group) => group.keys.map((key) => key.code))), [palette])
   const shortcutKeys = useMemo(

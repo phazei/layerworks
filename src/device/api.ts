@@ -27,6 +27,8 @@ export type { UnlockProgress } from './unlock'
 export type { UnlockStatus } from '../vendor/pipette/shared/types/protocol'
 export { matrixKeys } from './matrix'
 export * from './keycodes'
+export { canSend, groupsFor, KEY_USES, KEY_WITH_MODS_MAX, ORDINARY_KEY_MAX, paletteFeatures } from './sendable'
+export type { KeyUse } from './sendable'
 export type { RestoreProgress, RestoreReport } from './store'
 export {
   BACKUP_EXTENSION,

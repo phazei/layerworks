@@ -111,6 +111,7 @@ export function StepRow({ step, index, count, vialProtocol, picking = false, onC
             {open && (
               <KeyPicker
                 current={step.key}
+                use={step.kind === 'tap' ? 'macroTap' : 'macroHold'}
                 shortcuts={step.kind === 'tap'}
                 onPick={(key) => {
                   onChange({ ...step, key })

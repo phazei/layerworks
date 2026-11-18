@@ -83,7 +83,7 @@ export function ChordEditor({ index }: { index: number }) {
           a chord is made of what the keys send there, so it follows a key you move elsewhere.
         </p>
       </div>
-      <KeyField label="Sends" value={entry.output} shortcuts exclude={['tapDance', 'repeat']} onChange={(output) => edit({ ...entry, output })} />
+      <KeyField label="Sends" use="chordSends" value={entry.output} shortcuts onChange={(output) => edit({ ...entry, output })} />
       <Disclosure id="chord-more" label="More options">
         <div className="flex flex-col gap-2">
           <p className="text-[13px] text-muted">
@@ -92,6 +92,7 @@ export function ChordEditor({ index }: { index: number }) {
           </p>
           <KeyField
             label="Add a key from the list"
+            use="chordKey"
             value={0}
             optional
             onChange={(code) => toggle(code)}

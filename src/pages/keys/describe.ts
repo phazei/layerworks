@@ -12,7 +12,9 @@ import {
   layerActionSentence,
   modifierShort,
   modifierWords,
+  PERSISTENT_BASE,
   readLayerKey,
+  readPersistentBase,
   readLayerMod,
   readLayerTap,
   readOneShotMod,
@@ -43,6 +45,8 @@ export function describeKeycode(code: number, names: string[], taps?: number): s
   const layerKey = readLayerKey(code)
   const action = layerKey && LAYER_ACTIONS.find((a) => a.op === layerKey.op)
   if (layerKey && action) return layerSentence(action, layerName(names, layerKey.layer), taps)
+  const kept = readPersistentBase(code)
+  if (kept !== null) return PERSISTENT_BASE.sentence.replace('{layer}', layerName(names, kept))
   const tapHold = readTapHold(code)
   if (tapHold) return tapHoldWords(tapHold, (layer) => layerName(names, layer))
   const layerMod = readLayerMod(code)
