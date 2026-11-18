@@ -49,14 +49,28 @@ Keep building without waiting for approval of mock-ups: build real pages on the 
 section, and let the user react to the result. The user reviews in the browser afterwards, so every package ends
 with screenshots (see `AGENTS.md`) and notes on what to look at.
 
+## In progress right now
+
+One delegated agent is running in the background, session `ses_e1debfc70ffey83TnPHv8IaaIG` (Keys and palette):
+**the Shortcuts page's key pickers offer what the firmware runs there, and nothing else** (the user's rule).
+From the firmware source: key chords, multi-tap keys, macro steps and repeat rules put their key through the
+full key processing, so any key works, the new palette groups included; a shortcut replacement only sends basic
+keys with modifiers (`process_key_override.c`). One table in `src/device/` decides it, used by the pickers and by
+validation. It also names a key holding `PDF(n)` in plain words. Screenshots on port 5195; uncommitted until
+reviewed.
+
+**When it reports:** run `pnpm typecheck`, `pnpm lint`, `pnpm test` (twice), `pnpm vitest run --sequence.shuffle
+src/pages src/shell src/ui src/device src/help`, `pnpm build`; read the screenshots; commit; delete this section;
+tell the user what to try.
+
 ## Waiting on the user
 
 - Decided by the user: macros keep their numbers; no moving or swapping. Vial's "negative mods" (a shortcut
   replacement's "must not be held") gets no more attention for now.
-- **For the user to decide** (none urgent): whether key chords may send the new palette groups (they are kept
-  off the Shortcuts page's pickers); whether "make this the base layer permanently" (QMK's `PDF`) joins Switch
-  layer; joystick and programmable buttons are left out of the palette (this firmware has neither; F13-F24 do
-  that job on any keyboard) and stay reachable by typing the QMK code.
+- Decided by the user: joystick, programmable buttons and the other niche families stay out of the palette
+  (reachable by typing the QMK code). "Make this the base layer and remember it" (QMK's `PDF`) is left out too:
+  a one-time key, and on Keychron keyboards the Mac/Win switch sets the base layer at every start
+  (`../vial_qmk/keyboards/keychron/k15_max/k15_max.c`, `dip_switch_update_kb`), so it does nothing lasting.
 - The user is testing page by page and reports bugs as found; the dev server (`pnpm dev`) is open while agents
   edit, so the user sees work in progress.
 - **To try on the real keyboard** (take a backup first):
