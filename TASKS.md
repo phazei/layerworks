@@ -129,14 +129,21 @@ part and the Ripple plugin are under "Later".
 - **Keys** (section 7): "press a key to assign" in the inspector (`ui/KeyCapture.tsx` exists, used by Snap Click
   only); Tap or hold falling back to a multi-tap key by itself when the tap isn't a plain key (today it points
   to multi-tap keys); creating a macro or shortcut from the inspector (today: pick one, or a link to set it up).
-- **Lighting**: the Caps Lock / indicator colour (Keychron data, already in the backup); a live preview of the
-  effect on a keyboard picture (the tiles have previews instead, and the page has no stage).
-- **Device**, More options: restart to the bootloader (for flashing), reset to defaults (keymap, everything), each
-  with a confirmation that names what is lost.
+- **Lighting**: the Caps Lock / indicator light: **wanted by the user**. The firmware keeps a colour and an on/off
+  switch per lock light (`keychron_rgb.c`, `GET_` / `SET_INDICATORS_CONFIG`; brightness is kept at 128 or more);
+  the K15's strobe uses the hue and saturation at full brightness (`keymap.c`). A live preview of the effect on a
+  picture is **dropped** (the tiles' previews are enough); the user floated showing the picture on the page
+  always, tinted with the chosen colour, instead of only for Key by key and Mixed zones: not decided.
+- **Device**, More options: reset to defaults: **wanted by the user**. Vial's keymap reset (`0x06`,
+  `dynamic_keymap_reset`) puts back keys, knob, typing settings and the multi-tap / chord / replacement / repeat
+  entries, and needs no unlock; macros have their own reset, which does; lighting is untouched by both. Restart
+  to the bootloader (`0x0B`, needs unlock): not decided.
 - **Settings**: key legend language; a licences list beside About.
 - **Plugins** (section 9): the "declared settings" level (a JSON description of extra settings, no code) and the
   `DeviceContext` handed to code plugins (request, pushes, state, capabilities, drawing on the picture). The
   registration (`plugins/api.ts`: pages, panels, push shapes, effect names) is there and the pages use it.
+- **Decided by the user**: the key test stays as it is (no firmware changes for it); the Ripple plugin is
+  deferred.
 - **Open in the spec**: whether backup/restore reads other apps' files beyond `.vil` (section 14); the name
   "Layerworks" checked against existing projects and trademarks.
 - **Decided differently from the spec, to write into it**: the stage is on Home and Keys only (Test, Shortcuts
