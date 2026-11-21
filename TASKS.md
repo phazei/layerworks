@@ -57,6 +57,18 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
   (reachable by typing the QMK code). "Make this the base layer and remember it" (QMK's `PDF`) is left out too:
   a one-time key, and on Keychron keyboards the Mac/Win switch sets the base layer at every start
   (`../vial_qmk/keyboards/keychron/k15_max/k15_max.c`, `dip_switch_update_kb`), so it does nothing lasting.
+- **Proposed, waiting for the user's go: plain VIA keyboards, without lighting.** Keys, layers, knob, macros and
+  backup on firmware that has VIA but not Vial (the K15's VIA build, `..\tools\build.cmd`, is the test keyboard;
+  back up before swapping firmware). It reverses the spec's "Vial firmware only" (sections 2 and 3), which is
+  rewritten when this starts. Known so far:
+  - The app's connection starts with Vial's keyboard ID and built-in definition; a VIA keyboard has neither, so
+    the layout comes from a definition file.
+  - VIA serves definitions at `https://usevia.app/definitions/v3/<vendorId * 65536 + productId>.json`, readable
+    from a web page (`access-control-allow-origin: *`); a keyboard it doesn't know gets an HTML page with status
+    200. `definitions/supported_kbs.json` lists the IDs it has: 129 Keychron boards, **not the K15 Max**
+    (`3434:0AF0`). So loading a file is needed too; `..\via\k15_max_cable.json` is the K15's.
+  - Keys, layers and macros use the same commands in both; the knob needs VIA's `0x14` / `0x15`; VIA's macro
+    bytes and key numbering against Vial's are unchecked. Everything Vial-only is hidden through `capabilities`.
 - The user is testing page by page and reports bugs as found; the dev server (`pnpm dev`) is open while agents
   edit, so the user sees work in progress.
 - **To try on the real keyboard** (take a backup first):
