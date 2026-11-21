@@ -51,9 +51,33 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
 
 ## Where the conversation stands
 
-The user's plan, in order: (1) list what is left from the spec: done, "Left from the spec" below, not yet
-discussed with the user; (2) audit where the project is against the spec and the documents; (3) update the files.
-Nothing is running in the background. For the audit:
+The user's plan, in order: (1) list what is left from the spec: done and discussed, "Left from the spec" below;
+(2) build what the user picked from it (running now, see below); (3) audit where the project is against the
+spec and the documents; (4) update the files.
+
+**In progress right now** (two delegated agents, the limit):
+
+- `ses_e1debfc70ffey83TnPHv8IaaIG` (built the Keys inspector and Shortcuts pickers): "press a key to assign" on
+  Keys (browser key events always; the key matrix too once unlocked, taking what the pressed key holds), and
+  making the sections of the Shortcuts & macros list plainly distinct (user's report: the "Key chords" header
+  looks like the macros above it). Files: `src/pages/keys/*`, the Shortcuts page, `src/ui/KeyCapture.tsx`,
+  `src/pages/test/useMatrix.ts`. Port 5201.
+- `ses_dffa4d191ffeMwlEbSjDhltGcs` (fresh): Lighting's Caps Lock light (colour, on/off) and the keyboard picture
+  shown for every effect (tinted with the colour, a static rainbow for rainbow effects, not animated); Device's
+  "Reset to defaults" and "Restart for a firmware update" (bootloader), each with a confirmation. Files:
+  `src/pages/Lighting.tsx`, `src/pages/lighting/*`, `src/pages/Device.tsx`, `src/pages/device/*`, additions to
+  `src/device/`. Port 5202.
+- When each reports: run the three checks, read the diff, look at the screenshots, commit, delete the item here.
+- **Next package, when one of them is done: key legends in the computer's layout** (the user: "if it's not
+  huge then might as well", automatic preferred). Chrome and Edge have `navigator.keyboard.getLayoutMap()`
+  (secure contexts; the same browsers that have WebHID): the unshifted character of about 48 keys by
+  `KeyboardEvent.code`, so a German layout shows Z where the app says Y. It gives no shifted or AltGr
+  characters. The vendored picture takes a `remapLabel` prop; the palette, keycaps and descriptions are ours.
+  Shape: automatic by default with a switch in Settings; shifted legends shown only where known.
+- Not decided, ask again after this round: Tap or hold building a multi-tap key by itself (the user asked how it
+  would go).
+
+For the audit:
 
 - The spec (`../docs/spec/layerworks.md`) stays where it is and is brought up to date; it is not archived (it is
   the living design, phase 8 and section 10 are unbuilt, and both `AGENTS.md` files point agents at it). The
@@ -143,7 +167,8 @@ part and the Ripple plugin are under "Later".
   `DeviceContext` handed to code plugins (request, pushes, state, capabilities, drawing on the picture). The
   registration (`plugins/api.ts`: pages, panels, push shapes, effect names) is there and the pages use it.
 - **Decided by the user**: the key test stays as it is (no firmware changes for it); the Ripple plugin is
-  deferred.
+  deferred, with everything that goes with it (the firmware's ripple commands, plugin "declared settings", the
+  `DeviceContext`).
 - **Open in the spec**: whether backup/restore reads other apps' files beyond `.vil` (section 14); the name
   "Layerworks" checked against existing projects and trademarks.
 - **Decided differently from the spec, to write into it**: the stage is on Home and Keys only (Test, Shortcuts
