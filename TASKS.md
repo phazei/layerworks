@@ -13,14 +13,16 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
   line with undo / redo, help panel, connect prompt, themes.
 - **Built pages:** Home (at a glance, what the keyboard can do, shortcuts), Keys (click a key or knob direction;
   a key, a shortcut, a layer key, More options), Lighting (effect grid with previews, lights on/off, brightness,
-  speed, colour, plugin panel slot; no keyboard picture until there is a live preview), Settings (theme, layer
-  names, about, the tour), Help (a guide: topics grouped the way the app is, search that knows QMK's names, a
+  speed, colour, plugin panel slot; a still picture of the effect on the keys; the Caps Lock light on Keychron
+  keyboards), Settings (theme, key names by the computer's layout, layer names, about, the tour), Help (a guide: topics grouped the way the app is, search that knows QMK's names, a
   glossary, each topic with its own address), Test (keys seen from browser key events and, once unlocked, from the key
   matrix; knob turns from what they send to the browser), Device (backup and restore to one file, Vial `.vil`
-  import and export, sleep timers, keyboard information), Shortcuts & macros (macros with a step editor and
+  import and export, sleep timers, keyboard information; under More options, reset to defaults and restart for
+  a firmware update), Shortcuts & macros (macros with a step editor and
   recording; multi-tap keys, key chords, shortcut replacements and repeat rules, each with an inline editor;
   drafts saved with "Save to keyboard"), Typing feel (the keyboard's QMK settings by what they feel like, with
-  search; Keychron debounce and Snap Click; undoable; reset all). Keys also has "Tap or hold" (mod-tap,
+  search; Keychron debounce and Snap Click; undoable; reset all). Keys also has "Press a key" (the next key pressed is
+  assigned; every key once unlocked), "Tap or hold" (mod-tap,
   layer-tap) and names macros and multi-tap keys in the palette; the palette also has Typing helpers (Caps
   Word, Layer Lock, Esc/` key, Space Cadet), Swapped and disabled keys (QMK's "magic"), International keys,
   and a closed "More keys" fold (features on and off, restart, firmware update). Lighting has Key by key (paint colours) and
@@ -52,30 +54,16 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
 ## Where the conversation stands
 
 The user's plan, in order: (1) list what is left from the spec: done and discussed, "Left from the spec" below;
-(2) build what the user picked from it (running now, see below); (3) audit where the project is against the
-spec and the documents; (4) update the files.
+(2) build what the user picked from it: done and committed, waiting for the user to try it (the list under
+"To try on the real keyboard" starts with it); (3) audit where the project is against the spec and the
+documents; (4) update the files. Nothing is running in the background.
 
-**In progress right now** (two delegated agents, the limit):
-
-- `ses_e1debfc70ffey83TnPHv8IaaIG` (built the Keys inspector and Shortcuts pickers): "press a key to assign" on
-  Keys (browser key events always; the key matrix too once unlocked, taking what the pressed key holds), and
-  making the sections of the Shortcuts & macros list plainly distinct (user's report: the "Key chords" header
-  looks like the macros above it). Files: `src/pages/keys/*`, the Shortcuts page, `src/ui/KeyCapture.tsx`,
-  `src/pages/test/useMatrix.ts`. Port 5201.
-- `ses_dffa4d191ffeMwlEbSjDhltGcs` (fresh): Lighting's Caps Lock light (colour, on/off) and the keyboard picture
-  shown for every effect (tinted with the colour, a static rainbow for rainbow effects, not animated); Device's
-  "Reset to defaults" and "Restart for a firmware update" (bootloader), each with a confirmation. Files:
-  `src/pages/Lighting.tsx`, `src/pages/lighting/*`, `src/pages/Device.tsx`, `src/pages/device/*`, additions to
-  `src/device/`. Port 5202.
-- When each reports: run the three checks, read the diff, look at the screenshots, commit, delete the item here.
-- **Next package, when one of them is done: key legends in the computer's layout** (the user: "if it's not
-  huge then might as well", automatic preferred). Chrome and Edge have `navigator.keyboard.getLayoutMap()`
-  (secure contexts; the same browsers that have WebHID): the unshifted character of about 48 keys by
-  `KeyboardEvent.code`, so a German layout shows Z where the app says Y. It gives no shifted or AltGr
-  characters. The vendored picture takes a `remapLabel` prop; the palette, keycaps and descriptions are ours.
-  Shape: automatic by default with a switch in Settings; shifted legends shown only where known.
-- Not decided, ask again after this round: Tap or hold building a multi-tap key by itself (the user asked how it
-  would go).
+- Not decided, ask again: Tap or hold building a multi-tap key by itself (the user asked how it would go: the
+  app takes the first empty multi-tap key, fills in tap and hold, puts it on the key, one undo for both; it uses
+  up a slot, and changing the key later leaves the slot filled).
+- Sessions to reuse: `ses_e1debfc70ffey83TnPHv8IaaIG` built the Keys inspector, palette, "Press a key", the
+  Shortcuts pickers and list, and the key names by layout; `ses_dffa4d191ffeMwlEbSjDhltGcs` built the Caps Lock
+  light, Lighting's picture for every effect, and Device's reset and firmware-update restart.
 
 For the audit:
 
@@ -118,6 +106,13 @@ For the audit:
 - The user is testing page by page and reports bugs as found; the dev server (`pnpm dev`) is open while agents
   edit, so the user sees work in progress.
 - **To try on the real keyboard** (take a backup first):
+  - Built last, not yet tried: **Press a key** on Keys (locked: a letter, then Fn to see the explanation;
+    unlocked: the M1 key and the Fn2 key, on the cable and over 2.4 GHz). **Caps Lock light** on Lighting (colour,
+    off and on, undo, replug after 2 s to see it was saved). **Reset to defaults** on Device, More options (box
+    unticked: macros survive; then restore the backup; it puts back the compiled `keymap.c`, not the saved
+    keymap; each reset request waits 5 s, twice: say if the page reports a failure although the reset worked).
+    **Restart for a firmware update** (unlock, restart, the keyboard shows up as the STM32 updater; replug to
+    get it back). The Shortcuts list's sections; the still picture under Lighting's effect grid.
   - The Shortcuts pickers: a key chord that sends Caps Word; a macro with a step "Swap Caps Lock and left
     Ctrl", pressed twice with Caps Lock tried in between; Shift + Backspace → Delete opens with no lighting
     keys in its "To send instead" list.
@@ -150,19 +145,15 @@ two at most run at a time (`AGENTS.md`).
 What `../docs/spec/layerworks.md` describes and the app doesn't have (checked against the code). The firmware
 part and the Ripple plugin are under "Later".
 
-- **Keys** (section 7): "press a key to assign" in the inspector (`ui/KeyCapture.tsx` exists, used by Snap Click
-  only); Tap or hold falling back to a multi-tap key by itself when the tap isn't a plain key (today it points
-  to multi-tap keys); creating a macro or shortcut from the inspector (today: pick one, or a link to set it up).
-- **Lighting**: the Caps Lock / indicator light: **wanted by the user**. The firmware keeps a colour and an on/off
-  switch per lock light (`keychron_rgb.c`, `GET_` / `SET_INDICATORS_CONFIG`; brightness is kept at 128 or more);
-  the K15's strobe uses the hue and saturation at full brightness (`keymap.c`). A live preview of the effect on a
-  picture is **dropped** (the tiles' previews are enough); the user floated showing the picture on the page
-  always, tinted with the chosen colour, instead of only for Key by key and Mixed zones: not decided.
-- **Device**, More options: reset to defaults: **wanted by the user**. Vial's keymap reset (`0x06`,
-  `dynamic_keymap_reset`) puts back keys, knob, typing settings and the multi-tap / chord / replacement / repeat
-  entries, and needs no unlock; macros have their own reset, which does; lighting is untouched by both. Restart
-  to the bootloader (`0x0B`, needs unlock): not decided.
-- **Settings**: key legend language; a licences list beside About.
+- **Keys** (section 7): Tap or hold falling back to a multi-tap key by itself when the tap isn't a plain key
+  (today it points to multi-tap keys; not decided, see "Where the conversation stands"); creating a macro or
+  shortcut from the inspector (today: pick one, empty ones included, and a link to set it up; close enough).
+- **Lighting**: a live preview of the effect on a picture is **dropped** by the user (the tiles' previews and the
+  still picture under the grid are enough).
+- **Key names by layout, what it doesn't do:** the browser reports only what each key types without Shift, so on
+  a layout that isn't US the second legend is left out, QMK's shifted keys read "Shift + 1", AltGr characters
+  appear nowhere and dead keys show as plain characters. A follow-up if wanted: a small table of the shifted
+  rows of the commonest layouts (German, French, Spanish, UK), chosen by matching the unshifted map.
 - **Plugins** (section 9): the "declared settings" level (a JSON description of extra settings, no code) and the
   `DeviceContext` handed to code plugins (request, pushes, state, capabilities, drawing on the picture). The
   registration (`plugins/api.ts`: pages, panels, push shapes, effect names) is there and the pages use it.
@@ -192,7 +183,10 @@ part and the Ripple plugin are under "Later".
 - Lighting: a zone slot's play time can't be set while it is the zone's only effect (harmless). The picture in
   the key colours editor is small at 1000×700. Read back while the lights are off, the keyboard can report the
   saved colour rather than the last one sent; turning the lights on sends the values the page shows.
-- Keys in a short window: the palette shows five columns and feels crowded.
+- Keys in a short window: the palette shows five columns and feels crowded. The palette's group titles are small
+  muted text, the weak-header pattern the Shortcuts list had.
+- Key names by layout: a US letter in the palette search can find two tiles (on German, "y" finds the tile shown
+  as Z and the one shown as Y); "!" still finds "Shift + 1" through its US name, wrong on French.
 - Device card: the quiet "Unlock…" and "Lock" buttons read as plain text; give them a slightly stronger style.
 - Macro text is typed as on a US layout (on a German layout "y" comes out as "z"); the help says so.
 - Test: where the knob scrolls, ordinary mouse scrolling marks it as seen too; the browser can't tell them apart.

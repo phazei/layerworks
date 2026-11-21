@@ -2,7 +2,7 @@
 // "Press a key": a button that, once clicked, takes the next key pressed on the keyboard as its value. Esc or a
 // click elsewhere stops waiting. The caller turns the browser's key code into its own value and draws it.
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { cx } from './controls'
 
 interface KeyCaptureProps {
@@ -16,25 +16,40 @@ interface KeyCaptureProps {
   refusal?: string
 }
 
-export function KeyCapture({ current, onKey, label, refusal = 'That key can’t be used here.' }: KeyCaptureProps) {
-  const [waiting, setWaiting] = useState(false)
-  const [refused, setRefused] = useState(false)
-
+/**
+ * While `active`, hands the browser code of each key pressed to `onKey` (repeats left out) and keeps the page from
+ * acting on it; Esc calls `onCancel` instead. For callers that draw their own button (the Keys page's "Press a key").
+ */
+export function useKeyCapture(active: boolean, onKey: (code: string) => void, onCancel: () => void): void {
   useEffect(() => {
-    if (!waiting) return
+    if (!active) return
     const down = (event: KeyboardEvent) => {
       event.preventDefault()
       event.stopPropagation()
       if (event.repeat) return
-      if (event.code === 'Escape') return setWaiting(false)
-      const ok = onKey(event.code)
-      setRefused(!ok)
-      if (ok) setWaiting(false)
+      if (event.code === 'Escape') onCancel()
+      else onKey(event.code)
     }
     // Capture phase, so nothing else on the page acts on the key first.
     window.addEventListener('keydown', down, true)
     return () => window.removeEventListener('keydown', down, true)
-  }, [waiting, onKey])
+  }, [active, onKey, onCancel])
+}
+
+export function KeyCapture({ current, onKey, label, refusal = 'That key can’t be used here.' }: KeyCaptureProps) {
+  const [waiting, setWaiting] = useState(false)
+  const [refused, setRefused] = useState(false)
+
+  const take = useCallback(
+    (code: string) => {
+      const ok = onKey(code)
+      setRefused(!ok)
+      if (ok) setWaiting(false)
+    },
+    [onKey],
+  )
+  const stop = useCallback(() => setWaiting(false), [])
+  useKeyCapture(waiting, take, stop)
 
   return (
     <span className="inline-flex flex-col gap-1">

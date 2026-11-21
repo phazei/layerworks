@@ -44,7 +44,7 @@ interface Row {
 function Rows({ kind, rows, selected }: { kind: DraftKind; rows: Row[]; selected: Opened | null }) {
   if (rows.length === 0) return null
   return (
-    <ul className="-mx-2 flex flex-col">
+    <ul className="ml-1 flex flex-col border-l-2 border-edge pl-2">
       {rows.map((row) => {
         const current = selected?.kind === kind && selected.index === row.index
         return (
@@ -96,10 +96,10 @@ interface SectionProps {
 
 function Section({ kind, name, qmk, help, used, count, free, addLabel, children }: SectionProps) {
   return (
-    <section aria-label={name} className="flex flex-col gap-1.5">
+    <section aria-label={name} className="flex flex-col gap-2 border-t border-edge pt-4 first:border-t-0 first:pt-0">
       <header className="flex items-start gap-2">
         <div className="min-w-0">
-          <h3 className="flex items-center gap-0.5 font-semibold">
+          <h3 className="flex items-center gap-0.5 text-[15px] font-semibold">
             {name}
             <HelpButton topic={help} />
           </h3>
@@ -227,31 +227,33 @@ export function ShortcutList({ selected }: { selected: Opened | null }) {
   return (
     <Card title="Shortcuts" description="What the keyboard can do beyond one key, one character.">
       <nav aria-label="Shortcuts">
-        {kb.macroCount === 0 ? (
-          <p className="text-[13px] text-muted">This keyboard’s firmware has no macros.</p>
-        ) : (
-          <Section
-            kind="macro"
-            name="Macros"
-            qmk="Macros"
-            help="macros"
-            used={macrosUsed}
-            count={kb.macroCount}
-            free={freeMacro}
-            addLabel="Add a macro"
-          >
-            {space && (
-              <div className="flex flex-col gap-1.5 pb-1">
-                <ProgressBar label="Macro space used" value={space.used} max={space.size} valueText={`${space.used} of ${space.size} bytes`} />
-                <p className="text-[13px] text-muted">
-                  {roomText(space.free)} · {space.used} of {space.size} bytes used
-                </p>
-              </div>
-            )}
-            <Rows kind="macro" rows={macroRows} selected={selected} />
-          </Section>
-        )}
-        {entries !== null && above.length > 0 && <div className="mt-5 flex flex-col gap-5">{above.map(section)}</div>}
+        <div className="flex flex-col gap-5">
+          {kb.macroCount === 0 ? (
+            <p className="text-[13px] text-muted">This keyboard’s firmware has no macros.</p>
+          ) : (
+            <Section
+              kind="macro"
+              name="Macros"
+              qmk="Macros"
+              help="macros"
+              used={macrosUsed}
+              count={kb.macroCount}
+              free={freeMacro}
+              addLabel="Add a macro"
+            >
+              {space && (
+                <div className="flex flex-col gap-1.5 pb-1">
+                  <ProgressBar label="Macro space used" value={space.used} max={space.size} valueText={`${space.used} of ${space.size} bytes`} />
+                  <p className="text-[13px] text-muted">
+                    {roomText(space.free)} · {space.used} of {space.size} bytes used
+                  </p>
+                </div>
+              )}
+              <Rows kind="macro" rows={macroRows} selected={selected} />
+            </Section>
+          )}
+          {entries !== null && above.map(section)}
+        </div>
         {(entries === null ? sections.length > 0 : below.length > 0) && (
           <Disclosure id="shortcuts-more">
             {entries === null ? (

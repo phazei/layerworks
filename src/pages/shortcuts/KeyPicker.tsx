@@ -5,6 +5,7 @@
 
 import { useMemo, useState } from 'react'
 import { canTakeModifiers, groupsFor, paletteFeatures, readShortcut, shortcutKeycode, useDevice, type KeyUse } from '../../device'
+import { useLegendRevision } from '../../device/layout'
 import { Button } from '../../ui/controls'
 import { KeyPalette } from '../keys/KeyPalette'
 import { ModifierBoxes } from '../keys/Modifiers'
@@ -25,9 +26,11 @@ export function KeyPicker({ current, use, shortcuts, onPick, onClose }: Props) {
   const features = paletteFeatures(keyboard, settings)
   // Built once the keyboard's tables are in.
   const { combos, keyOverrides, autoShift } = features
+  // The names follow the computer's layout (device/layout.ts).
+  const legends = useLegendRevision()
   const groups = useMemo(
     () => (keyboard ? groupsFor(use, { combos, keyOverrides, autoShift }) : []),
-    [keyboard, use, combos, keyOverrides, autoShift],
+    [keyboard, use, combos, keyOverrides, autoShift, legends],
   )
   const now = readShortcut(current)
   const [mods, setMods] = useState(shortcuts ? (now?.mods ?? 0) : 0)

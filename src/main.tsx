@@ -10,6 +10,7 @@
 //                   ?demo-turn=1;0 turns its knob (what it sends reaches the page as a browser event);
 //                   ?demo-wireless connects the demo through the 2.4 GHz receiver, with a battery level
 //                   (all read in src/demo/demo-link.ts)
+//   ?layout=KeyY:z  key legends as on a layout typing z on the US Y key, … (src/shell/keyboard-layout.ts)
 //   ?tour, ?tour=3  opens the first-run tour (at the third step); without any option the tour starts by itself
 //                   the first time a keyboard is in on Home (src/help/tour.ts)
 
@@ -20,6 +21,7 @@ import { isHelpTopic } from './help/topics'
 import { armTour } from './help/tour'
 import './pages'
 import { Shell } from './shell/Shell'
+import { watchKeyboardLayout } from './shell/keyboard-layout'
 import { connectDemo } from './shell/session'
 import { parseSelection, stage } from './shell/stage-store'
 import { openUnlock, startUnlock } from './shell/unlock-dialog'
@@ -44,6 +46,9 @@ if (select || layer) {
     }, 100)
   })
 }
+
+// Key legends that follow the computer's layout; ?layout=KeyY:z,KeyZ:y stands in for it (src/shell/keyboard-layout.ts).
+watchKeyboardLayout()
 
 const unlock = params.get('unlock')
 if (unlock !== null) {

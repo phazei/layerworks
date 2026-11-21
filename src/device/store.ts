@@ -55,12 +55,15 @@ import {
   accepted,
   colourPackets,
   effectPackets,
+  lockLightsPacket,
+  normaliseLockLights,
   PER_KEY_STYLE_COUNT,
   regionPackets,
   savePacket,
   stylePacket,
   ZONES_EFFECT,
   type Hsv,
+  type LockLights,
   type ZoneEffect,
 } from './keychron-rgb'
 
@@ -269,6 +272,14 @@ const NOT_CONNECTED = 'The keyboard is not connected'
 /** VIA's macro buffer write: [0x0F, offset (big-endian), size, up to 28 bytes]. */
 const VIA_MACRO_SET_BUFFER = 0x0f
 const MACRO_CHUNK = 28
+/** VIA's keymap read in pieces of this many bytes, as the first read does. */
+const KEYMAP_CHUNK = 28
+/** via.h: id_dynamic_keymap_reset, id_dynamic_keymap_macro_reset, id_bootloader_jump. */
+const VIA_KEYMAP_RESET = 0x06
+const VIA_MACRO_RESET = 0x10
+const VIA_BOOTLOADER_JUMP = 0x0b
+/** A reset rewrites the whole keymap (or macro memory) in EEPROM before the keyboard answers. */
+const RESET_REQUEST = { timeoutMs: 5000, attempts: 2 }
 
 /** One write: what to send, and what to change in the state once it reached the keyboard. */
 interface WriteJob {
@@ -354,6 +365,23 @@ export interface DeviceStore {
   /** Every effect slot of one zone, in the keyboard's own effect numbering (./keychron-rgb). One undo step. */
   setZoneEffects(zone: number, effects: ZoneEffect[]): Promise<boolean>
   /**
+   * Keychron's lock lights: their one colour and which are off (./keychron-rgb, LockLights). Shown at once, saved on
+   * the keyboard after a pause. One undo step; quick changes (a dragged slider) merge into one.
+   */
+  setLockLights(change: Partial<LockLights>): Promise<boolean>
+  /**
+   * Puts the keyboard's keys back to its firmware's own keymap (VIA's keymap reset): every layer's keys and the
+   * knob, the QMK settings, and every tap dance, combo, key override and alt repeat entry. With `macros`, the macros
+   * are emptied too (VIA's macro reset). Neither needs unlocking; lighting, Keychron settings and layout options
+   * stay. Then reads all of that again, and forgets the undo history, which can't bring it back.
+   */
+  resetKeymap(options?: { macros?: boolean }): Promise<boolean>
+  /**
+   * Restarts the keyboard into firmware update mode (Vial's bootloader jump). Only on the cable and only while
+   * unlocked. Once the keyboard has answered, the store lets go of it: it is leaving USB as a keyboard.
+   */
+  restartToBootloader(): Promise<BootloaderResult>
+  /**
    * Reads every key straight from the keyboard while it is unlocked; `listener` gets the keys down ("row,col")
    * whenever they change. Polling runs while anyone watches and the keyboard is unlocked, and stops when the last
    * watcher leaves, the keyboard locks or goes away. Returns the stop function.
@@ -364,6 +392,18 @@ export interface DeviceStore {
 }
 
 export type UnlockResult = 'unlocked' | 'disconnected' | 'failed'
+
+/** How `restartToBootloader` went. */
+export type BootloaderResult =
+  /** The keyboard took it and is restarting; the store has let go of it. */
+  | 'restarting'
+  /** Not sent: the keyboard ignores it until unlocked (via.c). */
+  | 'locked'
+  /** Not sent: through the 2.4 GHz receiver. Firmware goes on over the cable. */
+  | 'cable-only'
+  /** The firmware doesn't have the command (a Vial build with VIAL_INSECURE, or not Vial). */
+  | 'unsupported'
+  | 'failed'
 
 /** Said when a keyboard is found in the middle of an unlock some other page or app started and left. */
 export const STILL_UNLOCKING =
@@ -531,8 +571,8 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     },
   }
 
-  async function readRest(current: typeof session, keyboard: KeyboardData): Promise<void> {
-    for (const part of LOAD_PARTS) {
+  async function readRest(current: typeof session, keyboard: KeyboardData, parts: readonly LoadPart[] = LOAD_PARTS): Promise<void> {
+    for (const part of parts) {
       let patch: Partial<DeviceState>
       try {
         patch = await readers[part](keyboard)
@@ -1011,6 +1051,20 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       })
     }
 
+    if (plan.lockLights) {
+      const lights = plan.lockLights
+      steps.push({
+        part: 'lockLights',
+        what: 'lock lights',
+        needsUnlock: false,
+        send: () => sendKeyLighting([lockLightsPacket(lights), savePacket()], 'The keyboard refused the lock light settings.'),
+        applied: () => {
+          const now = state.keychron?.rgb?.osIndicatorConfig
+          return now ? withKeyLighting({ osIndicatorConfig: { ...now, ...lights } }) : {}
+        },
+      })
+    }
+
     const todo = steps.filter((s) => {
       if (unlocked || !s.needsUnlock) return true
       report.skipped.push({ part: s.part, what: s.what })
@@ -1281,6 +1335,123 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     return true
   }
 
+  async function writeLockLights(lights: LockLights): Promise<boolean> {
+    const sent = await write(
+      () => sendKeyLighting([lockLightsPacket(lights)], 'The keyboard refused the lock light settings.'),
+      () => {
+        const now = state.keychron?.rgb?.osIndicatorConfig
+        return now ? withKeyLighting({ osIndicatorConfig: { ...now, ...lights } }) : {}
+      },
+    )
+    if (sent) saveKeyLightingSoon()
+    return sent
+  }
+
+  async function setLockLights(change: Partial<LockLights>): Promise<boolean> {
+    const now = state.keychron?.hasRgb ? state.keychron.rgb?.osIndicatorConfig : null
+    if (!now) return false
+    const from: LockLights = { disableMask: now.disableMask, hue: now.hue, sat: now.sat, val: now.val }
+    const to = normaliseLockLights({ ...from, ...change })
+    if (same(from, to)) return true
+    if (!(await writeLockLights(to))) return false
+    // Switches and colour are separate steps, so a quick switch after a colour drag isn't undone with it.
+    const key = to.disableMask !== from.disableMask ? 'lock-lights:on' : 'lock-lights:colour'
+    rememberValue(key, from, to, (v) => writeLockLights(v as LockLights))
+    return true
+  }
+
+  /** The keymap and the knob, read again (the same requests as the first read). */
+  async function readKeys(kb: KeyboardData): Promise<Pick<KeyboardData, 'keymap' | 'knobs'>> {
+    const size = kb.layers * kb.rows * kb.cols * 2
+    const bytes: number[] = []
+    for (let offset = 0; offset < size; offset += KEYMAP_CHUNK) {
+      bytes.push(...(await protocol.getKeymapBuffer(offset, Math.min(KEYMAP_CHUNK, size - offset))))
+    }
+    const keymap: Record<string, number> = {}
+    for (let layer = 0, i = 0; layer < kb.layers; layer++) {
+      for (let row = 0; row < kb.rows; row++) {
+        for (let col = 0; col < kb.cols; col++, i += 2) keymap[`${layer},${row},${col}`] = (bytes[i] << 8) | bytes[i + 1]
+      }
+    }
+    const knobIndices = [...new Set(Object.keys(kb.knobs).map((key) => Number(key.split(',')[1])))]
+    const knobs: Record<string, number> = {}
+    for (const knob of knobIndices) {
+      for (let layer = 0; layer < kb.layers; layer++) {
+        const [left, right] = await protocol.getEncoder(layer, knob)
+        knobs[`${layer},${knob},0`] = left
+        knobs[`${layer},${knob},1`] = right
+      }
+    }
+    return { keymap, knobs }
+  }
+
+  async function resetKeymap({ macros = false }: { macros?: boolean } = {}): Promise<boolean> {
+    const current = session
+    const kb = state.keyboard
+    if (!current || !kb) return false
+    // dynamic_keymap_reset rewrites the whole keymap before it answers: give it time, and send it again if the
+    // answer is lost (doing it twice is harmless).
+    const sent = await write(
+      async () => {
+        await current.transport.request([VIA_KEYMAP_RESET], RESET_REQUEST)
+        if (macros && kb.macroBytes > 0) await current.transport.request([VIA_MACRO_RESET], RESET_REQUEST)
+      },
+      () => ({}),
+    )
+    // Whatever got through, undo can't bring it back: its steps would write over the firmware's keys.
+    undoStack = []
+    redoStack = []
+    set(history())
+    if (session !== current) return false
+    try {
+      const keys = await readKeys(kb)
+      if (session !== current || !state.keyboard) return false
+      set({ keyboard: { ...state.keyboard, ...keys } })
+    } catch (error) {
+      if (session === current) set({ writeError: error instanceof Error ? error.message : String(error) })
+      return false
+    }
+    // The rest it touched, read as at connect (shown as loading in the status line meanwhile).
+    const parts: LoadPart[] = ['macros', 'entries', 'settings']
+    set({ loading: [...state.loading, ...parts.filter((p) => !state.loading.includes(p))], failed: state.failed.filter((p) => !parts.includes(p)) })
+    await readRest(current, kb, parts)
+    return sent
+  }
+
+  /** Saves now what is waiting to be saved after a pause, before the keyboard goes away. */
+  async function flushSaves(): Promise<void> {
+    if (lightingSaveTimer) {
+      clearTimeout(lightingSaveTimer)
+      lightingSaveTimer = null
+      await write(() => protocol.saveLighting(), () => ({}))
+    }
+    if (keyLightingSaveTimer) {
+      clearTimeout(keyLightingSaveTimer)
+      keyLightingSaveTimer = null
+      await write(() => sendKeyLighting([savePacket()], 'The keyboard didn’t save the key lighting.'), () => ({}))
+    }
+  }
+
+  async function restartToBootloader(): Promise<BootloaderResult> {
+    const current = session
+    if (!current) return 'failed'
+    if (current.link.kind !== 'cable') return 'cable-only'
+    if (!state.unlock?.unlocked) return 'locked'
+    await flushSaves()
+    if (session !== current) return 'failed'
+    let reply: Uint8Array
+    try {
+      // via.c answers, waits 100 ms and jumps. Sent once: a second one would reach a keyboard already gone.
+      reply = await current.transport.request([VIA_BOOTLOADER_JUMP], { attempts: 1 })
+    } catch {
+      return session === current ? 'failed' : 'restarting'
+    }
+    if (reply[0] === UNHANDLED) return 'unsupported'
+    // It is leaving USB as a keyboard; let go of it now so nothing else is sent its way.
+    if (session === current) await disconnect()
+    return 'restarting'
+  }
+
   function watchMatrix(listener: (down: ReadonlySet<string>) => void): () => void {
     matrixWatchers.add(listener)
     syncMatrix()
@@ -1332,6 +1503,9 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     setKeyStyle: (style) => inOrder(() => setKeyStyle(style)),
     setZones: (regions, undoKey) => inOrder(() => setZones(regions, undoKey)),
     setZoneEffects: (zone, effects) => inOrder(() => setZoneEffects(zone, effects)),
+    setLockLights: (change) => inOrder(() => setLockLights(change)),
+    resetKeymap: (options) => inOrder(() => resetKeymap(options)),
+    restartToBootloader: () => inOrder(restartToBootloader),
     watchMatrix,
 
     async connect(link) {

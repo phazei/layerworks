@@ -29,7 +29,7 @@ export { matrixKeys } from './matrix'
 export * from './keycodes'
 export { canSend, groupsFor, KEY_USES, KEY_WITH_MODS_MAX, ORDINARY_KEY_MAX, paletteFeatures } from './sendable'
 export type { KeyUse } from './sendable'
-export type { RestoreProgress, RestoreReport } from './store'
+export type { BootloaderResult, RestoreProgress, RestoreReport } from './store'
 export {
   BACKUP_EXTENSION,
   BackupError,
@@ -150,13 +150,15 @@ export {
 export type { Debounce, DebounceType, SnapClickEntry, SnapClickRule } from './keychron-typing'
 export {
   keyLeds,
+  LOCK_LIGHT_MIN_VAL,
+  LOCK_LIGHTS,
   PER_KEY_EFFECT,
   PER_KEY_STYLE_COUNT,
   zoneEffectChoices,
   zoneEffectNumbers,
   ZONES_EFFECT,
 } from './keychron-rgb'
-export type { Hsv, ZoneEffect, ZoneNumbers } from './keychron-rgb'
+export type { Hsv, LockLights, ZoneEffect, ZoneNumbers } from './keychron-rgb'
 
 export { posKey } from '../vendor/pipette/shared/kle/pos-key'
 export type { KleKey, KeyboardLayout } from '../vendor/pipette/shared/kle/types'

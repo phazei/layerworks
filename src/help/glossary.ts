@@ -42,7 +42,7 @@ export const GLOSSARY: GlossaryEntry[] = [
     aka: 'QK_BOOT, DFU, flash mode',
     friendly: 'Firmware update mode',
     meaning: 'The mode the keyboard restarts into to take new firmware.',
-    topic: 'firmware',
+    topic: 'bootloader',
   },
   {
     term: 'Caps Word',
@@ -96,6 +96,13 @@ export const GLOSSARY: GlossaryEntry[] = [
     friendly: 'The combined Esc and ` key',
     meaning: 'One key for Esc, and ` with Shift or Win held.',
     topic: 'typing-grave-esc',
+  },
+  {
+    term: 'Indicators',
+    aka: 'Caps Lock indicator, lock lights, OS indicators',
+    friendly: 'Caps Lock light',
+    meaning: 'The light on Caps Lock (and Num Lock and the like) while that lock is on.',
+    topic: 'lock-lights',
   },
   {
     term: 'ISO and JIS keys',

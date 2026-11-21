@@ -151,6 +151,17 @@ const topics = {
     where: [{ label: 'Keys page, “A key”', href: '#/keys' }],
     related: ['assign-key', 'raw-code'],
   },
+  'press-key': {
+    title: 'Press a key to pick it',
+    body: [
+      'Beside the search on the Keys page: click “Press a key”, then press a key on the keyboard, and the selected key (or knob turn) does what that one does. One step, which Undo takes back. Esc, or a click elsewhere, stops waiting.',
+      'While the keyboard is locked, only keys the computer receives count, so Fn, layer keys, macro keys and most media keys can’t be picked this way. Unlocked, the app reads the keyboard’s own switches while it waits and sees every key: it takes what that key does now, on the layer the keyboard is on, tap-or-hold and layer keys included.',
+      'The key you press still does its usual job on the computer: a macro key types its macro, Mute mutes.',
+    ],
+    example: 'Select Caps Lock, click “Press a key” and press Backspace: Caps Lock is a second Backspace. (Esc can’t be picked this way, as it stops waiting; it is in the list under Editing and navigation.)',
+    where: [{ label: 'Keys page, “A key”', href: '#/keys' }],
+    related: ['key-palette', 'unlock'],
+  },
   'shortcut-key': {
     title: 'A shortcut on one key',
     qmkName: 'Modifier + key',
@@ -301,6 +312,17 @@ const topics = {
       { label: 'Keys page, the list of layers', href: '#/keys' },
     ],
     related: ['layers', 'backup'],
+  },
+  'key-legends': {
+    title: 'Key names and your keyboard layout',
+    body: [
+      'A keyboard doesn’t send letters: it sends which key was pressed, and the computer’s keyboard layout decides the character. The same key types Y on a US layout and Z on a German one. Layerworks names keys by what your computer’s layout types, so the picture and the lists match the keys in front of you. The QMK name beside them (KC_Y) stays as it is: it means a position, whatever the layout.',
+      'Chrome and Edge tell which character each key types without Shift, but not with Shift or AltGr. So on a layout other than US a key shows only its unshifted character, and the symbols QMK stores as Shift + a key read “Shift + 1” rather than a symbol, since which symbol that gives depends on the layout. The search still finds a key by its US name too.',
+      'Text in a macro is typed as on a US layout whatever the computer uses: the keyboard presses the keys where a US keyboard has those characters.',
+    ],
+    example: 'On a German layout the key right of T reads Z, the key right of L reads Ö, and Ctrl + the key a US keyboard calls Z reads “Ctrl + Y”.',
+    where: [{ label: 'Settings, Key names', href: '#/settings' }],
+    related: ['key-palette', 'macros'],
   },
   'caps-word': {
     title: 'Capitals for one word',
@@ -671,6 +693,18 @@ const topics = {
     where: [{ label: 'Lighting page, the “Mixed zones” effect', href: '#/lighting' }],
     related: ['key-colours', 'lighting-effect'],
   },
+  'lock-lights': {
+    title: 'Caps Lock light',
+    qmkName: 'Keychron indicators (lock lights)',
+    body: [
+      'While Caps Lock is on, its key lights up in a colour of its own, over whatever the lighting effect is doing, so you can see it is on. Keyboards with Num Lock or Scroll Lock lights have a switch for each; they all share the one colour.',
+      'Switched off, the key just shows the effect like the others. The keyboard keeps the brightness at half or more. How the light is drawn is up to the firmware: Keychron’s own lights the key steadily at the brightness set here; others can do more with the colour (the K15 Max’s ripple keymap flashes Caps Lock on and off at full brightness).',
+    ],
+    example: 'Red, so Caps Lock left on by accident is hard to miss; or switched off if the light distracts you.',
+    docs: QMK + 'feature_rgb_matrix#indicators',
+    where: [{ label: 'Lighting page, Caps Lock light', href: '#/lighting' }],
+    related: ['lighting-colour', 'key-colours'],
+  },
 
   // ---- Typing feel ----
 
@@ -928,6 +962,30 @@ const topics = {
     example: 'The default is 2 hours; 30 minutes saves battery if you often leave the keyboard on.',
     where: [{ label: 'Device page, Wireless and sleep', href: '#/device' }],
     related: ['lights-off-timer'],
+  },
+  'keymap-reset': {
+    title: 'Reset to defaults',
+    qmkName: 'Dynamic keymap reset (VIA)',
+    body: [
+      'The firmware has a keymap built in, the one it came with. Resetting puts it back on every layer and the knob, and clears what was set up on top: the typing settings, multi-tap keys, key chords, shortcut replacements and repeat rules. Macros stay unless you tick “Empty the macros too”; neither needs the keyboard unlocked.',
+      'The lighting, the key colours and zones, the Caps Lock light, the layer and macro names, and Keychron’s key bounce filter, Snap Click and wireless timers stay as they are. Undo can’t bring the old setup back, so save a backup first: restoring it puts everything back.',
+    ],
+    example: 'Lost track of what you changed? Save a backup, reset, and start from the keys printed on the keyboard.',
+    docs: 'https://get.vial.today/manual/',
+    where: [{ label: 'Device page, More options', href: '#/device' }],
+    related: ['backup', 'restore', 'typing-reset'],
+  },
+  bootloader: {
+    title: 'Restart for a firmware update',
+    qmkName: 'Bootloader',
+    body: [
+      'New firmware goes onto the keyboard in firmware update mode, which QMK calls the bootloader. Usually you get there by holding a key while plugging the keyboard in (Esc on most Keychron keyboards); this does the same from here.',
+      'The keyboard then stops typing until new firmware is put on it with a flashing tool, or until it is unplugged and plugged back in. This app loses the connection; it doesn’t put firmware on the keyboard itself. Only on the cable, and only once the keyboard is unlocked: Vial asks for that, so a web page can’t do it unnoticed.',
+    ],
+    example: 'About to flash a new build: restart it from here, then run the flashing tool.',
+    docs: QMK + 'newbs_flashing',
+    where: [{ label: 'Device page, More options', href: '#/device' }],
+    related: ['firmware', 'unlock', 'restart-keys'],
   },
 
   // ---- Firmware and QMK words ----

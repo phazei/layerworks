@@ -4,7 +4,7 @@
 // they do (shortcut-keys.ts), so the Shortcuts page's pickers get them too. Groups marked `more` wait under a
 // closed "More keys" fold at the end, except while searching, which looks everywhere.
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { PaletteGroup, PaletteKey } from '../../device'
 import type { HelpTopicId } from '../../help/topics'
 import { SearchField } from '../../ui/controls'
@@ -34,8 +34,10 @@ export const keyName = (key: PaletteKey): string => key.description ?? oneLine(k
 export function matchesSearch(key: PaletteKey, query: string): boolean {
   const q = query.trim().toLowerCase()
   if (!q) return true
-  if ([...q].length === 1) return key.label.toLowerCase().split('\n').includes(q)
-  const text = [oneLine(key.label), key.description ?? '', key.id, ...(key.aliases ?? [])].join(' ').toLowerCase()
+  // On another computer layout a key has its layout legend and its US one (usLabel): either finds it.
+  const labels = [key.label, key.usLabel ?? ''].flatMap((label) => label.toLowerCase().split('\n'))
+  if ([...q].length === 1) return labels.includes(q)
+  const text = [oneLine(key.label), oneLine(key.usLabel ?? ''), key.description ?? '', key.id, ...(key.aliases ?? [])].join(' ').toLowerCase()
   return q.split(/\s+/).every((word) => text.includes(word))
 }
 
@@ -50,12 +52,16 @@ interface Props {
   hint: string
   /** Name for screen readers. */
   label: string
+  /** Beside the search: e.g. the Keys page's "Press a key". */
+  tools?: ReactNode
+  /** A line under the search row, when there is something to say (what "Press a key" is waiting for). */
+  note?: ReactNode
 }
 
 /** `?key-search=magic` in the URL: the palette opens with that search, for screenshots. */
 const searchFromUrl = (): string => (typeof location === 'undefined' ? '' : (new URLSearchParams(location.search).get('key-search') ?? ''))
 
-export function KeyPalette({ groups, current, picked, onPick, hint, label }: Props) {
+export function KeyPalette({ groups, current, picked, onPick, hint, label, tools, note }: Props) {
   const [query, setQuery] = useState(searchFromUrl)
   const [pointed, setPointed] = useState<PaletteKey | null>(null)
   const box = useRef<HTMLDivElement>(null)
@@ -120,7 +126,8 @@ export function KeyPalette({ groups, current, picked, onPick, hint, label }: Pro
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex items-center gap-3">
-        <SearchField aria-label="Search keys" placeholder="Search keys" value={query} onChange={setQuery} className="w-52 shrink-0" />
+        <SearchField aria-label="Search keys" placeholder="Search keys" value={query} onChange={setQuery} className="w-52 min-w-36 shrink" />
+        {tools}
         <p aria-hidden className="flex min-w-0 items-baseline gap-2 text-[13px] text-muted">
           {pointedHere ? (
             <>
@@ -132,6 +139,11 @@ export function KeyPalette({ groups, current, picked, onPick, hint, label }: Pro
           )}
         </p>
       </div>
+      {note && (
+        <p role="status" className="text-[13px] text-muted">
+          {note}
+        </p>
+      )}
       <div
         ref={box}
         role="group"

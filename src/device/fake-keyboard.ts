@@ -101,6 +101,16 @@ export interface FakeKeyboardConfig {
   keymap: number[][][]
   /** knob[layer] = [counter-clockwise, clockwise] */
   knob: [number, number][]
+  /**
+   * The keymap and knob built into the firmware, which VIA's keymap reset (`0x06`) puts back. Set from `keymap` and
+   * `knob` when the fake starts.
+   */
+  firmwareKeymap?: number[][][]
+  firmwareKnob?: [number, number][]
+  /** A Vial build with VIAL_INSECURE: no bootloader jump (`0x0B` is an unknown command). */
+  insecure?: boolean
+  /** Called when the keyboard takes the bootloader jump: it is about to leave USB (the demo drops the link). */
+  onBootloaderJump?: () => void
   counts: { tapDance: number; combo: number; keyOverride: number; altRepeatKey: number; featureFlags: number }
   macroCount: number
   macros: number[]
@@ -163,8 +173,19 @@ export interface FakeKeychronRgb {
   effects: { effect: number; hue: number; sat: number; speed: number; time: number }[][]
   /** The keyboard's own number of its mixed effect: zone effects must be below it (keychron_rgb.c). */
   mixedEffect: number
+  /**
+   * The lock lights (`0xA8 0x03/0x04`): which the keyboard has (bits: Num, Caps, Scroll, Compose, Kana), which are
+   * off, and their colour. Default: Caps Lock only, all on, white, as keychron_rgb.c starts out.
+   */
+  indicators?: { available: number; disable: number; hue: number; sat: number; val: number }
   /** What the save command (`0xA8 0x02`) last kept. */
-  saved?: { colours: [number, number, number][]; style: number; regions: number[]; effects: FakeKeychronRgb['effects'] }
+  saved?: {
+    colours: [number, number, number][]
+    style: number
+    regions: number[]
+    effects: FakeKeychronRgb['effects']
+    indicators?: FakeKeychronRgb['indicators']
+  }
 }
 
 /** QK_BOOT in Vial protocol 6: the firmware turns it into 0 in knob and entry writes while locked. */
@@ -237,8 +258,8 @@ export async function plainDefinition(bytes: number[]): Promise<string> {
 
 /**
  * Answers the requests the device layer makes, from the given config. Writes (keys, knob, lighting, macros, tap
- * dance and the other entries, QMK settings and their reset, layout options, Keychron timers, debounce and Snap
- * Click) change the config, so
+ * dance and the other entries, QMK settings and their reset, layout options, Keychron timers, debounce, Snap Click,
+ * key lighting and lock lights, the keymap and macro resets) change the config, so
  * later reads see them. Locked, macro writes are ignored and QK_BOOT in knob and entry writes becomes 0, as in
  * vial-qmk.
  */
@@ -256,6 +277,29 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
   )
   const keymapBytes = () => config.keymap.flat(2).flatMap(be16)
   config.rgbSaved ??= { ...config.rgb }
+  config.firmwareKeymap ??= structuredClone(config.keymap)
+  config.firmwareKnob ??= structuredClone(config.knob)
+
+  /**
+   * dynamic_keymap_reset (quantum/dynamic_keymap.c): every layer's keys and the knob from the firmware's keymap, the
+   * QMK settings to their defaults, and every entry emptied as the firmware writes it: tap dance with TAPPING_TERM
+   * (200 ms), key overrides on every layer with the three activation options and switched off. Macros, lighting
+   * and the Keychron settings stay.
+   */
+  const resetKeymap = () => {
+    config.keymap = structuredClone(config.firmwareKeymap!)
+    config.knob = structuredClone(config.firmwareKnob!)
+    config.settingValues = structuredClone(config.settingDefaults ?? {})
+    const empty: Record<EntryKind, number[]> = {
+      tapDance: [0, 0, 0, 0, 0, 0, 0, 0, ...le16(200)],
+      combo: new Array<number>(10).fill(0),
+      keyOverride: [0, 0, 0, 0, 0xff, 0xff, 0, 0, 0, 0x07],
+      altRepeatKey: new Array<number>(6).fill(0),
+    }
+    config.entryBytes = Object.fromEntries(
+      ENTRY_KINDS.map((kind) => [kind, Array.from({ length: config.counts[kind] }, () => [...empty[kind]])]),
+    )
+  }
   /** vial.c's vial_keycode_firewall: QK_BOOT only goes in while unlocked. */
   const firewall = (code: number) => (code === QK_BOOT && !config.unlocked ? 0 : code)
 
@@ -433,14 +477,21 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
     const zones = rgb.effects.length
     const slots = rgb.effects[0]?.length ?? 0
     const [a, b, c] = [request[2], request[3], request[4]]
+    const lights = () => (rgb.indicators ??= { available: 0x02, disable: 0, hue: 0xff, sat: 0, val: 0xff })
     switch (sub) {
       case 0x01:
         return ok(1, 0)
       case 0x02:
-        rgb.saved = structuredClone({ colours: rgb.colours, style: rgb.style, regions: rgb.regions, effects: rgb.effects })
+        rgb.saved = structuredClone({ colours: rgb.colours, style: rgb.style, regions: rgb.regions, effects: rgb.effects, indicators: lights() })
         return ok()
-      case 0x03:
-        return ok(0x02, 0, 0, 0, 0xff)
+      case 0x03: {
+        const { available, disable, hue, sat, val } = lights()
+        return ok(available, disable, hue, sat, val)
+      }
+      case 0x04:
+        // set_indicators_config: taken as sent, the brightness raised to 128 at least.
+        rgb.indicators = { ...lights(), disable: a, hue: b, sat: c, val: Math.max(128, request[5]) }
+        return ok()
       case 0x05:
         return ok(leds)
       case 0x06: {
@@ -539,6 +590,19 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
         return Array.from(request)
       case 0x05:
         config.keymap[request[1]][request[2]][request[3]] = (request[4] << 8) | request[5]
+        return Array.from(request)
+      case 0x06:
+        // via.c: the keymap reset needs no unlock (dynamic_keymap_reset unlocks itself for QK_BOOT in the keymap).
+        resetKeymap()
+        return Array.from(request)
+      case 0x10:
+        // via.c: the macro reset needs no unlock either (only macro writes do); dynamic_keymap.c fills them with 0.
+        config.macros.fill(0)
+        return Array.from(request)
+      case 0x0b:
+        // via.c: only on Vial builds without VIAL_INSECURE, and ignored (sent back unchanged) until unlocked.
+        if (config.insecure) return [0xff]
+        if (config.unlocked) config.onBootloaderJump?.()
         return Array.from(request)
       case 0x07:
         if (request[1] === 0x41) {

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Settings for the app itself (not the keyboard): theme, layer names, and about Layerworks. Works offline.
+// Settings for the app itself (not the keyboard): theme, the tour, key names, layer names, and about Layerworks.
+// Works offline.
 
 import type { ReactNode } from 'react'
 import { Monitor, Moon, Settings, Sun } from 'lucide-react'
@@ -8,6 +9,7 @@ import { Segmented } from '../ui/controls'
 import { Card } from '../ui/layout'
 import { useThemeChoice, type ThemeChoice } from '../ui/theme'
 import { About } from './settings/About'
+import { KeyLegends } from './settings/KeyLegends'
 import { LayerNames } from './settings/LayerNames'
 import { TourCard } from './settings/TourCard'
 
@@ -31,6 +33,7 @@ function SettingsPage() {
             </div>
           </Card>
           <TourCard />
+          <KeyLegends />
           <LayerNames />
         </div>
         <About />

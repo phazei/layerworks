@@ -11,6 +11,7 @@ import { knobPictureText, pictureLabel, type PictureLabel } from './picture-labe
 // layer keys by them.
 import { useConnectedLayerNames } from '../shell/layer-names'
 import { keycodeId, posKey, type KeyboardData, type KleKey } from '../device/api'
+import { useLegendRevision } from '../device/layout'
 
 /** How many pixels the widget draws a 1u key at, in the picture's own size (before it is scaled to fit). */
 export const PICTURE_KEY_UNIT = KEY_UNIT
@@ -101,6 +102,8 @@ export function KeyboardPicture({
   const scope = useId()
   const connectedNames = useConnectedLayerNames()
   const names = layerNames ?? connectedNames
+  // The labels follow the computer's layout; this changes when it does.
+  const legends = useLegendRevision()
   const knobStyle = [knobRules(scope, knobsTurned, knobsSeen), keyRules(scope, outlines, fills)].filter(Boolean).join('\n')
   const seenFills = useMemo(() => (seen ? new Map([...seen].map((pos) => [pos, SEEN_FILL])) : undefined), [seen])
   const fillColours = useMemo(() => (fills ? new Map([...fills].map(([pos, f]) => [pos, f.colour])) : undefined), [fills])
@@ -118,7 +121,7 @@ export function KeyboardPicture({
       }
     }
     return { keycodes, labels }
-  }, [keyboard, layer, names])
+  }, [keyboard, layer, names, legends])
 
   const knobKeycodes = useMemo(() => {
     const map = new Map<string, [string, string]>()
@@ -128,7 +131,7 @@ export function KeyboardPicture({
       map.set(String(knob), [text(keyboard.knobs[`${layer},${knob},0`] ?? 0), text(keyboard.knobs[`${layer},${knob},1`] ?? 0)])
     }
     return map
-  }, [keyboard, layer, names])
+  }, [keyboard, layer, names, legends])
 
   if (!keyboard.layout) return null
   return (

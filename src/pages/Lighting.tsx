@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Lighting: the effect the keys play, its brightness, speed and colour, the lights on or off, and panels that
-// plugins add for this section. Changes go to the keyboard as they are made (latest value first while a slider is
-// dragged; see lighting/latest.ts) and the device store saves them on the keyboard after a pause.
+// Lighting: the effect the keys play, its brightness, speed and colour, the lights on or off, a still picture of it
+// (or Keychron's key colour and zone editors), the Caps Lock light, and panels that plugins add for this section.
+// Changes go to the keyboard as they are made (latest value first while a slider is dragged; see lighting/latest.ts)
+// and the device store saves them on the keyboard after a pause.
 
 import { useEffect, useId, useMemo, useRef, type ReactNode } from 'react'
 import { ArrowDown, Lightbulb } from 'lucide-react'
@@ -14,7 +15,9 @@ import { colourName, hsvCss, HUE_TRACK, percent, satTrack } from './lighting/col
 import { EffectPreview } from './lighting/EffectPreview'
 import { effectGroups, effectInfo, OFF, type EffectInfo, type EffectRename, type Use } from './lighting/effects'
 import { useLatestQueue } from './lighting/latest'
+import { EffectPicture } from './lighting/EffectPicture'
 import { KeyColours } from './lighting/KeyColours'
+import { LockLights } from './lighting/LockLights'
 import { Zones } from './lighting/Zones'
 
 /**
@@ -104,11 +107,15 @@ function LightingPage() {
     )
   }
 
+  // Keychron's lock lights are their own setting, apart from the effect: shown whenever the keyboard has them.
+  const lockLights = !!capabilities?.has('lockLights')
+
   return (
     <div className="@container flex flex-col gap-4">
       {body}
-      {panels.length > 0 && (
-        <div className="grid gap-4 @3xl:grid-cols-2">
+      {(lockLights || panels.length > 0) && (
+        <div className="grid items-start gap-4 @3xl:grid-cols-2">
+          {lockLights && <LockLights />}
           {panels.map((panel) => (
             <Card key={panel.title} title={panel.title}>
               <panel.component />
@@ -204,11 +211,14 @@ function LightingControls({ lighting, renames }: { lighting: Lighting; renames: 
           </div>
         </Card>
       </div>
-      {/* The editor follows the effect that brings it: pick the tile, paint below. */}
-      {editor && (
+      {/* The editor follows the effect that brings it: pick the tile, paint below. Every other effect gets a still
+          picture in the same place, so the page keeps its shape when switching. */}
+      {editor ? (
         <EditorPlace key={now.mode} picked={now.mode !== openedOn.current}>
           {editor}
         </EditorPlace>
+      ) : (
+        <EffectPicture effect={effect} on={on} hue={now.hue} sat={now.sat} val={now.val} />
       )}
     </>
   )

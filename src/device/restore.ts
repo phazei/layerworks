@@ -14,7 +14,7 @@ import { parseKeycode } from './keycodes'
 import type { DeviceState, Entries, Slot } from './store'
 import { formatDuration, timersProblem, type WirelessTimers } from './wireless'
 import { snapClickProblem, type SnapClickEntry } from './keychron-typing'
-import { PER_KEY_STYLE_COUNT, type Hsv, type ZoneEffect } from './keychron-rgb'
+import { normaliseLockLights, PER_KEY_STYLE_COUNT, type Hsv, type LockLights, type ZoneEffect } from './keychron-rgb'
 
 export interface LightingValues {
   mode: number
@@ -50,6 +50,8 @@ export interface KeyboardContents {
   keyColours?: { colours: Hsv[]; style: number }
   /** Keychron mixed lighting: the zone of each LED, and each zone's effect slots in the keyboard's numbering. */
   zones?: { regions: number[]; effects: ZoneEffect[][] }
+  /** Keychron lock lights (Caps Lock and the like): their colour and which are off. */
+  lockLights?: LockLights
   /** As stored in the browser: an empty name means the default. */
   layerNames?: string[]
   /** As stored in the browser: an empty name means the default. */
@@ -163,6 +165,8 @@ export interface RestorePlan {
   keyColours: { colours: Hsv[] | null; style: number | null } | null
   /** Zone map and the zones whose effects differ. */
   zones: { regions: number[] | null; effects: { zone: number; effects: ZoneEffect[] }[] } | null
+  /** The lock lights, when they differ. */
+  lockLights: LockLights | null
   /** Names for the browser to keep; null when they already match. */
   layerNames: string[] | null
   /** Macro names for the browser to keep; null when they already match. */
@@ -188,6 +192,7 @@ export type RestorePart =
   | 'snapClick'
   | 'keyColours'
   | 'zones'
+  | 'lockLights'
   | 'layerNames'
   | 'macroNames'
 
@@ -208,6 +213,7 @@ export const PART_NAMES: Record<RestorePart, { one: string; many: string; qmk?: 
   snapClick: { one: 'Snap Click pair', many: 'Snap Click pairs', qmk: 'SOCD' },
   keyColours: { one: 'key colours', many: 'key colours', qmk: 'per-key RGB' },
   zones: { one: 'lighting zones', many: 'lighting zones', qmk: 'mixed RGB' },
+  lockLights: { one: 'lock lights', many: 'lock lights', qmk: 'indicators' },
   layerNames: { one: 'layer names', many: 'layer names' },
   macroNames: { one: 'macro names', many: 'macro names' },
 }
@@ -260,6 +266,7 @@ export function planRestore(
     snapClick: [],
     keyColours: null,
     zones: null,
+    lockLights: null,
     layerNames: null,
     macroNames: null,
     ignored: [],
@@ -430,6 +437,16 @@ export function planRestore(
     }
   }
 
+  // Keychron: the lock lights' colour and switches.
+  if (contents.lockLights) {
+    const now = kc?.hasRgb ? kc.rgb?.osIndicatorConfig : null
+    if (!now) plan.ignored.push('Lock lights: this keyboard doesn’t let the app set them.')
+    else {
+      const wanted = normaliseLockLights(contents.lockLights)
+      if ((['disableMask', 'hue', 'sat', 'val'] as const).some((k) => wanted[k] !== now[k])) plan.lockLights = wanted
+    }
+  }
+
   // Layer names, kept in the browser.
   if (contents.layerNames) {
     const pad = (names: string[]) => Array.from({ length: kb.layers }, (_, i) => names[i]?.trim() ?? '')
@@ -499,6 +516,7 @@ export const isEmptyPlan = (plan: RestorePlan): boolean =>
   plan.snapClick.length === 0 &&
   plan.keyColours === null &&
   plan.zones === null &&
+  plan.lockLights === null &&
   plan.layerNames === null &&
   plan.macroNames === null
 
@@ -557,6 +575,7 @@ export function describePlan(plan: RestorePlan, layerNames: string[], boot: numb
     const what = [plan.zones.regions && 'which keys are in each zone', plan.zones.effects.length > 0 && 'the zones’ effects'].filter(Boolean)
     lines.push({ part: 'zones', text: `Lighting zones: ${what.join(' and ')} (mixed RGB)`, needsUnlock: false })
   }
+  if (plan.lockLights) lines.push({ part: 'lockLights', text: 'Lock lights: colour and which light up (indicators)', needsUnlock: false })
   if (plan.layerNames) lines.push({ part: 'layerNames', text: 'Layer names (kept in this browser)', needsUnlock: false })
   if (plan.macroNames) lines.push({ part: 'macroNames', text: 'Macro names (kept in this browser)', needsUnlock: false })
   return lines

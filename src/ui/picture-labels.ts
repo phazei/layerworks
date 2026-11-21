@@ -7,6 +7,7 @@
 import { keycodeLabel } from '../vendor/pipette/shared/keycodes/keycodes-utils'
 import {
   friendlyKey,
+  legendOf,
   keycodeCap,
   keycodeId,
   LAYER_ACTIONS,
@@ -28,8 +29,8 @@ export interface PictureLabel {
   masked: boolean
 }
 
-/** The tables' label for a plain key, as the widget would draw it ("Caps\nLock"). */
-const plainLabel = (code: number): string => keycodeLabel(keycodeId(code))
+/** The label of a plain key, as the widget would draw it ("Caps\nLock"), or as the computer's layout types it. */
+const plainLabel = (code: number): string => legendOf(code)?.label ?? keycodeLabel(keycodeId(code))
 
 /** A layer's name for a key: the user's (from the layer stack) where given, otherwise "Layer 4". */
 const nameOf = (layer: number, names?: readonly string[]): string => names?.[layer]?.trim() || `Layer ${layer}`
@@ -42,6 +43,9 @@ const fold = (name: string): string => (name.length > 7 && name.includes(' ') ? 
  * the layers of layer keys; without them (or past their end) a layer is "Layer 4".
  */
 export function pictureLabel(code: number, layerNames?: readonly string[]): PictureLabel | null {
+  // A key the computer's layout types differently (device/layout.ts): "Z" where a US keyboard has Y.
+  const legend = legendOf(code)
+  if (legend) return { outer: legend.label, inner: '', masked: false }
   const macro = readMacroKey(code)
   if (macro !== null) return { outer: `Macro\n${macro}`, inner: '', masked: false }
   const tapDance = readTapDanceKey(code)

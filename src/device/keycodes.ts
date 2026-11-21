@@ -29,6 +29,7 @@ import {
   resolve,
   serialize,
 } from '../vendor/pipette/shared/keycodes/keycodes-utils'
+import { layoutActive, layoutChar } from './layout'
 
 export const KC_NOTHING = 0x0000
 export const KC_SAME_AS_BELOW = 0x0001
@@ -36,8 +37,32 @@ export const KC_SAME_AS_BELOW = 0x0001
 /** QMK's name for a keycode, e.g. "KC_A" or "MO(1)". */
 export const keycodeId = (code: number): string => extraByCode(code)?.id ?? serialize(code)
 
+/**
+ * The legend of a key as the computer's layout types it (device/layout.ts), or null while legends are US or the
+ * layout says nothing about this key. The browser gives only the unshifted character, so a key shows that alone (a
+ * letter as a capital, as on a keycap), and a key QMK stores as Shift + a key reads "Shift + <that character>":
+ * which symbol Shift gives there isn't known.
+ */
+export function legendOf(code: number): { label: string; description: string } | null {
+  if (!layoutActive()) return null
+  const char = layoutChar(code)
+  if (char !== undefined) {
+    // A capital where there is a single one (ß has none: its upper case is SS).
+    const upper = char.toLocaleUpperCase()
+    const shown = /^\p{L}$/u.test(char) && [...upper].length === 1 ? upper : char
+    return { label: shown, description: shown }
+  }
+  if (isModMaskKeycode(code) && (extractModMask(code) & 0x0f) === 0x02) {
+    const base = legendOf(extractBasicKey(code))
+    if (base) return { label: `Shift\n${base.label}`, description: `Shift + ${base.description}` }
+  }
+  return null
+}
+
 /** The label the tables give a keycode, on one line; the friendly one for the extra groups' keys. */
 function tableName(code: number): string {
+  const legend = legendOf(code)
+  if (legend) return legend.label.replace(/\n/g, ' ')
   const friendly = friendlyKey(code)
   if (friendly) return friendly.label.replace(/\n/g, ' ')
   const family = unnamedFamily(code)
@@ -72,8 +97,8 @@ function keycodeCapParts(code: number): [string] | [string, string] {
   const layerMod = readLayerMod(code)
   if (layerMod) return [`Layer ${layerMod.layer}`, `+ ${modifierShort(layerMod.mods)}`]
   if (isModMaskKeycode(code)) {
-    // Shifted symbols are Shift + key, but the tables have a label for them: "~".
-    const shifted = tables.KEYCODES_SHIFTED.find((k) => deserialize(k.qmkId) === code)
+    // Shifted symbols are Shift + key, but the tables have a label for them: "~". On another layout, "Shift+Z".
+    const shifted = layoutActive() ? undefined : tables.KEYCODES_SHIFTED.find((k) => deserialize(k.qmkId) === code)
     if (shifted) return [shifted.label.replace(/\n/g, ' ')]
     return [`${modifierShort(extractModMask(code))}+${tableName(extractBasicKey(code))}`]
   }
@@ -117,6 +142,8 @@ export interface PaletteKey {
   aliases?: string[]
   /** A macro or multi-tap key with nothing set up yet: still offered, but drawn as empty. */
   empty?: boolean
+  /** The US legend, where the computer's layout gives the key another one ("Y" for the key that types z): for search. */
+  usLabel?: string
 }
 
 /** Plain words for keys the tables leave undescribed or describe in jargon. */
@@ -350,14 +377,19 @@ function entries(list: readonly tables.Keycode[]): PaletteKey[] {
   for (const keycode of list) {
     if (keycode.hidden || keycode.masked) continue
     const code = deserialize(keycode.qmkId)
+    const label = FRIENDLY[keycode.qmkId]?.label ?? keycode.label
+    const description = plainDescription(keycode)
+    // On another layout, the legend it types there; the US one stays findable.
+    const legend = legendOf(code)
     out.push({
       code,
       // Shifted symbols are stored as Shift + key: "~" is LSFT(KC_GRAVE), whatever the table calls it.
       id: serialize(code),
-      label: FRIENDLY[keycode.qmkId]?.label ?? keycode.label,
-      description: plainDescription(keycode),
+      label: legend?.label ?? label,
+      description: legend?.description ?? description,
       // The table's own name too, when it differs from the one shown (KC_LSPO for SC_LSPO …).
-      aliases: [...(keycode.alias ?? []), ...(keycode.cExportId ? [keycode.cExportId] : [])],
+      aliases: [...(keycode.alias ?? []), ...(keycode.cExportId ? [keycode.cExportId] : []), ...(legend && description ? [description] : [])],
+      ...(legend ? { usLabel: label } : {}),
     })
   }
   return out
@@ -611,6 +643,8 @@ export const canTakeModifiers = (code: number): boolean => isBasicKey(code) && c
 export function keycodeTitle(code: number): string {
   if (code === KC_NOTHING) return 'Nothing'
   if (code === KC_SAME_AS_BELOW) return 'Same as the layer below'
+  const legend = legendOf(code)
+  if (legend) return legend.description
   const extra = extraByCode(code)
   if (extra) return extra.description
   const kept = readPersistentBase(code)

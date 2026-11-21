@@ -31,11 +31,14 @@ Options in the URL, before the `#`:
 | `?layer=<n>` | Shows layer n on the stage instead of following the keyboard |
 | `?choice=tapHold` | The Keys inspector opens on that choice (`key`, `shortcut`, `layer`, `tapHold`) rather than the one the key's assignment belongs to, for screenshots; with `?select=` |
 | `?open-picker=Sends` | On Shortcuts & macros, the key field with that label ("Sends", "To send instead" …) opens its picker, for screenshots |
+| `?layout=KeyY:z,KeyZ:y,Semicolon:ö` | Key legends as on a layout typing those characters (`KeyboardEvent.code:character`, URL-encoded), in place of the browser's own reading; for screenshots, as headless Edge is US |
+| `?press-key` | The Keys palette's "Press a key" starts out waiting, for screenshots of what it says; with `?select=` |
 | `?key-search=magic` | The key palette opens with that search typed, for screenshots; with `?select=` |
 | `?demo-effect=<id>` | Starts the demo keyboard on another lighting effect (VialRGB id, e.g. `25`), for screenshots |
 | `?demo-unlocked` | Starts the demo keyboard unlocked (the Test page reads every key) |
 | `?demo-wireless` | The demo keyboard is reached through the 2.4 GHz receiver, reports a battery level (76 %) and has the K15 Max's wireless timers and debounce, for screenshots of the wireless parts |
 | `?macro-draft`, `?macro-draft=problem` | The macro opened first (`#/shortcuts/macro/1`) gets an unsaved change: a text step and Enter (with `problem`, text a macro can't type), for screenshots of the unsaved state |
+| `?device-more`, `?device-more=reset`, `?device-more=bootloader` | The Device page opens its More options, and with a value the reset or firmware update confirmation too, for screenshots |
 | `?restore-sample` | The Device page opens a made-up backup of the connected keyboard (a few keys, a knob turn, a macro and the colour changed) once it is read, for screenshots of the restore review |
 | `?demo-press=2,2;2,3;0,1+3,14` | The demo presses keys (row,col) by itself from a second after connecting: each step in turn, keys joined by `+` together, the last step stays held |
 | `?demo-turn=1;0` | Turns the demo's knob by itself from a second after connecting (1 clockwise, 0 counter-clockwise): the page gets what the knob sends on the base layer as a browser event, as a real turn would |
@@ -68,6 +71,7 @@ src/
     matrix.ts          reading the switch matrix (which keys are down), and the picture's physical keys
     keycodes.ts        key names, the palette's groups, builders and readers for shortcuts, layer keys and
                        tap / hold keys (mod-tap, layer-tap, one-shot modifiers, layer + modifiers)
+    layout.ts          key legends that follow the computer's keyboard layout (basic keycode → character)
     fake-keyboard.ts   a HidLink with no hardware and a small Vial keyboard behind it (tests, demo)
     backup.ts          the backup file: create, read back with checks, turn into contents to restore
     restore.ts         restoring: whether a file fits the keyboard, the plan of writes (only what differs), in words
@@ -78,7 +82,7 @@ src/
     entries.ts         tap dance, combos, key overrides, alt repeat: defaults, problems, option bits, modifiers
     settings.ts        the QMK settings catalogue: names, explanations, controls, groups; values in and out
     keychron-typing.ts Keychron's key bounce filter types and Snap Click rules in words, pair checks
-    keychron-rgb.ts    Keychron's key colours and zones: packets, the LED under each key, zone effect numbers
+    keychron-rgb.ts    Keychron's key colours, zones and lock lights: packets, the LED under each key, zone effect numbers
     useDevice.ts       the app's store and its React hook
     api.ts, index.ts   the public surface; pages, plugins and the shell import from here
   demo/              the demo keyboard: a K15 Max inside the page (k15-max.json, demo-link.ts)
@@ -126,6 +130,7 @@ src/
     session.ts         connect, connect the demo, disconnect
     stage-store.ts     which layer and key the keyboard stage shows
     layer-names.ts     layer names, kept in the browser per keyboard
+    keyboard-layout.ts reads the computer's keyboard layout from the browser, for the key legends
     pressed-keys.ts    held keys, from the browser's key events
   pages/             the built-in sections, one file each, registered as the "core" plugin (index.ts);
                      a page's own parts in a folder beside it (home/, keys/, settings/, lighting/, test/, device/,
@@ -231,7 +236,18 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
   - **A key** (`keys/KeyPalette.tsx`): `keyPalette()` groups as key tiles in a box that scrolls and fills the
     space left; the current key is marked and scrolled into view. The search matches label, description and QMK
     names (a single character only matches a label, so "a" finds A); the line beside it says what the key under
-    the pointer does. A click assigns. Macro and multi-tap tiles say what they are (`keys/shortcut-keys.ts`, from
+    the pointer does. A click assigns. Beside the search, "Press a key" (`keys/PressKey.tsx`, also for a knob
+    direction) takes the next key pressed on the keyboard and assigns it through the same path as a tile (one undo
+    step; the firmware update key still asks to unlock). Locked, it listens to the browser's key events
+    (`ui/KeyCapture.tsx`'s `useKeyCapture`, `keycodeOfEvent`), so only keys the computer receives count, and a line
+    under the search says so with "Unlock to see every key…". Unlocked, it also reads the switch matrix while it
+    waits (`device/useMatrix.ts`, the Test page's hook, with `enabled`): a new key down there gives a position, and
+    the value is what that key does now on the active layer, falling through to the base layer and layer 0
+    (`keyNow` in `keys/describe.ts`), so macro, layer and tap-or-hold keys come as they are. A browser event waits up
+    to 400 ms for the matrix to report the press (it reads every 20 – 60 ms) and the matrix's key wins. vial-qmk
+    answers the matrix request only while unlocked (`via.c`, `id_switch_matrix_state`). The pressed key still does
+    its job on the computer, which the line says. Esc (or Esc's position on the matrix), a second click or a click
+    elsewhere stops waiting. Macro and multi-tap tiles say what they are (`keys/shortcut-keys.ts`, from
     the keyboard's macros and tap dances and the macro names kept in the browser): the macro's name or "Macro 3",
     "Multi-tap 1" (broken after the hyphen), by QMK's own number (M3, TD(1)), slot 0 last; the hover line and screen
     readers get the one-line summary ("Email: Types
@@ -293,13 +309,15 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
   selection stays. A knob's direction 0 is counter-clockwise (left), 1 clockwise (right), as vial-qmk stores
   them. The palette's lighting keys are the shared `RGB_*` codes Keychron's keymaps use, not `RM_*`.
 - **Settings** (`Settings.tsx`, `settings/`): theme; "Take the tour" and a link to Help (`settings/TourCard.tsx`);
-  a name field per layer of the connected keyboard, with a
+  *Key names* (`settings/KeyLegends.tsx`): "Name keys by what my computer's layout types", on by default, with what
+  was found ("the key a US keyboard has as Y types Z here", a US layout, or that the browser can't tell, then no
+  switch; see "Key names and the computer's layout"); a name field per layer of the connected keyboard, with a
   reset to the default (the same names as the layer stack, `shell/layer-names.ts`); about: version from
   `package.json`, licence, and credits to Pipette (repo and commit from `vendor.json`), QMK, Vial and Lucide.
   Appearance, the tour and layer names on the left, About on the right once the page is 56rem wide; one column
   below that.
 - **Help** (`Help.tsx`, `help/`): see "Help and the tour".
-- **Lighting** (`Lighting.tsx`, `lighting/`): full height, no stage (the picture can't show the lighting yet).
+- **Lighting** (`Lighting.tsx`, `lighting/`): full height, no stage (the page draws its own picture).
   Left, the effects the keyboard lists (`capabilities.lighting.effects`) as tiles in groups (Steady, Moving, Rain
   and sparkles, Reacts to typing, Set per key or zone), each with a small moving preview in the chosen colour
   and speed (`EffectPreview.tsx`, `lighting.css`), moving the way the effect moves on the keyboard (worked out
@@ -308,7 +326,8 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
   a "Lights on" switch, the current effect in words with its QMK name, and sliders for brightness (percent of
   the keyboard's maximum), speed, colour (rainbow track, swatch and colour name) and vividness. Turning the
   lights off sends effect 0; on again sends the effect remembered for this keyboard (`usePref`), and picking a
-  tile while off turns them on. Plugin panels for `'lighting'` follow, one `Card` each. Without usable lighting
+  tile while off turns them on. Below them the keyboard picture (see below), then, in a two-column grid, the Caps
+  Lock light and the plugin panels for `'lighting'`, one `Card` each. Without usable lighting
   the page shows the capability's reason instead. The page reads the lighting again on opening, on window focus
   and when Fn is let go (`refreshLighting`), to catch the keyboard's own lighting keys.
   - `lighting/effects.ts` holds each effect's friendly name, description, group, preview, and whether it uses
@@ -325,6 +344,19 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     picked or from the button under the effect's settings: `lighting/KeyColours.tsx` and `lighting/Zones.tsx` (see "Key colours and zones"). Their tiles only show
     on keyboards with Keychron lighting (`perKeyLighting`, `lightingZones`); until the Keychron part is read they
     stay, so they don't flicker on keyboards that have them.
+  - Every other effect (and lights off) puts *On the keys* in that same place, in the same frame (picture left, a
+    17rem column right), so switching to or from the editors doesn't move the page: the keyboard with a still hint
+    of the lighting, not an animation (`lighting/EffectPicture.tsx`, `lighting/picture.ts`). It works from what
+    `effects.ts` knows (`hue`, `preview`): effects that use the colour tint every key with it; rainbow effects show
+    a fixed rainbow from the keys' real positions, left to right, top to bottom, in rings or round the middle (of
+    each half for the two-centre ones), as the effect runs; effects that cycle colours over time get the left to
+    right rainbow; Digital rain is green, the heat map blue, the random raindrops scattered colours; lights off is
+    black keys. Brightness and vividness apply, live with the sliders. A line beside it says what it shows.
+  - *Caps Lock light* (`lighting/LockLights.tsx`, when `capabilities.has('lockLights')`): worded for the lock lights
+    the keyboard reports ("Caps Lock light"; "Lock lights" with a switch each when it has several), a switch per
+    light, then colour and vividness as sliders like the main ones; brightness (128 – 255, the firmware's floor)
+    under More options, since some firmware ignores it. Visible rather than folded away: it is small, and its colour
+    is what a user comes to change. `deviceStore.setLockLights`, undoable (see "Key colours and zones").
 - **Typing feel** (`Typing.tsx`, `typing/`): full height, no stage (no setting here needs the picture; Snap Click
   keys are pressed on the keyboard instead). A sentence on what the page is for and a search field, then one `Card`
   per group, each with its QMK name small beside the title, a one-sentence description and a help topic. On a wide
@@ -365,7 +397,8 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     front (the page says so when it isn't). While the page is open it keeps keys without Ctrl or Win from doing
     their browser job (scrolling, Tab, F5 ...), outside dialogs and text fields; it can't stop media keys
     changing the volume, and doesn't try;
-  - the keyboard's switch matrix (`test/useMatrix.ts` → `deviceStore.watchMatrix`) while unlocked: every key,
+  - the keyboard's switch matrix (`device/useMatrix.ts`, shared with the Keys page's "Press a key", →
+    `deviceStore.watchMatrix`, one poll loop for every watcher) while unlocked: every key,
     Fn included. It reads only while the page is shown and the tab is visible; through the receiver it pauses
     after 2 minutes without a change (each read keeps the keyboard awake) until a key or click.
 
@@ -402,6 +435,20 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     receiver), and "Lights off after" and "Sleep after" as choices (`BACKLIT_CHOICES`, `IDLE_CHOICES`, plus the
     keyboard's own value if it is another); a choice that would put sleep before lights-off is disabled. A click
     is `deviceStore.setWirelessTimers`.
+  - *Start over or update* (`device/StartOver.tsx`), its two actions under More options (`device-more`):
+    - "Reset to defaults…" (keymap reset): a danger `Dialog` listing what goes back to the firmware's own (every key
+      on all layers, the knob, the typing settings with the swapped and disabled keys, and the kinds of multi-tap
+      keys, chords, replacements and repeat rules the keyboard has), an "Empty the macros too" box (unticked: the
+      macros stay), what stays (lighting, key colours, zones and the Caps Lock light, layer and macro names, and the
+      Keychron settings the keyboard has), that Undo can't bring it back, and "Save a backup first" (the Backup
+      card's `saveBackup`). Then `deviceStore.resetKeymap({ macros })` and a line saying it is done. Neither reset
+      needs unlocking, so the box is offered locked too (see "Changing things on the keyboard").
+    - "Restart for a firmware update…" (bootloader): disabled through the receiver with the reason (firmware goes on
+      over the cable). The dialog says the keyboard stops typing until new firmware is put on it or it is unplugged
+      and plugged back in, and that the app loses the connection; locked, its button is "Unlock and restart…", which
+      opens the unlock dialog (`openUnlock`) and goes on by itself once unlocked. Then
+      `deviceStore.restartToBootloader()`; the app ends in its ordinary disconnected state. A firmware without the
+      command, or no answer, is said under the button.
   - *About this keyboard* (`device/KeyboardInfo.tsx`): name and maker, connection, firmware version
     (`device/firmware.ts`: "v1.1.2 1970-01-01-00:00:00" reads "1.1.2"; the date only when it is a real one),
     layers, keys and knob, lock state, and how many macros, tap dances, combos, key overrides, alt-repeat rules and
@@ -423,7 +470,8 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     other kind (Multi-tap keys, Key chords, Shortcut replacements, Repeat rules) that has an entry in use or a draft
     or whose editor is open; the kinds with none of that under *More options* (closed until opened, remembered). An
     unused kind comes up when its editor opens (Add, or an address), so saving its first entry doesn't move the list.
-    Each section has its name, help, QMK name and "2 of 16 used", and "Add", which opens the next free slot. It lists
+    Each section has its name (a larger heading), help, QMK name and "2 of 16 used", and "Add", which opens the next
+    free slot; a line divides it from the section above, and its entries hang under it, indented on a rail. It lists
     only the slots in use, being edited or open, so 80 slots stay a short list: each with its title ("Macro 1" or
     the user's name, "Key chord 3"), QMK's name where it has one (M1, TD(1)), "Not saved" while it has a draft, how
     many keys run it (macros, multi-tap keys), and a one-line summary (`shortcuts/describe.ts`: "Types
@@ -652,7 +700,23 @@ one shot (theme, "More options" open) shows in another. `EDGE=<path>` points it 
 - `deviceStore.setSetting(qsid, value)`, `setDebounce({ type, time })` and `setSnapClick(index, entry)` change one
   typing setting (see "Typing settings"); `resetSettings()` puts every QMK setting back to the firmware's defaults.
 - `deviceStore.setKeyColours(colours, undoKey)`, `setKeyStyle(style)`, `setZones(regions, undoKey)` and
-  `setZoneEffects(zone, effects)` change Keychron's key colours and zones (see "Key colours and zones").
+  `setZoneEffects(zone, effects)` change Keychron's key colours and zones (see "Key colours and zones");
+  `setLockLights(change)` the lock lights.
+- `deviceStore.resetKeymap({ macros })` sends VIA's keymap reset (`0x06`; quantum/via.c → `dynamic_keymap_reset` in
+  quantum/dynamic_keymap.c): every layer's keys and the knob from the keymap built into the firmware,
+  `qmk_settings_reset`, and every tap dance (with the firmware's tapping term), combo, key override (every layer,
+  the three activation options, off) and alt repeat entry emptied. With `macros`, also the macro reset (`0x10`,
+  memory filled with 0). via.c gates neither by Vial's unlock (only macro writes are); `dynamic_keymap_reset`
+  unlocks itself briefly so QK_BOOT in the firmware's keymap goes back in. Lighting, Keychron's settings and layout
+  options are untouched; Keychron's key bounce filter, Snap Click and wireless timers have no reset command at all
+  (only the keyboard's factory reset, `factory_test.c`). Each request waits up to 5 s (the keyboard rewrites the
+  keymap before it answers) and is sent again once if lost; doing it twice is harmless. Afterwards the store reads
+  the keymap and knob, then macros, entries and settings (shown as loading), and clears undo and redo.
+- `deviceStore.restartToBootloader()` sends Vial's bootloader jump (`0x0B`, via.c, only in builds without
+  `VIAL_INSECURE`; ignored until unlocked; the keyboard answers, waits 100 ms and jumps). Resolves `'cable-only'`
+  through the receiver and `'locked'` while locked without sending, `'unsupported'` when the keyboard answers
+  "unknown command", else saves any lighting waiting for its pause, sends it once and, once answered, disconnects
+  (`'restarting'`), so nothing more is sent to a keyboard that is leaving USB.
 
 ## Key colours and zones
 
@@ -686,7 +750,14 @@ style, the zone of every LED and each zone's effect slots.
   points, and the style. Zones: pick a zone and paint keys into it; per zone, its effects with the grid's names and
   previews, their colour, vividness and speed where the effect uses them, and how long each plays when there are
   several.
-- **Restore** writes them back (`keyColours`, `zones` in the plan), from the Keychron state the backup keeps, and
+- **Lock lights** (`0xA8 0x03` / `0x04`, `os_indicator_config_t`, read at load into `rgb.osIndicatorConfig`): which
+  lock lights the keyboard has (bits Num, Caps, Scroll, Compose, Kana; the K15 Max has only Caps Lock), an off bit
+  each, and one colour for all (hue, saturation, brightness; the firmware raises a brightness under 128 to 128). A
+  set is shown at once and saved by `0xA8 0x02` with the rest, so `setLockLights` saves after the same pause.
+  Firmware default: all on, white. A switch and a colour drag are separate undo steps; quick colour changes merge.
+  How the light is drawn is the firmware's: stock Keychron lights the key steadily; the K15's ripple keymap flashes
+  it with the hue and saturation at full brightness and honours the off bit.
+- **Restore** writes them back (`keyColours`, `zones`, `lockLights` in the plan), from the Keychron state the backup keeps, and
   only on a keyboard with as many lights and zones; Snap Click too (`snapClick`).
 
 ## Typing settings
@@ -722,6 +793,26 @@ Vial's "QMK Settings" are numbered (`qsid`) and the keyboard lists the ones its 
   `snapClickProblem` refuses a pair the firmware would (a rule without both keys) and one with the same key twice.
 - Keychron's N-key rollover command isn't used: on the K15 Max it reports adaptive N-key rollover and refuses to be
   set; Magic's bit 7 is the switch that works. Its report rate isn't offered either: the K15 Max doesn't have it.
+
+## Key names and the computer's layout
+
+A keyboard sends positions; the computer's layout decides the character (QMK's `KC_Y` types z on German QWERTZ).
+Chrome and Edge give, through `navigator.keyboard.getLayoutMap()`, the character each of the 48 writing keys types
+without Shift. `shell/keyboard-layout.ts` reads it when the app starts (`watchKeyboardLayout`, from `main.tsx`), again
+when the window comes to the front or the tab becomes visible, and when a key typed in the page gives another
+character than the map said: the browsers have no layout-change event (Edge has no `onlayoutchange`). It turns the
+map into "basic keycode → character" (`legendsFromLayoutMap` in `device/layout.ts`); a layout that types what US does
+on every key gives null, and nothing changes. The Settings switch (pref `key-legends-layout`) turns it off.
+
+Every name of a key comes from `device/keycodes.ts` (`legendOf`, used by `keycodeName`, `keycodeCap`,
+`keycodeTitle` and the palette's `keyPalette`) and `ui/picture-labels.ts` (the pictures, through the widget's
+`labelOverrides`; no vendored code changes), so the pictures, tiles, keycaps, the "Now" line and every sentence
+("Ctrl + Y", "Tap: Z · Hold: Ctrl", the shortcut summaries and macro steps) follow it. QMK names (`KC_Y`) don't.
+The rule for what the browser doesn't tell: on a layout other than US a key shows only its unshifted character (a
+letter as a capital), and the keys QMK stores as Shift + a key read "Shift + 1", not a symbol. Keys the map leaves
+out keep their US names. A palette tile keeps its US legend (`usLabel`) and description for the search. The Shell,
+the pictures and the palettes re-render on a change (`useLegendRevision`). Text in a macro is still typed as on a
+US layout (vial-qmk's `send_string` looks characters up in a US table, `quantum/send_string/send_string.c`).
 
 ## Macros
 
@@ -799,8 +890,8 @@ One JSON file, `<keyboard-name>-<date>.layerworks.json` (`device/backup.ts`):
 
 `null` is a part that couldn't be read (or the keyboard doesn't have). Keycodes are numbers. Vendor and product
 come from the keyboard's definition, else from the cable link (a receiver has its own IDs). `keychron.state` is
-everything else the Keychron commands returned; restore takes Snap Click, the key colours and the lighting zones from
-it (`backupContents`; a damaged part is left out, not the whole file). `parseBackup` checks
+everything else the Keychron commands returned; restore takes Snap Click, the key colours, the lighting zones and the lock lights
+(`rgb.osIndicatorConfig`) from it (`backupContents`; a damaged part is left out, not the whole file). `parseBackup` checks
 every part and throws a `BackupError` that says what is wrong ("The backup file is damaged: layer 1, row 0 of the
 keymap."); a higher `version` is refused with "made by a newer version of Layerworks".
 
@@ -813,7 +904,7 @@ keymap."); a higher `version` is refused with "made by a newer version of Layerw
 - `planRestore` compares with what the store holds and keeps only differences: keys and knob directions, layout
   options, the macro buffer (whole, padded to the keyboard's size), entries by index, QMK settings by value
   (whatever their width in the file), lighting, wireless timers, debounce, Snap Click slots, key colours and style,
-  lighting zones and their effects, layer and macro names. What the keyboard can't
+  lighting zones and their effects, lock lights, layer and macro names. What the keyboard can't
   take (more layers, more entries, unknown settings, an effect it lacks) is listed in `plan.ignored`.
   `describePlan` puts the plan in words, one line per part.
 - `DeviceStore.restore` writes the plan through the store's change queue, part by part. Every write is tried; one
@@ -848,7 +939,11 @@ vial-qmk's do (`fake-keyboard.ts`).
 
 It answers every write the app makes and keeps it: keys, knob, lighting, macros (only while unlocked), tap dance
 and the other entries, QMK settings and their reset, layout options, and Keychron's wireless timers, debounce and
-Snap Click; locked, QK_BOOT in knob and entry writes becomes 0, as in vial-qmk. It reports the K15 Max's 26 QMK
+Snap Click, and the lock lights (Caps Lock only, white to start with); locked, QK_BOOT in knob and entry writes
+becomes 0, as in vial-qmk. The keymap reset puts back its keymap without the examples below (the saved keymap stands
+in for the firmware's own, which can't be read) and the settings' defaults, and empties the entries; the macro reset
+needs no unlock. Restarting for a firmware update, once unlocked, drops the connection 100 ms after answering, as the
+real keyboard leaves USB. It reports the K15 Max's 26 QMK
 settings with the values the real keyboard has (its firmware defaults, `K15_SETTINGS`), which the reset puts back.
 On the cable its Keychron commands report the default layer, the key bounce filter (react at once, 50 ms, as read
 from the real keyboard) and Snap Click (20 slots, one example pair: A and D, the last one pressed wins);
@@ -899,7 +994,9 @@ hardware behind it and a small Vial keyboard to answer it, on the cable or throu
 the switch matrix, which unlocking checks. The unlock and matrix tests run on fake timers and check the poll
 spacing and that nothing else is sent while unlocking. The restore tests (`device/__tests__/restore.test.ts`) back
 up the fake keyboard, change it behind the store's back, restore and compare the fake's memory with the original,
-counting the writes sent; `vil.test.ts` also reads a real Vial save (Pipette's `bento-max.vil` fixture).
+counting the writes sent; `start-over.test.ts` covers the lock lights, the keymap reset (locked, with and without the
+macros) and the restart for a firmware update (locked, through the receiver, unsupported, and ending disconnected);
+`vil.test.ts` also reads a real Vial save (Pipette's `bento-max.vil` fixture).
 
 ## Licence
 

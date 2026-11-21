@@ -28,6 +28,8 @@ import { capLabel, choiceFor, describeKeycode, fallThrough, hasOwnOption, layerN
 import { KeyPalette } from './KeyPalette'
 import { LayerChoice } from './LayerChoice'
 import { MoreOptions } from './MoreOptions'
+import { usePressKey } from './PressKey'
+import { useLegendRevision } from '../../device/layout'
 import { ShortcutChoice } from './ShortcutChoice'
 import { useShortcutKeys, type ShortcutKey } from './shortcut-keys'
 import { useTappingToggle } from './tapping-toggle'
@@ -100,9 +102,11 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
   // leave out switches for features the keyboard reports no room for.
   const settings = useDevice((s) => s.settings)
   const features = paletteFeatures(keyboard, settings)
+  // The names follow the computer's layout (device/layout.ts).
+  const legends = useLegendRevision()
   const palette = useMemo(
     () => keyPalette({ combos: features.combos, keyOverrides: features.keyOverrides, autoShift: features.autoShift }),
-    [keyboard.uid, features.combos, features.keyOverrides, features.autoShift],
+    [keyboard.uid, features.combos, features.keyOverrides, features.autoShift, legends],
   )
   const paletteCodes = useMemo(() => new Set(palette.flatMap((group) => group.keys.map((key) => key.code))), [palette])
   const shortcutKeys = useMemo(
@@ -128,6 +132,8 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
       if (code === bootKeycode() && !(await openUnlock(BOOT_UNLOCK_REASON))) return
       await deviceStore.assign(slot, code)
     })()
+  // "Press a key": the next key pressed, through the same assign as a tile.
+  const pressKey = usePressKey({ keyboard, onPick: assign })
   // Vial stores a knob's counter-clockwise turn as direction 0 and the clockwise one as 1.
   const question =
     slot.kind === 'knob' ? `What should turning ${slot.direction === 1 ? 'right' : 'left'} do?` : 'What should this key do?'
@@ -206,6 +212,8 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
               onPick={(key) => assign(key.code)}
               hint="Point at a key to see what it does; click it to use it."
               label="Keys"
+              tools={pressKey.button}
+              note={pressKey.note}
             />
           )}
           {choice === 'shortcut' && <ShortcutChoice current={current} groups={shortcutKeys} onAssign={assign} />}

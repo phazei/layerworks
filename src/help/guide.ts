@@ -27,6 +27,7 @@ export const GUIDE: GuideGroup[] = [
     description: 'Everything a key or a knob turn can do, from a plain letter to a key that is Esc when tapped and Ctrl when held.',
     topics: [
       'key-palette',
+      'press-key',
       'shortcut-key',
       'layer-key',
       'tap-hold',
@@ -39,6 +40,7 @@ export const GUIDE: GuideGroup[] = [
       'knob',
       'raw-code',
       'layer-names',
+      'key-legends',
       'caps-word',
       'layer-lock',
       'helper-keys',
@@ -73,7 +75,7 @@ export const GUIDE: GuideGroup[] = [
   {
     id: 'lighting',
     title: 'Lighting',
-    description: 'Effects, brightness, speed and colour, a colour for each key, and zones.',
+    description: 'Effects, brightness, speed and colour, a colour for each key, zones, and the Caps Lock light.',
     topics: [
       'lighting-effect',
       'lighting-on',
@@ -83,6 +85,7 @@ export const GUIDE: GuideGroup[] = [
       'key-colours',
       'key-style',
       'lighting-zones',
+      'lock-lights',
     ],
   },
   {
@@ -113,8 +116,8 @@ export const GUIDE: GuideGroup[] = [
   {
     id: 'device',
     title: 'Backing up and the keyboard',
-    description: 'Backups, restoring, Vial files, the sleep timers, and what the keyboard says about itself.',
-    topics: ['backup', 'restore', 'vial-file', 'keyboard-info', 'keyboard-features', 'lights-off-timer', 'sleep-timer'],
+    description: 'Backups, restoring, Vial files, the sleep timers, what the keyboard says about itself, resetting and firmware updates.',
+    topics: ['backup', 'restore', 'vial-file', 'keyboard-info', 'keyboard-features', 'lights-off-timer', 'sleep-timer', 'keymap-reset', 'bootloader'],
   },
   {
     id: 'words',

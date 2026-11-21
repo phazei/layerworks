@@ -45,6 +45,8 @@ export type Feature =
   | 'perKeyLighting'
   /** Keychron's mixed lighting: zones of keys, each playing its own effects. */
   | 'lightingZones'
+  /** Keychron's lock lights (Caps Lock and the like): their colour and an on/off switch each. */
+  | 'lockLights'
   | 'liveLayer'
   | 'battery'
   | 'wirelessTimers'
@@ -133,6 +135,9 @@ export function buildCapabilities(sources: CapabilitySources): Capabilities {
         return keychronOnly(
           (kc) => kc.hasRgb && !!kc.rgb && kc.rgb.ledCount > 0 && kc.rgb.ledMatrix.size > 0 && kc.rgb.mixedRGBLayers > 0,
         )
+      case 'lockLights':
+        // The keyboard says which lock lights it has (keychron_rgb.c, get_indicators_config).
+        return keychronOnly((kc) => kc.hasRgb && ((kc.rgb?.osIndicatorConfig?.availableMask ?? 0) & 0x1f) !== 0)
       case 'liveLayer':
         return keychronOnly((kc) => kc.hasDefaultLayer)
       case 'battery':

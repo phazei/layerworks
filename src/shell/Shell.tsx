@@ -5,6 +5,7 @@
 
 import { useEffect, useMemo, useRef } from 'react'
 import { deviceStore, useDevice } from '../device'
+import { useLegendRevision } from '../device/layout'
 import { activePages, type PageDef } from '../plugins/api'
 import { Card, HelpButton } from '../ui/layout'
 import { useAppliedTheme } from '../ui/theme'
@@ -44,6 +45,8 @@ function NotFound() {
 
 export function Shell() {
   useAppliedTheme()
+  // Key legends follow the computer's layout (device/layout.ts): a change of layout redraws every name of a key.
+  useLegendRevision()
   const path = usePath()
   const status = useDevice((s) => s.status)
   const link = useDevice((s) => s.link)

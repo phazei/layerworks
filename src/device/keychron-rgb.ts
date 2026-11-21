@@ -5,7 +5,7 @@
 //
 // What the firmware does with them (keychron_rgb.c, per_key_rgb.c, mixed_rgb.c):
 // - Every write changes the running copy at once and is shown on the next frame; the save command (0xA8 0x02)
-//   writes all of it (indicator colour, per-key style and colours, zone map, zone effects) to EEPROM with
+//   writes all of it (lock light colour, per-key style and colours, zone map, zone effects) to EEPROM with
 //   eeprom_update_block, which skips bytes that haven't changed. So the app writes as the user paints and saves
 //   after a pause.
 // - A key's colour is hue and saturation only: every per-key style replaces its brightness with the keyboard's
@@ -104,6 +104,47 @@ export function effectPackets(zone: number, effects: readonly ZoneEffect[]): Uin
     out.push(packet(KC_RGB, MIXED_SET_EFFECT_LIST, zone, start, slice.length, ...records))
   }
   return out
+}
+
+/**
+ * The lock lights (keychron_rgb.c, os_indicator_config_t): one colour for every lock light the keyboard has, and
+ * an off bit per light. `GET_INDICATORS_CONFIG` (0x03) answers `[0xA8, 0x03, status, available, disabled, h, s,
+ * v]`; `SET_INDICATORS_CONFIG` (0x04) takes `[disabled, h, s, v]`, shows it at once (led_update_kb) and raises a
+ * brightness under 128 to 128. Saved with the rest by 0xA8 0x02. Default: all on, white (h 255, s 0, v 255).
+ * Whether a light uses the brightness is the keymap's business: the K15 Max's ripple keymap strobes Caps Lock with
+ * the hue and saturation at full brightness and honours the off bit; stock Keychron firmware uses all three.
+ */
+export interface LockLights {
+  /** A set bit turns that light off (keychron_rgb_type.h, os_led_t). */
+  disableMask: number
+  hue: number
+  sat: number
+  val: number
+}
+
+/** The lock lights in os_led_t's bit order, with the names printed on the keys. */
+export const LOCK_LIGHTS: readonly { bit: number; name: string }[] = [
+  { bit: 0x01, name: 'Num Lock' },
+  { bit: 0x02, name: 'Caps Lock' },
+  { bit: 0x04, name: 'Scroll Lock' },
+  { bit: 0x08, name: 'Compose' },
+  { bit: 0x10, name: 'Kana' },
+]
+
+/** The firmware keeps the lock lights' brightness at this or more. */
+export const LOCK_LIGHT_MIN_VAL = 128
+
+const SET_INDICATORS = 0x04
+
+/** The values as the keyboard will keep them: bytes, the brightness raised to the firmware's minimum. */
+export function normaliseLockLights(c: LockLights): LockLights {
+  const b = (v: number) => Math.max(0, Math.min(255, Math.round(v)))
+  return { disableMask: b(c.disableMask), hue: b(c.hue), sat: b(c.sat), val: Math.max(LOCK_LIGHT_MIN_VAL, b(c.val)) }
+}
+
+export const lockLightsPacket = (c: LockLights): Uint8Array => {
+  const n = normaliseLockLights(c)
+  return packet(KC_RGB, SET_INDICATORS, n.disableMask, n.hue, n.sat, n.val)
 }
 
 export const stylePacket = (style: number): Uint8Array => packet(KC_RGB, PER_KEY_SET_TYPE, style)

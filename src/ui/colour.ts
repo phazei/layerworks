@@ -52,10 +52,10 @@ export function hsvRgb(hue: number, sat: number): [number, number, number] {
   return [f(5), f(3), f(1)]
 }
 
-/** Whether a dark label reads better than a light one on this colour (WCAG relative luminance). */
-export function isLightColour(hue: number, sat: number): boolean {
+/** Whether a dark label reads better than a light one on this colour (WCAG relative luminance), at `value` (0-1). */
+export function isLightColour(hue: number, sat: number, value = 1): boolean {
   const linear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
-  const [r, g, b] = hsvRgb(hue, sat).map(linear)
+  const [r, g, b] = hsvRgb(hue, sat).map((c) => linear(c * value))
   const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
   // Contrast with black beats contrast with white above about 0.18.
   return luminance > 0.18

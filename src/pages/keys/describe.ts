@@ -80,6 +80,21 @@ export function choiceFor(code: number, paletteCodes: ReadonlySet<number>): { ch
 export const hasOwnOption = (code: number): boolean => code === 0 || code === KC_SAME_AS_BELOW || readOneShotMod(code) !== null
 
 /**
+ * What the key at `position` ("row,col") does right now: its keycode on the layer the keyboard is on, or, where that
+ * is "same as the layer below", on the base layer and then layer 0 (as fallThrough). null when nothing below has
+ * one either.
+ */
+export function keyNow(keyboard: KeyboardData, position: string, layer: { base: number; active: number }): number | null {
+  const [row, col] = position.split(',').map(Number)
+  const layers = [...new Set([layer.active, ...(layer.active > layer.base ? [layer.base] : []), 0])]
+  for (const n of layers) {
+    const code = slotKeycode(keyboard, { kind: 'key', layer: n, row, col })
+    if (code !== KC_SAME_AS_BELOW) return code
+  }
+  return null
+}
+
+/**
  * For a slot that is "same as the layer below": the layer it normally ends up on, and what it does there. QMK
  * takes the highest switched-on layer under it with an assignment, and layer 0 when none has one. While a layer
  * above the base is in use, the layer switched on under it is normally just the keyboard's base layer (the

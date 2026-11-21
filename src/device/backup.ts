@@ -327,12 +327,12 @@ export function backupContents(backup: Backup): KeyboardContents {
 const byte = (v: unknown): v is number => isInt(v, 0xff)
 
 /**
- * Snap Click and Keychron's per-key and zone lighting, from the Keychron state the backup keeps as read
+ * Snap Click, Keychron's per-key and zone lighting and the lock lights, from the Keychron state the backup keeps as read
  * (KeychronState, with its Maps as objects). Each part is taken only if it is whole and well-formed; a damaged one
  * is left out rather than failing the whole file.
  */
-function keychronExtras(state: Record<string, unknown>): Pick<KeyboardContents, 'snapClick' | 'keyColours' | 'zones'> {
-  const out: Pick<KeyboardContents, 'snapClick' | 'keyColours' | 'zones'> = {}
+function keychronExtras(state: Record<string, unknown>): Pick<KeyboardContents, 'snapClick' | 'keyColours' | 'zones' | 'lockLights'> {
+  const out: Pick<KeyboardContents, 'snapClick' | 'keyColours' | 'zones' | 'lockLights'> = {}
   const snap = state.snapClickEntries
   if (state.hasSnapClick === true && Array.isArray(snap) && snap.every((e) => isRecord(e) && byte(e.type) && byte(e.key1) && byte(e.key2))) {
     out.snapClick = (snap as SnapClickEntry[]).map(({ type, key1, key2 }) => ({ type, key1, key2 }))
@@ -364,6 +364,10 @@ function keychronExtras(state: Record<string, unknown>): Pick<KeyboardContents, 
       regions: [...(regions as number[])],
       effects: (effects as ZoneEffect[][]).map((list) => list.map(({ effect, hue, sat, speed, time }) => ({ effect, hue, sat, speed, time }))),
     }
+  }
+  const lights = rgb.osIndicatorConfig
+  if (isRecord(lights) && byte(lights.disableMask) && byte(lights.hue) && byte(lights.sat) && byte(lights.val)) {
+    out.lockLights = { disableMask: lights.disableMask, hue: lights.hue, sat: lights.sat, val: lights.val }
   }
   return out
 }

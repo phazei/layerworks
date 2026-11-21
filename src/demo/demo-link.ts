@@ -255,6 +255,10 @@ export function createDemoLink(): DemoLink {
     cols: data.definition.matrix.cols,
     keymap: withMacroKey(structuredClone(data.keymap)),
     knob: structuredClone(data.knob) as [number, number][],
+    // What "Reset to defaults" puts back: the keymap without the demo's examples (the real firmware's own keymap
+    // isn't readable over USB; the saved one stands in for it).
+    firmwareKeymap: structuredClone(data.keymap),
+    firmwareKnob: structuredClone(data.knob) as [number, number][],
     counts: { tapDance: 16, combo: 16, keyOverride: 16, altRepeatKey: 16, featureFlags: 0x03 },
     entryBytes: demoEntries(),
     macroCount: 16,
@@ -271,6 +275,8 @@ export function createDemoLink(): DemoLink {
     unlockKeys: K15_UNLOCK_KEYS,
     // `?demo-unlocked` starts the demo unlocked, e.g. for screenshots of the Test page reading every key.
     unlocked: params().has('demo-unlocked'),
+    // Restarting for a firmware update: the real keyboard answers, waits 100 ms and leaves USB.
+    onBootloaderJump: () => setTimeout(() => link.drop(), 100),
   })
   const link = new FakeLink(wireless ? 'receiver' : 'cable')
   link.responder = fakeKeyboard(config)
