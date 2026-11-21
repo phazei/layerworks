@@ -49,6 +49,20 @@ Keep building without waiting for approval of mock-ups: build real pages on the 
 section, and let the user react to the result. The user reviews in the browser afterwards, so every package ends
 with screenshots (see `AGENTS.md`) and notes on what to look at.
 
+## Where the conversation stands
+
+The user's plan, in order: (1) list what is left from the spec: done, "Left from the spec" below, not yet
+discussed with the user; (2) audit where the project is against the spec and the documents; (3) update the files.
+Nothing is running in the background. For the audit:
+
+- The spec (`../docs/spec/layerworks.md`) stays where it is and is brought up to date; it is not archived (it is
+  the living design, phase 8 and section 10 are unbuilt, and both `AGENTS.md` files point agents at it). The
+  user asked about archiving finished specs and hasn't answered this recommendation yet.
+- The parent repo's `TASKS.md` was corrected (it still said only phase 1 was built); that edit is uncommitted,
+  the user commits there. The spec is in the parent repo too.
+- Read the whole spec against `README.md` here, not only section 7; "Decided differently from the spec" below is
+  the start of the list, not the end.
+
 ## Waiting on the user
 
 - Decided by the user: macros keep their numbers; no moving or swapping. Vial's "negative mods" (a shortcut
@@ -69,6 +83,14 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
     (`3434:0AF0`). So loading a file is needed too; `..\via\k15_max_cable.json` is the K15's.
   - Keys, layers and macros use the same commands in both; the knob needs VIA's `0x14` / `0x15`; VIA's macro
     bytes and key numbering against Vial's are unchecked. Everything Vial-only is hidden through `capabilities`.
+  - Lighting is left out (the user's call): VIA describes its lighting controls in the definition file ("custom
+    menus", VIA protocol 11 and later), which would need a page built from that.
+  - Size: medium, not small. The connect sequence, a VIA mode for the fake keyboard, and backup / restore without
+    Vial data are the bulk.
+  - Background: Vial kept VIA's protocol at version 9 and added its own commands; Keychron's firmware is at 12,
+    upstream QMK at 13. Vial's author has said newer VIA protocols won't be supported (vial-gui issues 134 and
+    138), so the two don't converge. Keychron Launcher refuses the Vial build because of that, on the cable
+    too; the 2.4 GHz scrambling (XOR `0x28`) is only on the wireless path and is not the cause.
 - The user is testing page by page and reports bugs as found; the dev server (`pnpm dev`) is open while agents
   edit, so the user sees work in progress.
 - **To try on the real keyboard** (take a backup first):
@@ -98,6 +120,29 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
 Every page in the spec's section 7 is built, and the help guide and tour of phase 7. What is left is the small
 things below, the user's bug reports as they come, and the optional extras under "Later". Each item below is sized for one delegated agent;
 two at most run at a time (`AGENTS.md`).
+
+### Left from the spec
+
+What `../docs/spec/layerworks.md` describes and the app doesn't have (checked against the code). The firmware
+part and the Ripple plugin are under "Later".
+
+- **Keys** (section 7): "press a key to assign" in the inspector (`ui/KeyCapture.tsx` exists, used by Snap Click
+  only); Tap or hold falling back to a multi-tap key by itself when the tap isn't a plain key (today it points
+  to multi-tap keys); creating a macro or shortcut from the inspector (today: pick one, or a link to set it up).
+- **Lighting**: the Caps Lock / indicator colour (Keychron data, already in the backup); a live preview of the
+  effect on a keyboard picture (the tiles have previews instead, and the page has no stage).
+- **Device**, More options: restart to the bootloader (for flashing), reset to defaults (keymap, everything), each
+  with a confirmation that names what is lost.
+- **Settings**: key legend language; a licences list beside About.
+- **Plugins** (section 9): the "declared settings" level (a JSON description of extra settings, no code) and the
+  `DeviceContext` handed to code plugins (request, pushes, state, capabilities, drawing on the picture). The
+  registration (`plugins/api.ts`: pages, panels, push shapes, effect names) is there and the pages use it.
+- **Open in the spec**: whether backup/restore reads other apps' files beyond `.vil` (section 14); the name
+  "Layerworks" checked against existing projects and trademarks.
+- **Decided differently from the spec, to write into it**: the stage is on Home and Keys only (Test, Shortcuts
+  and Lighting draw their own picture); no mock-up phase; the smallest window is 1000×700; sleep timers are on
+  Device, not under Lighting; unlock / lock is in the sidebar's device card; the app is meant to work on any Vial
+  keyboard, not only Keychron's (the spec's non-goals say otherwise).
 
 ### Small things from review
 
