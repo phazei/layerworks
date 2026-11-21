@@ -9,8 +9,9 @@
 // - Every effect uses brightness (the value of the configured colour) except Direct Control, which is left out.
 // - The "rainbow" effects set the hue from the key's position and the time, or add a large position-dependent
 //   offset to it, so the chosen colour only shifts where the rainbow starts: treated as not using it.
-// - In this tree the reactive effects (Solid Reactive Simple, Solid Reactive, Wide, Cross) set the hue from the
-//   timer, so the colour drifts by itself; Nexus, Splash and Solid Splash use the chosen colour.
+// - The reactive effects (Solid Reactive Simple, Solid Reactive, Wide, Cross, Nexus) use the chosen colour. Only
+//   firmware built with RGB_MATRIX_SOLID_REACTIVE_GRADIENT_MODE takes the hue from the timer instead; that is a
+//   build option the app can't see, and Keychron's keyboards don't set it. Splash and Solid Splash use the colour.
 // - Typing Heatmap picks its own hue but keeps the chosen saturation; Jellybean Raindrops, Pixel Rain and Digital
 //   Rain pick their own colours entirely.
 // - Gradients and Alphas Mods use the speed setting for something other than motion (spread, second colour).
@@ -176,8 +177,8 @@ const EFFECTS: Record<number, Row> = {
     name: 'Light up on press',
     group: 'typing',
     preview: 'react',
-    description: 'Each key lights up when pressed and fades out; the colour drifts round the rainbow.',
-    hue: CYCLES,
+    description: 'Each key lights up in your colour when pressed and fades out; the rest stay dark.',
+    hue: true,
     sat: true,
     speed: true,
     speedHint: FADE,
@@ -186,16 +187,16 @@ const EFFECTS: Record<number, Row> = {
     name: 'Change colour on press',
     group: 'typing',
     preview: 'react-shift',
-    description: 'Pressed keys shift colour, then drift back; the colour drifts round the rainbow.',
-    hue: CYCLES,
+    description: 'All keys show your colour; a pressed key shifts to a neighbouring colour, then drifts back.',
+    hue: true,
     sat: true,
     speed: true,
     speedHint: FADE,
   },
-  33: { name: 'Glow around the key', group: 'typing', preview: 'glow', description: 'A glow lights the keys around the one you press, then shrinks back into it.', hue: CYCLES, sat: true, speed: true, speedHint: SHRINK },
-  34: { name: 'Glow around each key', group: 'typing', preview: 'glow', many: true, description: 'A glow lights the keys around every key you press, then shrinks back.', hue: CYCLES, sat: true, speed: true, speedHint: SHRINK },
-  35: { name: 'Cross from the key', group: 'typing', preview: 'cross', description: 'The row and column of the key you press light up, then shrink back into it.', hue: CYCLES, sat: true, speed: true, speedHint: SHRINK },
-  36: { name: 'Cross from each key', group: 'typing', preview: 'cross', many: true, description: 'The row and column of every key you press light up, then shrink back.', hue: CYCLES, sat: true, speed: true, speedHint: SHRINK },
+  33: { name: 'Glow around the key', group: 'typing', preview: 'glow', description: 'A glow lights the keys around the one you press, then shrinks back into it.', hue: true, sat: true, speed: true, speedHint: SHRINK },
+  34: { name: 'Glow around each key', group: 'typing', preview: 'glow', many: true, description: 'A glow lights the keys around every key you press, then shrinks back.', hue: true, sat: true, speed: true, speedHint: SHRINK },
+  35: { name: 'Cross from the key', group: 'typing', preview: 'cross', description: 'The row and column of the key you press light up, then shrink back into it.', hue: true, sat: true, speed: true, speedHint: SHRINK },
+  36: { name: 'Cross from each key', group: 'typing', preview: 'cross', many: true, description: 'The row and column of every key you press light up, then shrink back.', hue: true, sat: true, speed: true, speedHint: SHRINK },
   37: { name: 'Sparks from the key', group: 'typing', preview: 'nexus', description: 'Sparks run out along the row and column of the key you press.', hue: true, sat: true, speed: true, speedHint: SPREAD },
   38: { name: 'Sparks from each key', group: 'typing', preview: 'nexus', many: true, description: 'Sparks run out along the row and column of every key you press.', hue: true, sat: true, speed: true, speedHint: SPREAD },
   39: { name: 'Colour splash', group: 'typing', preview: 'splash-colours', description: 'A ring spreads from the key you press, changing colour as it goes.', hue: true, sat: true, speed: true, speedHint: SPREAD },

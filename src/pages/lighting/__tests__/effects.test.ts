@@ -39,6 +39,11 @@ describe('lighting effects', () => {
     expect(effectInfo(2).speed).toMatch(/doesn’t move/)
   })
 
+  it('lets the colour be set for the effects that light keys as they are pressed', () => {
+    // solid_reactive_*.h: the hue is the chosen one unless the firmware was built with the gradient mode.
+    for (const id of [31, 32, 33, 34, 35, 36, 37, 38]) expect(effectInfo(id).hue).toBe(true)
+  })
+
   it('turns QMK colours into CSS and plain names', () => {
     expect(hsvCss(0, 255)).toBe('hsl(0.0 100.0% 50.0%)')
     expect(hsvCss(0, 0)).toBe('hsl(0.0 0.0% 100.0%)')
