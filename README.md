@@ -242,7 +242,9 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
   scrolls (thin scrollbar) only in a window too short for it. When the stage itself is narrower than 768 px (a
   container query; a window of about 1050 px), the layer stack becomes one row above the picture: the layers as
   chips (the dot marks the active one, the rename pencil appears on pointing or focus) and "Follow the keyboard" at
-  its right end, wrapping under them only when the row is too narrow. The stage takes at most half of the height it shares with the page (see "The keyboard stage and selection"), so the page
+  its right end, wrapping under them only when the row is too narrow. However many layers there are, they stay one
+  row, which scrolls sideways when it is longer than the stage (the layer shown is kept in view), so a keyboard with
+  18 layers doesn't squeeze the picture. The stage takes at most half of the height it shares with the page (see "The keyboard stage and selection"), so the page
   under it always keeps the other half.
 
 ## Pages and plugins
@@ -795,7 +797,7 @@ stage pages keeps the layer and selection:
   automatic. The chosen size is remembered in the browser as a share of the shared space (pref `stage-size`), so it
   follows the window. The handle can go below the legible size, but never below room for a 120 px picture (and, with the layers as a row above it, the
   row), and that minimum wins over the cap in a very short window. Beside the picture, the layer stack scrolls
-  within itself when the stage is shorter than it; as a row above the picture it is always shown whole. Pages under
+  within itself when the stage is shorter than it; as a row above the picture it is always one line high. Pages under
   the stage, like the Keys inspector, take the rest and follow the handle as it moves.
 
 ## Screenshots

@@ -67,7 +67,7 @@ function LayerRow({ index, name, uid, shown, active }: RowProps) {
   return (
     <li
       className={cx(
-        'group flex h-8 items-center rounded-control transition-colors duration-(--motion-fast)',
+        'group flex h-8 shrink-0 items-center rounded-control transition-colors duration-(--motion-fast)',
         shown ? 'bg-accent-soft text-accent' : 'hover:bg-raised',
       )}
     >
@@ -111,9 +111,20 @@ interface Props {
 }
 
 export function LayerStack({ keyboard, names, live, state, shown }: Props) {
+  // The layer shown is kept in view in the scrolling row; only the row moves, never the page.
+  const list = useRef<HTMLUListElement>(null)
+  useEffect(() => {
+    const row = list.current
+    const chip = row?.children[shown] as HTMLElement | undefined
+    if (!row || !chip || row.scrollWidth <= row.clientWidth) return
+    const left = chip.offsetLeft - row.offsetLeft
+    if (left < row.scrollLeft) row.scrollLeft = left - 4
+    else if (left + chip.offsetWidth > row.scrollLeft + row.clientWidth) row.scrollLeft = left + chip.offsetWidth - row.clientWidth + 4
+  }, [shown, names.length])
+
   return (
     // Beside the picture: the toggle above a column of layers. Above it: one row, the layers and the toggle at its
-    // right end, wrapping under them only when the row is too narrow.
+    // right end, the toggle wrapping under them only when the row is too narrow.
     <div className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-2 @3xl:w-54 @3xl:flex-col @3xl:flex-nowrap @3xl:items-stretch @3xl:gap-3">
       {/* Compatibility: only where the keyboard reports its layer (pressed-keys.ts, reportsLayer); elsewhere there is
           nothing to follow. */}
@@ -127,7 +138,13 @@ export function LayerStack({ keyboard, names, live, state, shown }: Props) {
           />
         </div>
       )}
-      <ul aria-label="Layers" className="flex flex-wrap gap-0.5 @3xl:flex-col @3xl:flex-nowrap @3xl:gap-1">
+      {/* Above the picture the layers are one row, however many there are, so they never take the picture's height:
+          a row too long for the stage scrolls sideways (p-1 / -m-1: room for the focus ring inside the scrolling box). */}
+      <ul
+        ref={list}
+        aria-label="Layers"
+        className="-m-1 flex max-w-[calc(100%+0.5rem)] min-w-0 gap-0.5 overflow-x-auto p-1 [scrollbar-width:thin] @3xl:m-0 @3xl:max-w-none @3xl:flex-col @3xl:gap-1 @3xl:overflow-visible @3xl:p-0"
+      >
         {names.map((name, i) => (
           <LayerRow
             key={i}
