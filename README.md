@@ -1096,6 +1096,9 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   keyboard's lighting answers to, and none without lighting. Decided in `lightingKeysFor` (`device/keycodes.ts`), from
   the definition's `lighting`. Test: `device/__tests__/lighting-keys.test.ts`.
 
+- **No knob, or several.** The Test page says "the knob" or "each knob", "it" or "them". Decided in `severalKnobs`
+  (`pages/test/knob.ts`). Test: `pages/test/__tests__/knob.test.ts`.
+
 ## Tests
 
 Unit tests sit in `__tests__/` beside the code. `src/device/fake-keyboard.ts` provides a `HidLink` with no

@@ -27,6 +27,13 @@ export function visibility(code: number): Visibility {
   return 'seen'
 }
 
+/**
+ * Compatibility: keyboards have no knob, one (the K15 Max) or several (up to 8 in vial_qmk, e.g. keyboards/splitkb/elora);
+ * the definition's knob keys (KLE label "e") say how many (KeyboardData.knobCount). The Test page's sentences say
+ * "the knob" or "each knob" by this.
+ */
+export const severalKnobs = (keyboard: Pick<KeyboardData, 'knobCount'>): boolean => keyboard.knobCount > 1
+
 /** How to get to a layer from where the keyboard rests: it is the base, a key holds it, or a key switches to it. */
 export type Way = 'base' | 'hold' | 'switch'
 
@@ -50,7 +57,7 @@ export function reachableLayers(keyboard: KeyboardData, base: number): Map<numbe
 export interface Elsewhere {
   layer: number
   way: Way
-  /** "it scrolls", or "it sends Page Up and Page Down". */
+  /** "it scrolls", or "it sends Page Up and Page Down" ("they …" for several knobs). */
   does: string
 }
 
@@ -85,7 +92,12 @@ export function knobPlan(keyboard: KeyboardData, layer: LayerState): KnobPlan {
         const heard = howHeard(code)
         return heard !== null && 'wheel' in heard
       })
-      elsewhere = { layer: n, way, does: scrolls ? 'it scrolls' : `it sends ${codes.map(keycodeTitle).join(' and ')}` }
+      const they = severalKnobs(keyboard)
+      elsewhere = {
+        layer: n,
+        way,
+        does: scrolls ? (they ? 'they scroll' : 'it scrolls') : `${they ? 'they send' : 'it sends'} ${codes.map(keycodeTitle).join(' and ')}`,
+      }
       break
     }
   }

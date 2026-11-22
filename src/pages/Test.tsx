@@ -14,7 +14,7 @@ import { Button } from '../ui/controls'
 import { KeyboardPicture } from '../ui/KeyboardPicture'
 import { Card, HelpButton } from '../ui/layout'
 import { ProgressBar } from '../ui/ProgressBar'
-import { knobPlan, type KnobPlan, type Visibility } from './test/knob'
+import { knobPlan, severalKnobs, type KnobPlan, type Visibility } from './test/knob'
 import { useSeenKeys } from './test/seen'
 import { useMatrix, type MatrixMode } from './test/useMatrix'
 
@@ -122,7 +122,7 @@ function troubleSentences(plan: KnobPlan, layerName: string, knobCount: number):
     if (these.length === 0) return []
     const turns = these.map((d) => turnName(d.position, knobCount)).join(' or ')
     const sends = these.map((d) => keycodeTitle(d.code)).join(' and ')
-    return [`On ${layerName}, turning it ${turns} sends ${sends}, ${WHY[kind][these.length > 1 ? 1 : 0]}.`]
+    return [`On ${layerName}, turning ${knobCount > 1 ? '' : 'it '}${turns} sends ${sends}, ${WHY[kind][these.length > 1 ? 1 : 0]}.`]
   })
 }
 
@@ -131,17 +131,18 @@ function KnobNote({ plan, layer }: { plan: KnobPlan; layer: LayerState }) {
   const names = useConnectedLayerNames()
   const name = (n: number) => names[n] ?? `layer ${n}`
   if (plan.here.length === 0) return null
-  const troubles = troubleSentences(plan, name(layer.active), plan.here.length / 2)
+  const knobs = plan.here.length / 2
+  const troubles = troubleSentences(plan, name(layer.active), knobs)
   const there = plan.elsewhere
   return (
     <p className="flex gap-2.5">
       <RotateCw size={16} aria-hidden className="mt-0.5 shrink-0" />
       <span>
-        Turning the knob shows when it sends something this page can see, like scrolling or an ordinary key, while
-        this window is in front.
+        {knobs > 1 ? 'Turning a knob shows' : 'Turning the knob shows'} when it sends something this page can see,
+        like scrolling or an ordinary key, while this window is in front.
         {troubles.map((sentence) => ` ${sentence}`)}
         {there &&
-          ` ${there.way === 'hold' ? 'Hold' : 'Switch to'} ${name(there.layer)} and turn it: there ${there.does}, which this page can see.`}
+          ` ${there.way === 'hold' ? 'Hold' : 'Switch to'} ${name(there.layer)} and turn ${knobs > 1 ? 'them' : 'it'}: there ${there.does}, which this page can see.`}
       </span>
     </p>
   )
@@ -211,7 +212,7 @@ function KeyTest({ keyboard }: { keyboard: KeyboardData }) {
             />
           </div>
           <p className="text-[13px] text-muted">
-            Press each key once{knobs.length > 0 && ' and turn the knob both ways'}. A key lights up while it is down
+            Press each key once{knobs.length > 0 && (severalKnobs(keyboard) ? ' and turn each knob both ways' : ' and turn the knob both ways')}. A key lights up while it is down
             and stays marked once seen; any key still plain at the end didn’t reach the app.
           </p>
         </div>
@@ -224,7 +225,7 @@ function KeyTest({ keyboard }: { keyboard: KeyboardData }) {
             <MousePointerClick size={16} aria-hidden className="mt-0.5 shrink-0" />
             {matrix.mode === 'off'
               ? 'Click anywhere in this window first: the browser only passes keys to the window in front.'
-              : 'Click anywhere in this window to see the knob: the browser only passes it to the window in front.'}
+              : `Click anywhere in this window to see the ${severalKnobs(keyboard) ? 'knobs' : 'knob'}: the browser only passes ${severalKnobs(keyboard) ? 'them' : 'it'} to the window in front.`}
           </p>
         )}
         <div className="-mb-1 flex items-center gap-1">
@@ -232,7 +233,7 @@ function KeyTest({ keyboard }: { keyboard: KeyboardData }) {
           <HelpButton topic="test-keys" />
           {knobs.length > 0 && (
             <>
-              <span className="ml-3">Testing the knob</span>
+              <span className="ml-3">{severalKnobs(keyboard) ? 'Testing the knobs' : 'Testing the knob'}</span>
               <HelpButton topic="test-knob" />
             </>
           )}
