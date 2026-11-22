@@ -71,6 +71,11 @@ Left open:
 - **The address** is `https://layerworks.tybyfy.com/` (the user's own domain, registered at Porkbun; decided), and
   the first release is `0.1.0` (`package.json`). "Report a problem" goes to the GitHub issues, from About and
   Help's start page, and not from the connect error (the user agrees).
+- **A Ko-fi link, quiet** (the user; to add once the running edits are finished): one plain line in About
+  (`src/pages/settings/About.tsx`), such as "Layerworks is free. If it saved you some time, you can buy me a
+  coffee.", a text link to `https://ko-fi.com/phazei` (the address as a constant in `src/project.ts`); no widget
+  or button image (nothing is loaded from other servers), nowhere else in the app. Plus `.github/FUNDING.yml`
+  (`ko_fi: phazei`) for the repo's Sponsor button, and one line near the bottom of the rewritten README.
 - The bundle is one chunk, 857 kB (275 kB gzipped); the builder advises against splitting pages, at most React in
   a chunk of its own. `pnpm audit --prod` is clean; one moderate finding in a lint-only package (minimatch).
 - The user's steps on GitHub are under "Waiting on the user".
