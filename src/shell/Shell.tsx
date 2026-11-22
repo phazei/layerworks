@@ -13,6 +13,7 @@ import { useElementSize } from '../ui/useElementSize'
 import { Connecting, ConnectPrompt } from './ConnectPrompt'
 import { ErrorBoundary } from './ErrorBoundary'
 import { HelpPanel } from './HelpPanel'
+import { usePageTitle } from './page-title'
 import { usePath } from './router'
 import { Sidebar } from './Sidebar'
 import { Stage } from './Stage'
@@ -57,6 +58,7 @@ export function Shell() {
   // Plugins depend on which keyboard is connected and what it can do; not on every key change.
   const pages = useMemo(() => activePages(deviceStore.getState()), [link, keyboard?.uid, capabilities])
   const page = findPage(pages, path)
+  usePageTitle(page?.title ?? null)
 
   // A different keyboard (or none) starts the stage afresh: its selection would point at the wrong keys.
   const uid = keyboard?.uid

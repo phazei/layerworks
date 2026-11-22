@@ -144,6 +144,7 @@ src/
     Tour.tsx           the first-run tour on screen: goes to each step's page, waits for a keyboard, Esc skips
     ConnectPrompt.tsx  connect a keyboard / try the demo, and "reading the keyboard"
     router.ts          pages by URL (#/keys)
+    page-title.ts      the window's title follows the page ("Keys · Layerworks")
     session.ts         connect, connect the demo, disconnect
     stage-store.ts     which layer and key the keyboard stage shows
     layer-names.ts     layer names, kept in the browser per keyboard, and their defaults
@@ -256,6 +257,10 @@ export const keysPage: PageDef = {
 The shell picks the page from the first segment of the path (`#/keys/anything` is still Keys), so a page can use
 the rest for its own addresses. To build out a section, replace its file in `src/pages/`; nothing else changes.
 A plugin with `matches` or `requires` only appears while a matching keyboard is connected.
+
+The window's title follows the page shown, from its `title`: "Keys · Layerworks", "Page not found · Layerworks"
+(`shell/page-title.ts`, `usePageTitle`, called once in `Shell.tsx`), never the keyboard's name; `index.html`'s
+title is the one before the app starts.
 
 ## The built pages
 
