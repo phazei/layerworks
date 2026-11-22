@@ -27,11 +27,14 @@ documents are edited and uncommitted (the user commits there).
 found, and people who find one are asked to open an issue. The licence stays GPL-3.0-or-later (the user: "since
 everything else is GPL then GPL it is").
 
-**PAUSED by the user (2026-11-22): the test runs, builds and headless browsers lagged the computer badly. Every
-agent is stopped and their processes were killed. Start nothing (no agent, no `pnpm test`, no build, no
-screenshots) until the user says how to carry on.** Offered: one agent at a time, only the test files it touches
-and one full run before a commit; no screenshots or headless browsers unless asked; or only while the user is
-away. Whatever is chosen goes into `AGENTS.md` "How the work is organised" as a rule.
+**The computer must never be loaded fully** (the user, 2026-11-22: "keep working, just DO NOT use all my cores,
+EVER", after test runs, builds and headless browsers from two agents and the orchestrator lagged it badly and
+everything was killed). In place since: `scripts/calm.mjs` holds `pnpm typecheck / lint / test / build / shots`
+and everything they start to four of the sixteen cores at below-normal priority (measured: a full test run
+loads only cores 12 to 15 and takes about 70 s), the tests' workers are capped the same way however they are
+started, and `AGENTS.md` "Rules" says how agents must work (touched test files only, the full suite once, no
+loops or browsers left behind, the orchestrator checks for leftovers). One building agent at a time from here
+on, unless the user says otherwise.
 
 Left in the working tree, uncommitted, by `ses_dfd15b6c7ffeHrjHNi3Zt3VgJE` (typecheck and lint passed; no tests
 written, README not updated, the full suite not run, the scroll measurements only done for Home and Keys at
