@@ -1107,6 +1107,10 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   (`pages/Shortcuts.tsx`). Test: `pages/shortcuts/__tests__/Shortcuts.test.tsx` ("doesn't point at multi-tap keys
   and the rest where the firmware has none of them either").
 
+- **Lighting the app can't change** (backlight, underglow, none). Home says "Keys change freely", not "Keys and
+  lighting". Decided by the `lighting` capability (`device/capabilities.ts`), read in `pages/home/Status.tsx`. Test:
+  `pages/__tests__/Home.test.tsx` ("Home on a keyboard whose lighting the app can't change").
+
 ## Tests
 
 Unit tests sit in `__tests__/` beside the code. `src/device/fake-keyboard.ts` provides a `HidLink` with no

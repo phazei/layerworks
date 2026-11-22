@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import '..'
 import { deviceStore } from '../../device'
+import { FakeLink, fakeKeyboard, fakeKeyboardConfig } from '../../device/fake-keyboard'
 import { connectDemo, demoKeyboard, disconnect } from '../../shell/session'
 import { Shell } from '../../shell/Shell'
 import { closeUnlock } from '../../shell/unlock-dialog'
@@ -26,6 +27,22 @@ beforeEach(() => {
 afterEach(async () => {
   await act(() => disconnect())
   location.hash = ''
+})
+
+describe('Home on a keyboard whose lighting the app can’t change', () => {
+  it('says keys change freely, not lighting', async () => {
+    const config = fakeKeyboardConfig()
+    config.definition = { name: 'Plain', matrix: { rows: config.rows, cols: config.cols }, layouts: { keymap: config.kle }, lighting: 'none' }
+    const link = new FakeLink('cable')
+    link.responder = fakeKeyboard(config)
+    await act(() => deviceStore.connect(link))
+    await go('#/')
+    render(<Shell />)
+    await waitFor(() => expect(deviceStore.getState().capabilities?.lighting).not.toBeNull())
+    const glance = screen.getByLabelText('At a glance')
+    await waitFor(() => expect(glance).toHaveTextContent('Keys change freely; a few powerful changes ask first.'))
+    expect(glance).not.toHaveTextContent('lighting change')
+  })
 })
 
 describe('Home on the demo keyboard', () => {

@@ -26,6 +26,10 @@ export function Status() {
   const keychron = useDevice((s) => s.keychron)
   const loading = useDevice((s) => s.loading)
   const names = useConnectedLayerNames()
+  // Compatibility: the app changes lighting only through VialRGB (quantum/vialrgb.c); backlight, underglow and
+  // keyboards without lights can't be changed here. The capability decides (device/capabilities.ts, 'lighting');
+  // while it is still being read, say keys only.
+  const lighting = useDevice((s) => s.capabilities?.has('lighting') ?? false)
 
   const wireless = link?.kind === 'receiver'
   const battery = wireless && keychron?.hasWireless && keychron.batteryLevel > 0 ? keychron.batteryLevel : null
@@ -77,7 +81,7 @@ export function Status() {
               ? undefined
               : unlock.unlocked
                 ? 'Everything can be changed until the keyboard restarts or you lock it.'
-                : 'Keys and lighting change freely; a few powerful changes ask first.'
+                : `${lighting ? 'Keys and lighting change' : 'Keys change'} freely; a few powerful changes ask first.`
           }
         >
           {unlock === null ? pending('unlock', loading, 'Unknown') : unlock.unlocked ? 'Unlocked' : 'Locked'}
