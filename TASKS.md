@@ -32,11 +32,26 @@ everything else is GPL then GPL it is").
 - `ses_dfe287d45ffeph6OlbTU2Fsd01`: item 1, other keyboards, to `other-keyboards-audit.md`. It may have scratch
   tests in `src/__audit__/` while it runs and must delete them (check `git status` is clean when it reports).
   Port 5203.
-- `ses_dfe21a33cffeE72FiCdiqmXdSX`: item 3, mid-write failures and bad input, to `failure-audit.md`. Scratch
-  tests in `src/__audit2__/`, deleted before it reports. Port 5204.
+- `ses_dfe11cdf9ffe4Pd28GXZNCI06g` (building): item 5 and item 2's fixes: the relative `base`, the Pages
+  workflow, the source and issue links with the commit built, the generated notices file, About's wording,
+  `VENDOR.md`, the small items. Its files: `vite.config.ts`, `index.html`, `.github/`, `scripts/`, `package.json`,
+  `src/pages/settings/`, `VENDOR.md`, targeted `README.md`. It leaves `src/device/` alone. Port 5205. The
+  copyright holder is one constant, `phazei` until the user answers. When it reports: the three checks, the
+  diff, the workflow read through, screenshots, commit.
 
-When each reports: read the findings file, check firmware claims against `../vial_qmk`, tell the user, and give
-the fixes to a building agent once the user has chosen. Then items 4 and 5.
+When an audit reports: read the findings file, check firmware claims against `../vial_qmk`, tell the user. Then
+item 4.
+
+**Item 3 is audited** (`failure-audit.md`, 19 findings F1 to F19, by `ses_dfe21a33cffeE72FiCdiqmXdSX`; two
+firmware claims checked: macros play unless the buffer's last byte is non-zero, `dynamic_keymap.c:250`; a single
+`set_keycode` of `QK_BOOT` is not blocked while locked in this fork, only buffer writes, encoders and entries
+are). The fixes go to the same session **once the other-keyboards audit has finished** (they change the store,
+which that audit is running against). The worst: a macro save that stops half-way leaves scrambled macros the
+keyboard still plays (write the last byte first, as VIA does); `?put-on-key=QK_BOOT` skips the unlock check
+(move it into the store's assign; screenshot URL options only on the demo); on 2.4 GHz a sleeping keyboard makes
+restore grind and the unlock dialog wait for ever; a write that times out is shown as not done though it often
+was; two tabs on one keyboard are not detected (Web Locks); `.vil` values are not range-checked; a damaged
+value under a `layerworks:` name in browser storage blanks the app.
 
 **Item 2 is done** (`licence-audit.md`, by `ses_dfe2813d0ffeNquf1IgNow84cr`): nothing blocks going public. Pipette's
 code is 13,460 of 36,801 lines under `src/` without tests (37%); all licences are compatible; no personal data in
