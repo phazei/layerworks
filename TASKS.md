@@ -36,12 +36,10 @@ started, and `AGENTS.md` "Rules" says how agents must work (touched test files o
 loops or browsers left behind, the orchestrator checks for leftovers). One building agent at a time from here
 on, unless the user says otherwise.
 
-**In progress right now** (one agent): `ses_dfe21a33cffeE72FiCdiqmXdSX` on the flaky `Device.test.tsx` "saves a
-backup of everything to a file" (failed three times in full runs, fast, passes alone), by reading first; its lead:
-the test checks the "Saved … to your downloads" text without waiting for the re-render, or the macros are not
-loaded yet when the backup is taken (which would be a product bug). When it reports: the checks once, commit.
-Then item 6, the documents round, which waits for the user's answers (is the firmware project public; how many
-screenshots; do `TASKS.md` and `AGENTS.md` belong in the public repo).
+**Nothing is running.** Next is item 6, the documents round, which waits for the user's answers (is the firmware
+project public; how many screenshots; do `TASKS.md` and `AGENTS.md` belong in the public repo). The flaky
+`Device.test.tsx` backup test is fixed (the test checked the "Saved …" text without waiting for the render; no
+product race: the button is disabled until everything is loaded).
 
 - **The sidebar and the narrow pages are done** (`6acf624`, then `dce80cf` to `d21df00`, by
   `ses_dfd15b6c7ffeHrjHNi3Zt3VgJE`; README "The screen"): icons only under 1024 px or by the button beside the
