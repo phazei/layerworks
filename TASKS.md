@@ -27,60 +27,41 @@ documents are edited and uncommitted (the user commits there).
 found, and people who find one are asked to open an issue. The licence stays GPL-3.0-or-later (the user: "since
 everything else is GPL then GPL it is").
 
-**In progress right now:**
+**In progress right now** (two building agents side by side, files divided between them):
 
-- `ses_dfe287d45ffeph6OlbTU2Fsd01`: the other-keyboards fixes, **round two, one item at a time, stopping for a
-  commit after each** (the user: each compatibility item is its own commit; `AGENTS.md` "Rules"). Its order: a
-  developer option that loads another keyboard into the demo (`?demo-keyboard=`); a definition whose lighting is
-  an object; keyboards without a name; non-Vial firmware said plainly at connect; a knob the firmware won't let
-  apps change; firmware that never locks; a matrix too big for the matrix read; RGB the definition doesn't
-  describe; Keychron per-key RGB beyond 8 rows; layout options in full (decode and picture, counts, a "Layout"
-  card); last, README "Other keyboards" complete and the sentence for the public README. Each time it stops:
-  the three checks, the diff, commit that item alone, tell it to go on. Port 5203. Round one is committed
-  (`8afa732` to `d675f0c`).
-- **Item 4 is audited** (`accessibility-audit.md` in the audit folder, 19 findings A1…, by
-  `ses_dfd4e15edffeI6UpU02bmDT4JA`; nothing running): close, with two things that stop a keyboard-only user: the
-  keys in the keyboard picture can't be reached without a mouse (make them focusable in our wrapper, arrows to
-  move, Enter to pick: medium), and the Test page swallows Tab, Enter and Esc (small). Small ones worth doing:
-  seen keys on Test are only a faint tint and nothing lists the missing ones; zones differ by outline colour
-  alone; the help panel never takes focus when it opens; a few colour values ("Not saved" badge, red notices,
-  field borders). The rest is polish (page title per page, skip link, 200 % zoom on Keys, high-contrast themes,
-  painting and macro recording without a mouse). **The user's choice: the two blockers plus the small ones, and the
-  page title that follows the page**; the rest of the polish stays a list under "Later". It goes to that session after round two (the same pages are being changed),
-  each fix with a test, as `fix(a11y): …` commits.
-- **The sidebar collapses to its icons** (the user: "right now the left menu doesn't collapse, but it should
-  collapse to just the icons, so narrow devices work"). Not started; after round two, beside the accessibility
-  fixes (a different agent; its files are the shell's sidebar and device card). Orchestrator's reading, for the
-  user to flip: it collapses by itself when the window is narrow, and a button collapses or widens it by hand,
-  remembered in the browser; the icons keep their names for screen readers and show the name on hover and focus
-  (the app's own label, not a `title`); the keyboard's card becomes one icon showing connected / locked that
-  opens the card beside it; the pages below must then hold up at the narrower widths this makes usable (say
-  down to which width, and update the spec's "designed for 1280 × 800, usable down to 1000 × 700").
+- `ses_dfd4e15edffeI6UpU02bmDT4JA`: the accessibility fixes the user chose (findings in
+  `%TEMP%\opencode\layerworks-audit\accessibility-audit.md`): keys in the keyboard picture reachable without a
+  mouse; the Test page no longer swallows Tab, Enter and Esc; seen keys marked clearly and a "Not seen yet" line;
+  a dash pattern per zone; the help panel takes focus; a few colour values; the page title follows the page. Its
+  files: `src/ui/KeyboardPicture.tsx`, `src/pages/Test.tsx`, `src/pages/test/`, zone drawing in
+  `src/pages/lighting/`, the help panel, values in `src/ui/tokens.css`. Port 5206. Its report ends with a table
+  so that each fix is its own `fix(a11y): …` commit. The rest of the audit's polish is under "Later".
+- `ses_dfd15b6c7ffeHrjHNi3Zt3VgJE`: **the sidebar collapses to its icons** (the user: "so narrow devices work"):
+  by itself when the window is narrow and by a button, remembered; the keyboard's card becomes one icon that
+  opens the card beside it; the pages checked at 1000, 900, 768 and 640 px, with the minimum usable width stated
+  and the spec's width sentence corrected (`../docs/spec/layerworks.md`, that passage only). Its files: the
+  sidebar and navigation in `src/shell/`, `DeviceCard.tsx`, the layout of `Shell.tsx`. Port 5207. It lists
+  page-level breakage it may not fix (the other agent's files): that list is a follow-up for after both report.
+- When each reports: the three checks (once; the user's computer is slowed by test runs, `pnpm test` uses half
+  the cores), the diff, screenshots, commit. Then item 6, the documents round, with the user.
 - Committing one item out of a file with several items' edits: `node %TEMP%\opencode\stage-hunks.mjs [--not]
   <file> <regex>…` stages the hunks (and, in a block of new lines, the paragraphs) that match; if the script is
   gone, build the wanted content from `git show :<file>`, then `git hash-object -w` and
   `git update-index --cacheinfo`. To check a staged state by itself: `git checkout-index -a --prefix=<temp>/`, a
   junction to `node_modules`, then `tsc` and `vitest` there.
 
-**Item 3 is done** (`f348984`, `2a1ae1e`; findings in `failure-audit.md`, built by
-`ses_dfe21a33cffeE72FiCdiqmXdSX`; README and `AGENTS.md` "Things that bite" describe the result): macros are
-written in VIA's order and read back after a failed save; a write that gets no reply is read back; the
-firmware-update key needs unlocking on every route; one Layerworks tab per keyboard; a restore stops on a silent
-keyboard, is recorded, and its review lists the changes and the risks; backup and Vial file values are checked
-before anything is written; URL options made for screenshots work only on the demo. Its four compatibility items
-are separate commits (`cd77dfd` to `48619b7`). What the user should try on the real keyboard is under "Waiting on
-the user".
+**Item 1 is done** (`other-keyboards-audit.md`; built by `ses_dfe287d45ffeph6OlbTU2Fsd01`, every adaptation its
+own `fix(compat):` / `feat(compat):` commit, `8afa732` to `fae13fd`; README "Other keyboards" is the index of
+them, and `?demo-keyboard=` stands in for ten other keyboards). All ten were run through every page at the end:
+no error page, no "Unknown", no stray K15 wording. Still open from it, small: a definition that gives its only
+knob a number other than 0 (adelais rev3, ishi 80: a bug in those definitions) would be mislabelled or skipped;
+`Device.test.tsx` "saves a backup of everything to a file" failed once in a full run (fast, not a timeout;
+cause unknown, not reproduced in ten runs); backlight and underglow can't be set on the Lighting page (only
+their keys are offered).
 
-**Item 1 is audited** (22 set-ups through the fake keyboard, all 857 definitions in `../vial_qmk` surveyed): the
-app loads on every one, but "works on any Vial keyboard" is not yet a fair claim. The worst: a definition whose
-lighting is an object (Corne and 6 others) blanks the app on Device, with no error boundary anywhere; a backup
-from another Vial protocol restores wrong keys; knobs on firmware without an encoder map show made-up keys; the
-Mac / Windows layer names are wrong on about 75 Keychron boards; layout options are ignored (278 definitions);
-130 definitions have no name ("Unknown"); non-Vial firmware fails with a raw decompression error. Orchestrator's
-calls, for the user to flip: layer names come from a table generated from Keychron's keymaps, "Layer n" where
-unknown; a backup from another protocol is refused, not translated; layout options are built in full. Until
-round two is in, the README's claim is "tested on the K15 Max; other Vial keyboards load and can be edited".
-After item 1's fixes: item 4.
+**Item 3 is done** (`f348984`, `2a1ae1e`, compatibility parts `cd77dfd` to `48619b7`; `failure-audit.md`; built
+by `ses_dfe21a33cffeE72FiCdiqmXdSX`; README and `AGENTS.md` "Things that bite" describe the result). What the
+user should try on the real keyboard is under "Waiting on the user".
 
 **Items 2 and 5 are done** (`licence-audit.md`; built by `ses_dfe11cdf9ffe4Pd28GXZNCI06g`; README "Hosting" and
 "Licence" describe the result). Nothing blocked going public: the licences are compatible, the files hold nothing
@@ -126,6 +107,18 @@ Left open:
    in the parent repo (`../docs/spec/layerworks.md`) and several documents cite `../vial_qmk` and other parent
    paths: a standalone clone has dead links, so the spec moves here or the references say where it lives.
    `TASKS.md` and `AGENTS.md` carry session IDs and are written for agents.
+   The paragraph for "which keyboards work" (from the other-keyboards agent, true to what is built):
+   "Layerworks works with keyboards running **Vial** firmware: it reads the keyboard's own description, so any
+   Vial keyboard should connect, and Keychron boards on Vial also get their extras (key colours and zones, key
+   bounce filter, Snap Click, wireless timers, battery). It has been used on one real keyboard, a Keychron K15
+   Max, on the cable and through its 2.4 GHz receiver. Everything else was only ever run on a built-in stand-in
+   that answers as the firmware does: about twenty published Vial keyboards of different shapes (split,
+   ortholinear, number pads, macropads, full size, several knobs, layout options, firmware that never locks,
+   other Keychron models). If yours misbehaves, please open an issue." Known limits to list: VIA firmware
+   (Keychron's stock firmware included) can't be used, and the app says so; lighting can be changed only with
+   VialRGB or Keychron's own lighting (backlight and underglow get their keys, no page); a knob only where the
+   firmware allows it ("Fixed" otherwise); on a few very large matrices the key test sees only what the computer
+   receives; one keyboard at a time, in Chrome or Edge on a computer.
 
 - The audit's calls made by the orchestrator, for the user to flip if wanted: the firmware key push and matrix
   read stay optional and deferred; creating a macro from the Keys inspector is dropped; the main lighting and the
