@@ -79,7 +79,9 @@ export function Shell() {
           is cut off. */}
       <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex h-full min-w-124 flex-col">
-          <main className="relative flex min-h-0 flex-1 flex-col">
+          {/* Clipped, not scrollable: the help panel waits beyond its right edge, and must not count as width to
+              scroll to (it would give the page area a sideways scrollbar as wide as the panel). */}
+          <main data-page-area="" className="relative flex min-h-0 flex-1 flex-col overflow-clip">
             {page && (
               <header className="flex shrink-0 items-center gap-1 px-6 pt-5 pb-4">
                 <h1 className="text-xl font-semibold tracking-tight">{page.title}</h1>

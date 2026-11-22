@@ -236,7 +236,10 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
 - Designed for 1280 × 800, usable down to 560 px wide with the sidebar's icons only (every page lays out without
   overlap; the K15's keys in the picture are about 24 px at 640 px and get smaller below). Narrower than that, the
   page area (title, stage, page and status line together) keeps 496 px (`min-w-124` in `Shell.tsx`) and scrolls
-  sideways, so nothing overlaps or is cut off. When the stage itself is narrower than 768 px (a
+  sideways, so nothing overlaps or is cut off. The help panel waiting beyond the page's right edge doesn't count:
+  `main` clips it (`overflow-clip`), so at or above the minimum nothing scrolls sideways, panel open or closed
+  (`shell/__tests__/page-area.test.tsx` holds the classes; the widths were measured in a browser). The sidebar
+  scrolls (thin scrollbar) only in a window too short for it. When the stage itself is narrower than 768 px (a
   container query; a window of about 1050 px), the layer stack becomes one row above the picture: the layers as
   chips (the dot marks the active one, the rename pencil appears on pointing or focus) and "Follow the keyboard" at
   its right end, wrapping under them only when the row is too narrow. The stage takes at most half of the height it shares with the page (see "The keyboard stage and selection"), so the page
