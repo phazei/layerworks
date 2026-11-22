@@ -38,9 +38,15 @@ everything else is GPL then GPL it is").
   card); last, README "Other keyboards" complete and the sentence for the public README. Each time it stops:
   the three checks, the diff, commit that item alone, tell it to go on. Port 5203. Round one is committed
   (`8afa732` to `d675f0c`).
-- `ses_dfd4e15edffeI6UpU02bmDT4JA` (read-only): item 4, accessibility and colours, a light look, findings to
-  `%TEMP%\opencode\layerworks-audit\accessibility-audit.md`. Port 5206. When it reports: tell the user; fixes
-  after round two (they touch the same pages).
+- **Item 4 is audited** (`accessibility-audit.md` in the audit folder, 19 findings A1…, by
+  `ses_dfd4e15edffeI6UpU02bmDT4JA`; nothing running): close, with two things that stop a keyboard-only user: the
+  keys in the keyboard picture can't be reached without a mouse (make them focusable in our wrapper, arrows to
+  move, Enter to pick: medium), and the Test page swallows Tab, Enter and Esc (small). Small ones worth doing:
+  seen keys on Test are only a faint tint and nothing lists the missing ones; zones differ by outline colour
+  alone; the help panel never takes focus when it opens; a few colour values ("Not saved" badge, red notices,
+  field borders). The rest is polish (page title per page, skip link, 200 % zoom on Keys, high-contrast themes,
+  painting and macro recording without a mouse). **Waiting for the user's choice of how much to fix**; whatever is
+  chosen goes to that session after round two (the same pages are being changed).
 - Committing one item out of a file with several items' edits: `node %TEMP%\opencode\stage-hunks.mjs [--not]
   <file> <regex>…` stages the hunks (and, in a block of new lines, the paragraphs) that match; if the script is
   gone, build the wanted content from `git show :<file>`, then `git hash-object -w` and
