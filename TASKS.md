@@ -24,31 +24,22 @@ there). The findings files are in `%TEMP%\opencode\layerworks-audit\` (`spec-aud
 
 **In progress right now:**
 
-- `ses_e1dbde8fdffe6vAbqPoj1rjpio` (built the Help guide and tour): applying the Help audit's 77 findings
-  (`help-audit.md`: wrong and stale statements, missing topics, search variants, glossary, links), and the N-key
-  rollover correction. Files: `src/help/*`, `src/pages/help/*`, `src/pages/typing/help.ts`, a few in-page lines,
-  README "Help and the tour". Port 5201. When it reports: the three checks, read the diff (claims about the
-  firmware against `../vial_qmk`), screenshots, commit, then delete the Help line under "Small things".
+- `ses_e1debfc70ffey83TnPHv8IaaIG` (built the Keys palette): N-key rollover hidden where the keyboard handles it
+  itself (the package described below). All files are its own; port 5201. When it reports: the three checks, the
+  diff, screenshots, commit, then delete the package below and the N-key rollover line under "Small things".
 
-Asked of the user, not yet answered:
-
-- Nothing open.
-
-**Next package, when the Help session has reported and is committed** (it edits `src/device/keycodes.ts` and
-`settings.ts` too, so not side by side): decided by the user, hide N-key rollover where the keyboard handles it
-itself. The keyboard says so: Keychron's `0xA7 0x12` reply has bit 2 set for adaptive N-key rollover
+**The package:** decided by the user, hide N-key rollover where the keyboard handles it itself. The keyboard says
+so: Keychron's `0xA7 0x12` reply has bit 2 set for adaptive N-key rollover
 (`../vial_qmk/keyboards/keychron/common/nkro.c`), read into the Keychron state as `nkroAdaptive`. There, Typing
 feel's N-key rollover switch and the palette's `NK_*` keys are not offered (a key already holding one still reads
 by its name), Home's "what the keyboard can do" says the keyboard does it by itself, and the help keeps the
 topic, saying the switch is hidden on such keyboards (the user: "if someone happens to know about it, and looks
 for it, they can find the note"). Fake keyboard and demo report it as the K15 Max does.
 
-Answered: "One-tap modifier" is the name everywhere and "a modifier for the next key only" its description (the
-user; being applied by the Help session, on the Keys page too). The backup files in `..\backups\` are left alone.
-- The audit's calls made by the orchestrator, for the user to flip if wanted: the firmware key push and matrix
-  read stay optional and deferred; creating a macro from the Keys inspector is dropped; the main lighting and
-  the sleep timers stay outside Undo; Keychron's factory reset (Fn + J + Z) is described in the help.
-
+Nothing is waiting for an answer from the user. The audit's calls made by the orchestrator, for the user to flip
+if wanted: the firmware key push and matrix read stay optional and deferred; creating a macro from the Keys
+inspector is dropped; the main lighting and the sleep timers stay outside Undo; Keychron's factory reset
+(Fn + J + Z) is described in the help. The backup files in `..\backups\` are left alone (the user).
 Sessions to reuse: `ses_e1debfc70ffey83TnPHv8IaaIG` built the Keys inspector, palette, "Press a key", the
 Shortcuts pickers and list, and the key names by layout; `ses_dffa4d191ffeMwlEbSjDhltGcs` built the Caps Lock
 light, Lighting's picture for every effect, and Device's reset and firmware-update restart;
@@ -120,8 +111,7 @@ extensions (under "Later"):
 - Shortcuts: no test for "edits made while a save is running are kept". Editor headers show QMK's plural
   ("Combos") beside a single item. Summaries use the key tables' names ("Escape", "` and ~"). The chord picture is
   small at 1000×700.
-- Help: searching "backup" lists "Restoring a backup" above "Backing up". No "?" yet on Settings' Appearance,
-  Typing feel's Other settings card and the stage's resize handle.
+- Help: no "?" yet on Typing feel's Other settings card and the stage's resize handle.
 - `src/ui/KeyboardPicture.tsx` imports the layer names from `src/shell/layer-names.ts`, the one place `ui`
   reaches into the shell; move the names store down (`src/device` or `src/ui`) when it is next touched.
 - The picture: "Hold" over a long layer name ("Windows Fn") takes three lines on a 1u key; tight but legible.
