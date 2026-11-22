@@ -58,9 +58,16 @@ The user's plan, in order: (1) list what is left from the spec: done and discuss
 "To try on the real keyboard" starts with it); (3) audit where the project is against the spec and the
 documents; (4) update the files. Nothing is running in the background.
 
-- Not decided, ask again: Tap or hold building a multi-tap key by itself (the user asked how it would go: the
-  app takes the first empty multi-tap key, fills in tap and hold, puts it on the key, one undo for both; it uses
-  up a slot, and changing the key later leaves the slot filled).
+- Decided by the user: Tap or hold does **not** build a multi-tap key by itself (it would hide what is going on).
+- **Decided, to build** (session `ses_e1debfc70ffey83TnPHv8IaaIG`, together with the next item once it is
+  decided): the "multi-tap key" link under Tap or hold (`pages/keys/TapHoldChoice.tsx`, today `#/shortcuts`)
+  opens the editor of the first empty multi-tap key (an address without a number, or one that redirects); with
+  none empty, the multi-tap section. The same for the other "set it up" links that land on the bare page
+  (`pages/keys/shortcut-keys.ts`) or on a fixed number (`pages/Typing.tsx`, `#/shortcuts/chord/1`).
+- **Waiting for the user's choice:** "Put it on a key…" in a shortcut's editor (`pages/shortcuts/Uses.tsx`) only
+  opens the Keys page, with nothing selected and no hint. Options given: (recommended) it opens Keys saying
+  "click the key that should run Multi-tap key 2", and the next key clicked gets it, with a cancel; or a layer
+  choice and keyboard picture inside the editor on Shortcuts, assigning without leaving the page.
 - Sessions to reuse: `ses_e1debfc70ffey83TnPHv8IaaIG` built the Keys inspector, palette, "Press a key", the
   Shortcuts pickers and list, and the key names by layout; `ses_dffa4d191ffeMwlEbSjDhltGcs` built the Caps Lock
   light, Lighting's picture for every effect, and Device's reset and firmware-update restart.
