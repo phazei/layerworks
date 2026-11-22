@@ -28,11 +28,20 @@ function Item({ href, current, children }: { href: string; current: boolean; chi
 
 export function TopicList({ view }: { view: HelpView }) {
   const isTopic = (id: string) => view.kind === 'topic' && view.id === id
-  // The open topic is brought into the list's view (clear of the sticky group title), not the page's.
+  // The open topic is brought into the list's view (clear of the sticky group title), not the page's: only the list's
+  // own scrolling box moves. Narrow, where the list doesn't scroll by itself, nothing moves, and the page opens at
+  // its top (scrollIntoView would scroll the page down to the list's marked item).
   const nav = useRef<HTMLElement>(null)
   const key = view.kind === 'topic' ? view.id : view.kind
   useEffect(() => {
-    nav.current?.querySelector('[aria-current="page"]')?.scrollIntoView?.({ block: 'nearest' })
+    const item = nav.current?.querySelector<HTMLElement>('[aria-current="page"]')
+    const box = nav.current?.parentElement
+    if (!item || !box || box.scrollHeight <= box.clientHeight) return
+    const top = item.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop
+    const bottom = top + item.offsetHeight
+    // The same room as the item's scroll-mt-10 (the sticky group title) and scroll-mb-2.
+    if (top - 40 < box.scrollTop) box.scrollTop = top - 40
+    else if (bottom + 8 > box.scrollTop + box.clientHeight) box.scrollTop = bottom + 8 - box.clientHeight
   }, [key])
   return (
     <nav ref={nav} aria-label="Help topics" className="flex flex-col gap-5">
