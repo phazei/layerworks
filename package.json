@@ -2,7 +2,7 @@
   "name": "layerworks",
   "private": true,
   "version": "0.0.0",
-  "description": "Layerworks: a beginner-friendly configurator for Keychron keyboards on Vial firmware",
+  "description": "Layerworks: a beginner-friendly configurator for keyboards on Vial firmware, with Keychron's extras",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {

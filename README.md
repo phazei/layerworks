@@ -1,13 +1,12 @@
 # Layerworks
 
-A configurator for Keychron keyboards running Vial firmware
-([tymon3310/vial-qmk](https://github.com/tymon3310/vial-qmk)), built to be usable without knowing QMK. It runs in
-the browser (Chrome or Edge, over WebHID), on the cable or through the 2.4 GHz receiver.
+A configurator for keyboards running Vial firmware, built to be usable without knowing QMK, with Keychron's extras
+(key colours and zones, the Caps Lock light, sleep timers, key bounce filter, Snap Click) where the keyboard has
+them. It is built and tested on a Keychron K15 Max with [tymon3310/vial-qmk](https://github.com/tymon3310/vial-qmk).
+It runs in the browser (Chrome or Edge, over WebHID), on the cable or through Keychron's 2.4 GHz receiver.
 
-The design is in the Alice-Keyboard project: `../docs/spec/layerworks.md`. What exists so far: the connection
-layer, the shell (sidebar, keyboard stage, status line, help panel, themes), the unlock flow and a page for every
-section; Home, Keys, Shortcuts & macros, Lighting, Typing feel, Test, Device and Settings are built (see "The built
-pages"), the rest are still placeholders.
+The design is in the Alice-Keyboard project: `../docs/spec/layerworks.md`. Every section of it has its page here
+(see "The built pages"); the plugin API's second level and the Ripple plugin are not built (spec sections 9, 12).
 
 ## Run it
 
@@ -70,8 +69,10 @@ src/
     capabilities.ts    what this keyboard can do, with a reason for what it can't
     unlock.ts          the Vial unlock flow: one poll loop with the queue held
     matrix.ts          reading the switch matrix (which keys are down), and the picture's physical keys
+    useMatrix.ts       the switch matrix as a React hook, one poll loop for every watcher (Test, "Press a key")
     keycodes.ts        key names, the palette's groups, builders and readers for shortcuts, layer keys and
                        tap / hold keys (mod-tap, layer-tap, one-shot modifiers, layer + modifiers)
+    sendable.ts        which keys each place can send (the Shortcuts page's pickers), from vial-qmk's handling
     layout.ts          key legends that follow the computer's keyboard layout (basic keycode → character)
     fake-keyboard.ts   a HidLink with no hardware and a small Vial keyboard behind it (tests, demo)
     backup.ts          the backup file: create, read back with checks, turn into contents to restore
@@ -134,12 +135,13 @@ src/
     keyboard-layout.ts reads the computer's keyboard layout from the browser, for the key legends
     pressed-keys.ts    held keys, from the browser's key events
   pages/             the built-in sections, one file each, registered as the "core" plugin (index.ts);
-                     a page's own parts in a folder beside it (home/, keys/, settings/, lighting/, test/, device/,
-                     shortcuts/, typing/)
-  plugins/api.ts     definePlugin: pages and panels, for built-in sections and plugins alike
+                     a page's own parts in a folder beside it (home/, keys/, settings/, help/, lighting/, test/,
+                     device/, shortcuts/, typing/)
+  plugins/api.ts     definePlugin: pages, panels and effect names, for built-in sections and plugins alike
   help/              the help: topics.ts (every explanation), guide.ts (groups and reading order), glossary.ts,
-                     search.ts, text.ts (layer names in texts), TopicBody.tsx and Highlight.tsx (shared by the
-                     panel and the Help page), help-store.ts (the panel's topic), tour.ts (the tour's steps and state)
+                     search.ts, text.ts (layer names in texts), docs-site.ts (what a topic's link says it opens),
+                     TopicBody.tsx and Highlight.tsx (shared by the panel and the Help page), help-store.ts (the
+                     panel's topic), tour.ts (the tour's steps and state)
   vendor/pipette/    code copied from Pipette, unmodified (VENDOR.md)
   main.tsx           registers the pages, reads the URL options, renders the shell
 hardware/            checks against the real keyboard (pnpm hardware)
@@ -181,7 +183,7 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
 - **The first-run tour** (see "Help and the tour") is mounted once in the shell (`shell/Tour.tsx`).
 - **Theme**: dark by default; Settings offers dark, light and "Like the system". Stored with `prefs.ts`
   (`theme`); a small script in `index.html` applies it before the app loads, so nothing flashes.
-- Sized for 1280 × 800 and usable down to about 1000 px wide. When the stage itself is narrower than 768 px (a
+- Designed for 1280 × 800, usable down to 1000 × 700 (nothing enforces a minimum). When the stage itself is narrower than 768 px (a
   container query; a window of about 1050 px), the layer stack becomes one row above the picture: the layers as
   chips (the dot marks the active one, the rename pencil appears on pointing or focus) and "Follow the keyboard" at
   its right end, wrapping under them only when the row is too narrow. The stage takes at most half of the height it shares with the page (see "The keyboard stage and selection"), so the page
@@ -808,7 +810,11 @@ Vial's "QMK Settings" are numbered (`qsid`) and the keyboard lists the ones its 
   first key wins, 4 second key wins, 5 cancel out; 0 an empty slot) and two plain keys (8-bit keycodes).
   `snapClickProblem` refuses a pair the firmware would (a rule without both keys) and one with the same key twice.
 - Keychron's N-key rollover command isn't used: on the K15 Max it reports adaptive N-key rollover and refuses to be
-  set; Magic's bit 7 is the switch that works. Its report rate isn't offered either: the K15 Max doesn't have it.
+  set (`keychron/common/nkro.c`). The app's switch is Magic's bit 7 (QMK setting 21, and the `NK_*` keys), which
+  sets `keymap_config.nkro`; firmware built with Keychron's adaptive N-key rollover (`APDAPTIVE_NKRO_ENABLE`, in
+  `keychron_common.mk`, so the K15 Max) never reads that bit when it builds reports (`tmk_core/protocol/report.c`,
+  `quantum/action_util.c`): it switches to N-key rollover by itself once six keys are down, and the switch changes
+  nothing there. Its report rate isn't offered either: the K15 Max doesn't have it.
 
 ## Key names and the computer's layout
 
@@ -825,8 +831,8 @@ Every name of a key comes from `device/keycodes.ts` (`legendOf`, used by `keycod
 `labelOverrides`; no vendored code changes), so the pictures, tiles, keycaps, the "Now" line and every sentence
 ("Ctrl + Y", "Tap: Z · Hold: Ctrl", the shortcut summaries and macro steps) follow it. QMK names (`KC_Y`) don't.
 The rule for what the browser doesn't tell: on a layout other than US a key shows only its unshifted character (a
-letter as a capital), and the keys QMK stores as Shift + a key read "Shift + 1", not a symbol. Keys the map leaves
-out keep their US names. A palette tile keeps its US legend (`usLabel`) and description for the search. The Shell,
+letter as a capital), and the keys QMK stores as Shift + a key read "Shift + 1", not a symbol. AltGr characters
+appear nowhere and dead keys show as plain characters. Keys the map leaves out keep their US names. A palette tile keeps its US legend (`usLabel`) and description for the search. The Shell,
 the pictures and the palettes re-render on a change (`useLegendRevision`). Text in a macro is still typed as on a
 US layout (vial-qmk's `send_string` looks characters up in a US table, `quantum/send_string/send_string.c`).
 
@@ -994,14 +1000,16 @@ pages / plugins → device store → vendored protocol code → transport (reque
   can't be checked.
 - **Pushes are recognised by shape.** The keyboard reports every layer change as `[0xA3, base, held, 0 × 29]`
   without being asked. That exact shape goes to listeners, never to a waiting request, unless the request is
-  `0xA3` itself on the cable. Plugins can register further shapes (`Transport.onPush`).
+  `0xA3` itself on the cable. Further shapes can be listened for through `deviceStore.transport.onPush`;
+  `PluginDef.pushes` is declared but not yet handed to the transport (spec section 9).
 - **2.4 GHz.** Requests and replies are XOR-ed with `0x28`; pushes and the receiver's own notices (`0xBC`,
   `0xE2`) are not. Timeouts are short (300 ms) with up to 6 sends, because packets get lost now and then.
 - **Loading is staged.** Definition, keymap and knob come first, so the picture appears quickly; macros, entries,
   settings, lighting, lock state and Keychron state follow in the background (`DeviceState.loading`). A part that
   fails is listed in `DeviceState.failed` and the rest still loads.
 - **Capabilities** are rebuilt as parts arrive. `capabilities.check('macros')` returns whether it's available and,
-  if not, a sentence saying why.
+  if not, a sentence saying why. `hasCommand` answers false for now: nothing registers detected commands yet (spec
+  section 9).
 
 ## Tests
 

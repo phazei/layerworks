@@ -1,6 +1,7 @@
 # AGENTS.md
 
-Layerworks: a browser configurator for Keychron keyboards on Vial firmware. This repo lives in the git-ignored
+Layerworks: a browser configurator for keyboards on Vial firmware, with Keychron's extras where the keyboard has
+them (tested on the Keychron K15 Max). This repo lives in the git-ignored
 `layerworks/` folder of the Alice-Keyboard project, whose `AGENTS.md` also applies (git rules, talking to the
 keyboard, where information goes).
 
@@ -21,6 +22,9 @@ a delegated agent (`general_opus`), and reviews what comes back. It does not bui
   decided and why, what is unfinished, what the user should look at.
 - **Done means:** `pnpm typecheck && pnpm lint && pnpm test` pass, `README.md` describes the new parts, and there
   are screenshots of the result on the demo keyboard.
+- **Build, then show.** The user's standing instruction: pages are built for real on the demo keyboard without
+  waiting for mock-ups to be approved, committed section by section, and the user reacts to the result in the
+  browser. So every package ends with screenshots and notes on what to look at.
 - **Review.** The orchestrator (or a second agent with a fresh context) runs the three checks itself, reads the
   diff for the rules below, and looks at the screenshots. Problems go back to the same agent (its session ID).
 - **Commit.** After review, the orchestrator commits that package (the user has allowed staging and committing
@@ -67,9 +71,10 @@ If the script leaves a server behind (it was killed half-way):
 - Pages and plugins import from `src/device` and `src/ui`, never from `src/vendor`.
 - Everything that talks to the keyboard goes through the transport's queue. Never call `sendReport` or add an
   `inputreport` listener anywhere but `src/device/webhid.ts`.
-- Ask before writing anything to the keyboard, and back up first:
-  `..\tools\keyboard\.venv\Scripts\python ..\tools\keyboard\keymap.py backup` (run it with that Python; the bare
-  `.py` path opens the file in an editor). `pnpm hardware` only reads. Code that writes is tested on the fake keyboard (`src/device/fake-keyboard.ts`) and
+- Ask before writing anything to the keyboard, and back up first. The user backs up with the app (Device page, a
+  `.layerworks.json` file with everything); from a script,
+  `..\tools\keyboard\.venv\Scripts\python ..\tools\keyboard\keymap.py backup` saves keys and knob only (run it with
+  that Python; the bare `.py` path opens the file in an editor). `pnpm hardware` only reads. Code that writes is tested on the fake keyboard (`src/device/fake-keyboard.ts`) and
   tried in the browser on the demo keyboard; the first run on the real one is the user's.
 - Tests live in `__tests__/` beside the code, named `*.test.ts(x)`. Node environment by default; a component test
   starts with `// @vitest-environment jsdom`.
@@ -82,12 +87,25 @@ If the script leaves a server behind (it was killed half-way):
   load, before any keycode is named; naming keycodes before a keyboard is connected gives generic names.
 - The vendored protocol functions send through one module-level transport (`setTransport`), so the app holds one
   keyboard at a time.
-- Vial replies don't echo the request. Don't match replies by their first byte; see `src/device/pushes.ts`.
+- Vial replies (`0xFE …`) don't echo the request, so only VIA and Keychron replies are checked by their first byte
+  (`src/device/transport.ts`); an unasked report is recognised by its exact shape (`src/device/pushes.ts`).
+- While locked, vial-qmk ignores macro writes and silently turns QK_BOOT into nothing in knob directions and in
+  tap dance, combo, override and repeat entries. The store refuses such writes (`'locked'`) instead of sending
+  them; keep it that way (README "Macros", "Tap dance, combos, key overrides, alt repeat").
 - Vial unlock: the keyboard ignores keys and most commands until it finishes, with no cancel. One poll loop only,
   at least 110 ms between polls (`../docs/research/spike-results.md`).
 - Lighting effects have two numberings. The app uses VialRGB ids; the keyboard's own list (QMK's `RGB_MATRIX_*`
   order, what Keychron Launcher shows) is different. The K15 Max's ripple replaces Solid Splash: number 22 in
-  the keyboard's list, **VialRGB id 41** in the app.
+  the keyboard's list, **VialRGB id 41** in the app. Keychron's zone effects are the exception: they use the
+  keyboard's own numbers (`zoneEffectNumbers` in `src/device/keychron-rgb.ts`).
+- Keychron's lighting commands (`0xA8`: key colours, zones, lock lights) change the running copy only; `0xA8 0x02`
+  saves all of it. The store saves after a pause, like the main lighting.
+- "Reset all typing settings" (Vial's `qmk_settings_reset`) also clears Magic's bits (swapped and disabled keys,
+  N-key rollover), and can't be undone.
+- On the K15 Max (adaptive N-key rollover), Magic's N-key rollover bit changes nothing; see README "Typing
+  settings".
+- Writing Keychron's wireless timers while connected wirelessly nudges the mouse pointer once (firmware).
+- The vendored keycode tests fail when run in shuffled order (upstream's; leave them).
 - On the first frame of a different lighting effect, this firmware reloads speed and colour from what was last
   saved (`../vial_qmk/quantum/rgb_matrix/rgb_matrix.c`, `rgb_task_render`), over values just sent. The store
   therefore sends, saves and sends again when the effect changes. The keyboard's own lighting keys change the
