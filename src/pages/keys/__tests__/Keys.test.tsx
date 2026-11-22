@@ -371,7 +371,7 @@ describe('the keys beyond the everyday ones', () => {
 describe('the card before a key is picked', () => {
   it('mentions the knob only on a keyboard that has one', () => {
     const { unmount } = render(<NothingSelected knob />)
-    expect(screen.getByText(/or one side of the knob/)).toBeInTheDocument()
+    expect(screen.getByText(/or one side of a knob/)).toBeInTheDocument()
     unmount()
     render(<NothingSelected knob={false} />)
     expect(screen.getByText('Click a key in the picture to choose what it does.')).toBeInTheDocument()

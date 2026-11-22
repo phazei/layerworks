@@ -22,7 +22,7 @@ export function NothingSelected({ knob }: { knob: boolean }) {
     <Card className="flex items-start gap-4">
       <MousePointerClick size={22} aria-hidden className="mt-0.5 shrink-0 text-accent" />
       <div className="flex flex-col gap-1.5">
-        <p className="font-medium">Click a key in the picture{knob && ', or one side of the knob,'} to choose what it does.</p>
+        <p className="font-medium">Click a key in the picture{knob && ', or one side of a knob,'} to choose what it does.</p>
         <ul className="flex flex-col gap-1 text-[13px] text-muted">
           <li>To change what a key does while Fn is held, pick that layer on the left first.</li>
           <li>Every change goes to the keyboard straight away, and Undo at the bottom takes it back.</li>
@@ -44,7 +44,7 @@ function ArmedCard({ armed, layer, knob }: { armed: Armed; layer: string; knob: 
         </p>
         <ul className="flex flex-col gap-1 text-[13px] text-muted">
           <li>
-            On {layer}. For another layer, pick it in the list of layers first.{knob && ' One side of the knob works too.'}
+            On {layer}. For another layer, pick it in the list of layers first.{knob && ' One side of a knob works too.'}
           </li>
           {armed.hint && <li>{armed.hint}</li>}
           <li>Undo at the bottom takes it back. Esc or Cancel stops without changing anything.</li>
