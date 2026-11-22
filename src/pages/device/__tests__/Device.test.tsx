@@ -99,7 +99,9 @@ describe('Device page', () => {
     expect(backup.keyboard.name).toBe(deviceStore.getState().keyboard!.name)
     expect(backup.keymap).toHaveLength(5)
     expect(backup.macros).toHaveLength(926)
-    expect(card('Back up and restore')).toHaveTextContent(`Saved ${downloads[0].name} to your downloads.`)
+    // The page says so after a render of its own: the download happens first, in the same callback that sets the
+    // state, so the text can still be missing right after the file has been handed over.
+    await waitFor(() => expect(card('Back up and restore')).toHaveTextContent(`Saved ${downloads[0].name} to your downloads.`))
   })
 
   it('saves a Vial file', async () => {
