@@ -36,7 +36,7 @@ everything else is GPL then GPL it is").
   workflow, the source and issue links with the commit built, the generated notices file, About's wording,
   `VENDOR.md`, the small items. Its files: `vite.config.ts`, `index.html`, `.github/`, `scripts/`, `package.json`,
   `src/pages/settings/`, `VENDOR.md`, targeted `README.md`. It leaves `src/device/` alone. Port 5205. The
-  copyright holder is one constant, `phazei` until the user answers. When it reports: the three checks, the
+  copyright holder is one constant, `phazei` (confirmed by the user). When it reports: the three checks, the
   diff, the workflow read through, screenshots, commit.
 
 When an audit reports: read the findings file, check firmware claims against `../vial_qmk`, tell the user. Then
@@ -68,8 +68,8 @@ and the About box):
   file is MIT (`web/lzma-browser.ts`).
 - SPDX headers on 3 CSS and 3 config files; the test address `after@unlock.org` becomes an example.org one.
 
-Asked of the user: the name for the copyright line; whether the commit address in the history
-(`Adam <phazei@gmail.com>`, all 65 commits) may be public (changing it means rewriting history).
+The user's answers: the copyright line names `phazei` (the GitHub name); the commit address in the history is
+already public on the user's other repos and stays. The mid-write audit's fixes (item 3) are approved, all 19.
 
 1. **Other keyboards** (a read-only agent first): load a spread of public Vial definitions into the fake keyboard
    (no knob, no lighting, lighting that isn't VialRGB, not Keychron, odd matrix sizes, layout options, few or no
