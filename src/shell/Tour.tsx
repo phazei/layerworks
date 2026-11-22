@@ -5,10 +5,11 @@
 // it, unless the Esc is for something else (the help panel, a dialog, a text field). When it closes, the focus goes
 // back where it was.
 
-import { useEffect, useLayoutEffect, useRef } from 'react'
-import { useDevice } from '../device'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { deviceStore, useDevice } from '../device'
 import { helpTopic } from '../help/help-store'
 import { shownStep, tour, TOUR_STEPS, useTour } from '../help/tour'
+import { activePages } from '../plugins/api'
 import { Spotlight } from '../ui/Spotlight'
 import { navigate, usePath } from './router'
 import { demoKeyboard } from './session'
@@ -22,6 +23,12 @@ export function Tour() {
   const keyboard = useDevice((s) => s.keyboard)
   const connected = status === 'ready' && keyboard !== null
   const path = usePath()
+  // A line of the list that names a page gets that page's icon, so it can be found in the sidebar with icons only.
+  const capabilities = useDevice((s) => s.capabilities)
+  const pageIcons = useMemo(
+    () => new Map(activePages(deviceStore.getState()).map((page) => [page.title, page.icon])),
+    [keyboard?.uid, capabilities],
+  )
 
   // By itself, once: the first time a keyboard is in while Home is shown.
   useEffect(() => {
@@ -85,10 +92,14 @@ export function Tour() {
         <ul className="flex flex-col gap-1 text-[13px]">
           {step.list.map((line) => {
             const [name, what] = line.split(/:\s/, 2)
+            const Icon = pageIcons.get(name)
             return (
-              <li key={line}>
-                <span className="font-medium">{name}</span>
-                {what && <span className="text-muted">: {what}</span>}
+              <li key={line} className="flex gap-2">
+                {Icon && <Icon size={15} aria-hidden className="mt-0.5 shrink-0 text-muted" />}
+                <span>
+                  <span className="font-medium">{name}</span>
+                  {what && <span className="text-muted">: {what}</span>}
+                </span>
               </li>
             )
           })}

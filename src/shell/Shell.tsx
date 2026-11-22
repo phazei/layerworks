@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// The frame around every page: sidebar on the left; on the right the page's title, the keyboard stage when the
-// page asks for it, the page itself, and the status line; the help panel slides in over the right edge of the
-// page (not over the status line, so undo stays in reach).
+// The frame around every page: sidebar on the left (names or icons only, Sidebar.tsx); on the right the page's title,
+// the keyboard stage when the page asks for it, the page itself, and the status line; the help panel slides in over
+// the right edge of the page (not over the status line, so undo stays in reach).
 
 import { useEffect, useMemo, useRef } from 'react'
 import { deviceStore, useDevice } from '../device'
@@ -72,38 +72,43 @@ export function Shell() {
   return (
     <div className="flex h-screen overflow-hidden bg-surface text-content">
       <Sidebar pages={pages} current={page} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <main className="relative flex min-h-0 flex-1 flex-col">
-          {page && (
-            <header className="flex shrink-0 items-center gap-1 px-6 pt-5 pb-4">
-              <h1 className="text-xl font-semibold tracking-tight">{page.title}</h1>
-              {page.help && (
-                <span data-tour="page-help" className="flex">
-                  <HelpButton topic={page.help} />
-                </span>
-              )}
-            </header>
-          )}
-          <div ref={shared} className="flex min-h-0 flex-1 flex-col">
-            {/* A page (or its stage) that throws shows what happened here; the sidebar stays, and another page or
-                another keyboard starts afresh. */}
-            <ErrorBoundary resetKey={`${page?.path ?? ''}:${uid ?? ''}`}>
-              {/* The stage ends in its resize handle, which takes the place of the gap under it. */}
-              {page?.stage && ready && <Stage keyboard={keyboard} selectable={page.stage === 'select'} space={space} />}
-              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-6">
-                {!page ? (
-                  <NotFound />
-                ) : needsKeyboard ? (
-                  status === 'connecting' ? <Connecting /> : <ConnectPrompt />
-                ) : (
-                  Page && <Page />
+      {/* Narrower than the pages can be laid out (31rem, 496 px: a window of 560 px beside the sidebar's icons),
+          the page area keeps that width and scrolls sideways as a whole, status line included, so nothing overlaps or
+          is cut off. */}
+      <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
+        <div className="flex h-full min-w-124 flex-col">
+          <main className="relative flex min-h-0 flex-1 flex-col">
+            {page && (
+              <header className="flex shrink-0 items-center gap-1 px-6 pt-5 pb-4">
+                <h1 className="text-xl font-semibold tracking-tight">{page.title}</h1>
+                {page.help && (
+                  <span data-tour="page-help" className="flex">
+                    <HelpButton topic={page.help} />
+                  </span>
                 )}
-              </div>
-            </ErrorBoundary>
-          </div>
-          <HelpPanel />
-        </main>
-        {ready && <StatusLine />}
+              </header>
+            )}
+            <div ref={shared} className="flex min-h-0 flex-1 flex-col">
+              {/* A page (or its stage) that throws shows what happened here; the sidebar stays, and another page or
+                  another keyboard starts afresh. */}
+              <ErrorBoundary resetKey={`${page?.path ?? ''}:${uid ?? ''}`}>
+                {/* The stage ends in its resize handle, which takes the place of the gap under it. */}
+                {page?.stage && ready && <Stage keyboard={keyboard} selectable={page.stage === 'select'} space={space} />}
+                <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-6">
+                  {!page ? (
+                    <NotFound />
+                  ) : needsKeyboard ? (
+                    status === 'connecting' ? <Connecting /> : <ConnectPrompt />
+                  ) : (
+                    Page && <Page />
+                  )}
+                </div>
+              </ErrorBoundary>
+            </div>
+            <HelpPanel />
+          </main>
+          {ready && <StatusLine />}
+        </div>
       </div>
       <UnlockDialog />
       <Tour />

@@ -22,6 +22,13 @@ const SHAPES: [prefix: string, valid: (value: unknown) => boolean][] = [
   // Before 'key-colour', which it starts with.
   ['key-colours-recent', (v) => Array.isArray(v) && v.every(isHueSat)],
   ['key-colour', isHueSat],
+  // The sidebar's hand choice (shell/sidebar-collapse.ts), or none.
+  [
+    'sidebar',
+    (v) =>
+      v === null ||
+      (typeof v === 'object' && typeof (v as Record<string, unknown>).collapsed === 'boolean' && typeof (v as Record<string, unknown>).narrow === 'boolean'),
+  ],
 ]
 
 /**

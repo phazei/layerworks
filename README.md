@@ -116,6 +116,8 @@ src/
     ChoiceGrid.tsx     one of a few choices like Segmented, as a grid, so four labels fit a narrow column
     PageLink.tsx       a link in running text to another page of the app ("#/typing")
     Spotlight.tsx      a coach mark: a ring round a `data-tour` target, the rest dimmed, a card with Back / Next / Skip
+    Tip.tsx            the name of an icon-only control beside it, on pointing and on keyboard focus (no `title`)
+    Popover.tsx        PopoverButton: a box of controls beside its button; not modal, Esc / outside click close it
     coach-placement.ts where a coach mark's card goes beside its target
     ResizeHandle.tsx   a drag handle on a box's bottom edge (pointer and keyboard), and clamp
     Select.tsx         a drop-down choice (the browser's own list, styled)
@@ -128,8 +130,10 @@ src/
   shell/             the frame around the pages
     Shell.tsx          the frame: sidebar, page title, stage, page, status line, help panel; picks the page
     ErrorBoundary.tsx  what shows when the app or a page throws while drawing
-    Sidebar.tsx        app name, device card, pages grouped main / plugins ("Extras") / app
-    DeviceCard.tsx     the connected keyboard: name, cable or 2.4 GHz, battery, locked (unlock / lock), disconnect
+    Sidebar.tsx        app name, device card, pages grouped main / plugins ("Extras") / app; names or icons only
+    sidebar-collapse.ts  when the sidebar shows icons only: the window's width, the button, the remembered choice
+    DeviceCard.tsx     the connected keyboard: name, cable or 2.4 GHz, battery, locked (unlock / lock), disconnect;
+                       DeviceIcon, the same as one icon that opens the card, for the sidebar with icons only
     UnlockDialog.tsx   the unlock flow on screen; unlock-dialog.ts opens it (openUnlock)
     Stage.tsx          the keyboard stage: layer stack beside the picture, pressed keys, selection, resize handle
     stage-size.ts      how tall the stage is: automatic, chosen, minimum and cap
@@ -179,6 +183,21 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
 +------------+-----------------------------------------------+
 ```
 
+- **The sidebar** shows each page's icon and name, or the icons only (`shell/Sidebar.tsx`, `sidebar-collapse.ts`).
+  A window narrower than 1024 px shows the icons only; the button at the bottom ("Collapse sidebar" / "Expand
+  sidebar") changes it by hand at any width. The hand choice is remembered in the browser (pref `sidebar`: the choice
+  and which side of 1024 px the window was on) and holds, across reloads too, while the window stays on that side;
+  when the window crosses 1024 px it is forgotten and the sidebar takes that width's shape. So it changes shape only
+  when the button is pressed or the window crosses the threshold, and after a crossing it is always what that width
+  calls for. `?sidebar=collapsed` / `expanded` shows it so without remembering it (screenshots). With icons only,
+  each link keeps its page's name as its accessible name and `aria-current`; the name appears beside the icon on
+  pointing and on keyboard focus (`ui/Tip.tsx`; Esc hides it). The logo is its mark, "Extras" is a line, Help and
+  Settings stay at the bottom, and the width change is animated (none with reduced motion). The keyboard's card
+  becomes one icon (`DeviceIcon`): a keyboard with a mark for how it is connected (cable, 2.4 GHz, demo) and one for
+  locked or unlocked (none where the firmware never locks); its name says all of it ("Keychron K15 Max …, demo
+  keyboard, locked"). It opens the full card beside it (`ui/Popover.tsx`), so Unlock… and Disconnect are two clicks
+  away. Esc closes it and puts the focus back on the icon (Unlock… does the same before its dialog opens); a click
+  outside or the focus leaving closes it. With no keyboard, the icon is a dashed plug that links to Home's connect prompt.
 - **Pages that need a keyboard** show the connect prompt instead while none is connected, and "Reading the
   keyboard…" while one connects. Pages with `offline: true` (Home, Help, Settings) always show.
 - **The status line** says "Saved on the keyboard", "Saving…" while `DeviceState.writing` is above 0, or the
@@ -205,7 +224,10 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
 - **Theme**: dark by default; Settings offers dark, light and "Like the system". Stored with `prefs.ts`
   (`theme`); a small script in `index.html` applies it before the app loads, and a `<style>` there gives the page its
   colour (`--surface`, each theme's) before the stylesheet arrives, so a reload doesn't flash white.
-- Designed for 1280 × 800, usable down to 1000 × 700 (nothing enforces a minimum). When the stage itself is narrower than 768 px (a
+- Designed for 1280 × 800, usable down to 560 px wide with the sidebar's icons only (every page lays out without
+  overlap; the K15's keys in the picture are about 24 px at 640 px and get smaller below). Narrower than that, the
+  page area (title, stage, page and status line together) keeps 496 px (`min-w-124` in `Shell.tsx`) and scrolls
+  sideways, so nothing overlaps or is cut off. When the stage itself is narrower than 768 px (a
   container query; a window of about 1050 px), the layer stack becomes one row above the picture: the layers as
   chips (the dot marks the active one, the rename pencil appears on pointing or focus) and "Follow the keyboard" at
   its right end, wrapping under them only when the row is too narrow. The stage takes at most half of the height it shares with the page (see "The keyboard stage and selection"), so the page
@@ -627,7 +649,7 @@ glossary.
 
 **The tour** (`help/tour.ts`, `shell/Tour.tsx`, `ui/Spotlight.tsx`): six steps, each on a page and pointing at a
 `data-tour` marker: the stage (`stage`, Home), the Keys page under it (`keys-page`), the status line (`status`), the
-page title's "?" (`page-help`), the sidebar's pages (`nav`), the backup card (`backup`, Device). The coach mark
+page title's "?" (`page-help`), the sidebar's pages (`nav`; its list shows each page's icon beside the name, so the pages can be found in the sidebar with icons only), the backup card (`backup`, Device). The coach mark
 (`Spotlight`) draws an accent ring round the target and dims the rest lightly; clicks go through, so the app stays
 usable. Its card has the step count, a sentence or two, Skip tour, Back and Next (Done on the last), and sits beside
 the target where there is room (`ui/coach-placement.ts`); with no target found it is centred. It follows the target
@@ -744,6 +766,7 @@ pnpm shots --query=help=layer-key /keys      # with the help panel open
 pnpm shots --no-build /keys                  # reuse the last build
 pnpm shots --port=5197 /keys                 # own port and build folder, for two runs side by side
 pnpm shots --query=tour=3 /home              # the tour at its third step
+pnpm shots --query=sidebar=collapsed /keys   # the sidebar with icons only (a window under 1024 px has it anyway)
 pnpm shots "/help?q=tap%20dance"             # the Help page with a search
 ```
 

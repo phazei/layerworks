@@ -12,6 +12,7 @@
 //                   ?demo-wireless connects the demo through the 2.4 GHz receiver, with a battery level
 //                   (all read in src/demo/demo-link.ts)
 //   ?layout=KeyY:z  key legends as on a layout typing z on the US Y key, … (src/shell/keyboard-layout.ts)
+//   ?sidebar=collapsed / expanded  shows the sidebar so without remembering it (src/shell/sidebar-collapse.ts)
 //   ?tour, ?tour=3  opens the first-run tour (at the third step); without any option the tour starts by itself
 //                   the first time a keyboard is in on Home (src/help/tour.ts)
 
