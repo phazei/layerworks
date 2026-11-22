@@ -70,7 +70,7 @@ const topics = {
     title: 'Layers',
     body: [
       'A layer is a complete set of key assignments. The keyboard has several, stacked on top of each other, and you move between them with layer keys, the way Shift gives every letter key a second meaning.',
-      'Keychron keyboards use one pair of layers for Mac and another for Windows; the switch on the keyboard picks the pair. In each pair the first layer is what the keys normally do and the second is what they do while Fn is held.',
+      'Most Keychron keyboards use one pair of layers for Mac and another for Windows; the switch on the keyboard picks the pair. In each pair the first layer is what the keys normally do and the second is what they do while Fn is held. Other keyboards number their layers from 0, the one they start on.',
       'The list beside the keyboard picture shows the layers: click one to see its keys. The green dot marks the one that is on right now.',
     ],
     example: 'On the {layer:3|Windows Fn} layer, the F1 key can change screen brightness; on the {layer:2|Windows} layer it is plain F1.',
@@ -318,6 +318,7 @@ const topics = {
     title: 'Layer names',
     body: [
       'The names in the list of layers are only for you: Mac, Windows Fn, or whatever helps you remember what a layer is for. Rename one with a double click in the list (or its pencil), or on the Settings page; up to 24 characters, and an empty name brings the default back.',
+      'The default is what the keyboard’s keymap says a layer is for, where the app knows it (Keychron’s Vial keymaps: Mac, Windows, Fn …), and “Layer 0”, “Layer 1” … everywhere else.',
       'The keyboard has nowhere to keep names, so they live in this browser, for this keyboard, and travel in backup files.',
     ],
     example: 'Call {layer:4|Layer 4} “Numbers” once it holds a number pad.',

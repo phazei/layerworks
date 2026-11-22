@@ -4,7 +4,7 @@
 
 import { RotateCcw } from 'lucide-react'
 import { useDevice } from '../../device'
-import { defaultLayerName, isKeychron, renameLayer, useLayerNames } from '../../shell/layer-names'
+import { defaultLayerName, knownLayerNames, renameLayer, useLayerNames } from '../../shell/layer-names'
 import { IconButton, TextInput } from '../../ui/controls'
 import { Card } from '../../ui/layout'
 
@@ -56,8 +56,8 @@ export function LayerNames() {
   const status = useDevice((s) => s.status)
   const keyboard = useDevice((s) => s.keyboard)
   const link = useDevice((s) => s.link)
-  const keychron = isKeychron(link)
-  const names = useLayerNames(keyboard, keychron)
+  const names = useLayerNames(keyboard, link)
+  const known = knownLayerNames(keyboard, link)
   const connected = status === 'ready' && keyboard !== null
 
   return (
@@ -73,7 +73,7 @@ export function LayerNames() {
       {connected ? (
         <ul aria-label="Layer names" className="flex flex-col gap-2">
           {names.map((name, i) => (
-            <LayerNameRow key={i} uid={keyboard.uid} index={i} name={name} fallback={defaultLayerName(i, keychron, keyboard.layers)} />
+            <LayerNameRow key={i} uid={keyboard.uid} index={i} name={name} fallback={defaultLayerName(i, known)} />
           ))}
         </ul>
       ) : (
