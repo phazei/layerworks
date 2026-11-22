@@ -45,8 +45,9 @@ everything else is GPL then GPL it is").
   seen keys on Test are only a faint tint and nothing lists the missing ones; zones differ by outline colour
   alone; the help panel never takes focus when it opens; a few colour values ("Not saved" badge, red notices,
   field borders). The rest is polish (page title per page, skip link, 200 % zoom on Keys, high-contrast themes,
-  painting and macro recording without a mouse). **Waiting for the user's choice of how much to fix**; whatever is
-  chosen goes to that session after round two (the same pages are being changed).
+  painting and macro recording without a mouse). **The user's choice: the two blockers plus the small ones**; the
+  polish stays a list under "Later". It goes to that session after round two (the same pages are being changed),
+  each fix with a test, as `fix(a11y): …` commits.
 - Committing one item out of a file with several items' edits: `node %TEMP%\opencode\stage-hunks.mjs [--not]
   <file> <regex>…` stages the hunks (and, in a block of new lines, the paragraphs) that match; if the script is
   gone, build the wanted content from `git show :<file>`, then `git hash-object -w` and
