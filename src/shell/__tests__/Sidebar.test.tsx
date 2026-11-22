@@ -140,6 +140,28 @@ describe('the sidebar', () => {
     expect(tip()).toBeNull()
   })
 
+  it('shows one name at a time: pointing at an icon hides the name of the one focused', () => {
+    resize(800)
+    render(<Shell />)
+    const nav = screen.getByRole('navigation', { name: 'Pages' })
+    fireEvent.keyDown(window, { key: 'Tab' })
+    act(() => within(nav).getByRole('link', { name: 'Settings' }).focus())
+    expect(document.querySelectorAll('[data-tip]')).toHaveLength(1)
+    fireEvent.pointerEnter(within(nav).getByRole('link', { name: 'Keys' }).parentElement!)
+    const tips = document.querySelectorAll('[data-tip]')
+    expect(tips).toHaveLength(1)
+    expect(tips[0]).toHaveTextContent('Keys')
+  })
+
+  it('keeps its button with the logo, not as a row under the pages', () => {
+    render(<Shell />)
+    const button = screen.getByRole('button', { name: 'Collapse sidebar' })
+    expect(screen.getByRole('navigation', { name: 'Pages' })).not.toContainElement(button)
+    expect(button.closest('aside > div')).toHaveTextContent('Layerworks')
+    resize(800)
+    expect(screen.getByRole('button', { name: 'Expand sidebar' }).closest('aside > div')).toHaveTextContent('Layerworks')
+  })
+
   it('shows no labels beside the names while they are on screen', () => {
     render(<Shell />)
     const keys = screen.getByRole('link', { name: 'Keys' })
@@ -168,6 +190,9 @@ describe('the keyboard’s icon', () => {
     expect(card).toHaveTextContent('Demo keyboard')
     expect(card).toHaveTextContent('Locked')
     expect(card.parentElement).toHaveFocus()
+    // The popover is the card: the card inside has no fill of its own (bg-card from the popover, in both themes).
+    expect(card).not.toHaveClass('bg-raised')
+    expect(card.parentElement).toHaveClass('bg-card')
 
     fireEvent.keyDown(within(card).getByRole('button', { name: 'Disconnect' }), { key: 'Escape' })
     expect(screen.queryByRole('region', { name: 'Connected keyboard' })).toBeNull()

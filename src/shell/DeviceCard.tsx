@@ -48,9 +48,11 @@ function Battery({ level }: { level: number }) {
 interface DeviceCardProps {
   /** In the popover: called before Unlock… and Disconnect, which take the focus elsewhere. */
   onLeave?: (why: 'unlock' | 'disconnect') => void
+  /** In the popover, which is a card itself: no fill of its own, so it sits with the page's cards. */
+  bare?: boolean
 }
 
-export function DeviceCard({ onLeave }: DeviceCardProps = {}) {
+export function DeviceCard({ onLeave, bare = false }: DeviceCardProps = {}) {
   const status = useDevice((s) => s.status)
   const link = useDevice((s) => s.link)
   const keyboard = useDevice((s) => s.keyboard)
@@ -82,7 +84,7 @@ export function DeviceCard({ onLeave }: DeviceCardProps = {}) {
   const battery = wireless && keychron?.hasWireless && keychron.batteryLevel > 0 ? keychron.batteryLevel : null
 
   return (
-    <section aria-label="Connected keyboard" className="flex flex-col gap-3 rounded-card bg-raised p-3.5">
+    <section aria-label="Connected keyboard" className={cx('flex flex-col gap-3 rounded-card p-3.5', !bare && 'bg-raised')}>
       <div>
         <div className="leading-snug font-semibold">{keyboard?.name ?? link.productName}</div>
         {demoKeyboard() && (
@@ -224,6 +226,7 @@ export function DeviceIcon() {
       >
         {(close) => (
           <DeviceCard
+            bare
             onLeave={(why) => {
               focusConnect.current = why === 'disconnect'
               close()

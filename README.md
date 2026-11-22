@@ -188,8 +188,8 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
 ```
 
 - **The sidebar** shows each page's icon and name, or the icons only (`shell/Sidebar.tsx`, `sidebar-collapse.ts`).
-  A window narrower than 1024 px shows the icons only; the button at the bottom ("Collapse sidebar" / "Expand
-  sidebar") changes it by hand at any width. The hand choice is remembered in the browser (pref `sidebar`: the choice
+  A window narrower than 1024 px shows the icons only; the button beside the logo (under its mark with icons only;
+  "Collapse sidebar" / "Expand sidebar") changes it by hand at any width. The hand choice is remembered in the browser (pref `sidebar`: the choice
   and which side of 1024 px the window was on) and holds, across reloads too, while the window stays on that side;
   when the window crosses 1024 px it is forgotten and the sidebar takes that width's shape. So it changes shape only
   when the button is pressed or the window crosses the threshold, and after a crossing it is always what that width

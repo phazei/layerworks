@@ -30,6 +30,10 @@ if (typeof window !== 'undefined') {
   window.addEventListener('pointerdown', () => (pointerLast = true), true)
   window.addEventListener('keydown', () => (pointerLast = false), true)
 }
+
+/** Hides the label shown now, so the newest one (pointed at, or focused) is the only one on screen. */
+let hideShown: (() => void) | null = null
+
 /** Shows `label` at the right of the wrapped control while it is pointed at or focused from the keyboard. */
 export function Tip({ label, enabled = true, children, className }: TipProps) {
   const wrapper = useRef<HTMLDivElement>(null)
@@ -52,6 +56,17 @@ export function Tip({ label, enabled = true, children, className }: TipProps) {
     const top = Math.max(MARGIN, Math.min(window.innerHeight - height - MARGIN, rect.top + rect.height / 2 - height / 2))
     setPlace({ top, left: rect.right + GAP })
   }, [shown, label])
+
+  // One label at a time: showing this one hides any other, which stays hidden until pointed at or focused again.
+  useEffect(() => {
+    if (!shown) return
+    const hide = () => setDismissed(true)
+    if (hideShown !== hide) hideShown?.()
+    hideShown = hide
+    return () => {
+      if (hideShown === hide) hideShown = null
+    }
+  }, [shown])
 
   // Esc hides it (it may cover something), until the pointer or focus comes back.
   useEffect(() => {
