@@ -126,7 +126,13 @@ export function KeyboardInfo() {
           <Fact label="Layers" icon={<Layers size={ICON} aria-hidden />} help={<HelpButton topic="layers" />}>
             {kb.layers}
           </Fact>
-          <Fact label="Keys" icon={<Keyboard size={ICON} aria-hidden />} hint={kb.knobCount ? `and ${kb.knobCount === 1 ? 'a knob' : `${kb.knobCount} knobs`}` : undefined}>
+          <Fact label="Keys" icon={<Keyboard size={ICON} aria-hidden />} hint={
+              kb.knobCount
+                ? `and ${kb.knobCount === 1 ? 'a knob' : `${kb.knobCount} knobs`}`
+                : kb.fixedKnobs
+                  ? `and ${kb.fixedKnobs === 1 ? 'a knob' : `${kb.fixedKnobs} knobs`} the firmware doesn’t let apps change`
+                  : undefined
+            }>
             {keys}
           </Fact>
           <Fact

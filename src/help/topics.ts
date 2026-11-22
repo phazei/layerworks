@@ -274,6 +274,7 @@ const topics = {
     body: [
       'Turning the knob one click left or right presses a key, and you can choose which for each direction and each layer. Pressing the knob is an ordinary key.',
       'In the picture the knob has two halves: click the left one for a turn to the left, the right one for a turn to the right.',
+      'Some keyboards’ firmware is built without letting apps change the knob (QMK’s encoder map). There the picture marks the knob “Fixed”: it keeps doing what the firmware was built with, and only new firmware can change it.',
     ],
     example: 'Turn right for Volume Up, left for Volume Down, press for Mute.',
     docs: QMK + 'features/encoders',

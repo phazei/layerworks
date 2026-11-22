@@ -1223,6 +1223,14 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   Decided in `answersVial` (`device/vial-firmware.ts`), called first in the store's load. Tests:
   `device/__tests__/vial-firmware.test.ts`, `shell/__tests__/ConnectPrompt.test.tsx`.
 
+- **A knob the firmware doesn't let apps change** (built without `ENCODER_MAP_ENABLE`, e.g. lazydesigners/cloud,
+  planck/rev7). Vial's knob commands then come back unchanged, which would read as made-up keys (0xFE03 and
+  `layer << 8 | knob`). Such knobs are left out of `knobs` and `knobCount` (so nothing about them is shown, tested,
+  undone, backed up or restored) and counted in `fixedKnobs`; the picture marks them "Fixed" and doesn't let them be
+  picked, Keys and Device say why, and the `knob` capability's reason and help topic say so. Decided in
+  `firmwareKeepsKnobs` (`device/knob-map.ts`), at the store's load. Test: `pages/__tests__/fixed-knob.test.tsx` (on
+  the demo Cloud).
+
 - **No knob, or several.** The Test page says "the knob" or "each knob", "it" or "them". Decided in `severalKnobs`
   (`pages/test/knob.ts`). Test: `pages/test/__tests__/knob.test.ts`.
 

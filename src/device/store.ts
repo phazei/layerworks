@@ -31,6 +31,7 @@ import type {
   UnlockStatus,
 } from '../vendor/pipette/shared/types/protocol'
 import { answersVial, NOT_VIAL } from './vial-firmware'
+import { firmwareKeepsKnobs } from './knob-map'
 import { keyboardName } from './keyboard-name'
 import { lightingKind } from './lighting-kind'
 import { buildCapabilities, type Capabilities, type LightingInfo } from './capabilities'
@@ -92,7 +93,13 @@ export interface KeyboardData {
   keymap: Record<string, number>
   /** "layer,knob,direction" → keycode; direction 0 is counter-clockwise (left), 1 clockwise (right) */
   knobs: Record<string, number>
+  /** Knobs the app can read and change; 0 where the firmware doesn't let apps change them (`fixedKnobs`). */
   knobCount: number
+  /**
+   * Knobs the definition draws but the firmware doesn't let apps read or change (built without an encoder map,
+   * ./knob-map.ts). They are in the picture, but not in `knobs`, `knobCount`, tests, undo or backups.
+   */
+  fixedKnobs: number
   layoutOptions: number
   counts: DynamicEntryCounts
   macroCount: number
@@ -543,6 +550,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       vialProtocol: kb.vialProtocol,
       layers: kb.layers,
       knobs: kb.knobCount,
+      fixedKnobs: kb.fixedKnobs,
       counts: kb.counts,
       macroCount: kb.macroCount,
       macroBytes: kb.macroBytes,
@@ -582,6 +590,9 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     })
 
     const layerReply = await transport.request([KC_GET_LAYER])
+    const parsed = parseDefinitionLayout(probe.definition)
+    // Knobs the firmware doesn't let apps change read back as the request itself (./knob-map.ts): leave them out.
+    const knobsKept = firmwareKeepsKnobs(probe.encoderLayout, probe.layers, parsed.encoderIdx)
     return {
       keyboard: {
         uid: probe.uid,
@@ -590,13 +601,14 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         viaProtocol,
         vialProtocol: probe.vialProtocol,
         definition: probe.definition,
-        layout: parseDefinitionLayout(probe.definition).layout,
+        layout: parsed.layout,
         layers: probe.layers,
         rows: probe.rows,
         cols: probe.cols,
         keymap: probe.keymap,
-        knobs: probe.encoderLayout,
-        knobCount: probe.encoderCount,
+        knobs: knobsKept ? {} : probe.encoderLayout,
+        knobCount: knobsKept ? 0 : probe.encoderCount,
+        fixedKnobs: knobsKept ? probe.encoderCount : 0,
         layoutOptions: probe.layoutOptions,
         counts,
         macroCount,

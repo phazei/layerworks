@@ -55,6 +55,9 @@ interface Props {
 // takes a token.
 const SEEN_FILL = 'var(--key-bg-seen)'
 
+/** The label of a knob the firmware doesn't let apps change, in place of what it does. */
+const FIXED = 'Fixed'
+
 /**
  * The widget has no pressed or seen state for knob directions; it draws each as a <g data-encoder-pos="knob,dir">
  * with a circle and a label. CSS beats SVG presentation attributes, so a rule scoped to this picture recolours them.
@@ -130,8 +133,14 @@ export function KeyboardPicture({
     for (let knob = 0; knob < keyboard.knobCount; knob++) {
       map.set(String(knob), [text(keyboard.knobs[`${layer},${knob},0`] ?? 0), text(keyboard.knobs[`${layer},${knob},1`] ?? 0)])
     }
+    // Knobs the firmware keeps to itself (KeyboardData.fixedKnobs): what they do isn't known, so they say so.
+    if (keyboard.fixedKnobs > 0) {
+      for (const key of keyboard.layout?.keys ?? []) if (key.encoderIdx >= 0) map.set(String(key.encoderIdx), [FIXED, FIXED])
+    }
     return map
   }, [keyboard, layer, names, legends])
+  // Only knobs the app can change can be picked.
+  const editableKnobs = keyboard.knobCount > 0
 
   if (!keyboard.layout) return null
   return (
@@ -159,9 +168,10 @@ export function KeyboardPicture({
         selectedEncoder={selection?.kind === 'knob' ? { idx: selection.knob, dir: selection.direction } : null}
         onKeyClick={onSelect && ((key: KleKey) => onSelect({ kind: 'key', row: key.row, col: key.col }))}
         onEncoderClick={
-          onSelect &&
-          ((key: KleKey, direction: number) =>
-            onSelect({ kind: 'knob', knob: key.encoderIdx, direction: direction === 1 ? 1 : 0 }))
+          onSelect && editableKnobs
+            ? (key: KleKey, direction: number) =>
+                onSelect({ kind: 'knob', knob: key.encoderIdx, direction: direction === 1 ? 1 : 0 })
+            : undefined
         }
         readOnly={!onSelect}
       />

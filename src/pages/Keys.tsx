@@ -4,13 +4,13 @@
 
 import { useEffect, useRef } from 'react'
 import { Keyboard, MousePointerClick, Pointer } from 'lucide-react'
-import { deviceStore, keycodeTitle, parseKeycode, slotKeycode, useDevice } from '../device'
+import { deviceStore, FIXED_KNOBS, keycodeTitle, parseKeycode, slotKeycode, useDevice } from '../device'
 import type { PageDef } from '../plugins/api'
 import { useConnectedLayerNames } from '../shell/layer-names'
 import { screenshotOption } from '../shell/session'
 import { shownLayer, toSlot, useStage, type Selection } from '../shell/stage-store'
 import { Button } from '../ui/controls'
-import { Card } from '../ui/layout'
+import { Card, Notice } from '../ui/layout'
 import { armedDone, armingState, armKey, disarm, forgetJustPut, useArming, type Armed } from './keys/arming'
 import { Inspector } from './keys/Inspector'
 import { layerName } from './keys/describe'
@@ -116,10 +116,13 @@ function KeysPage() {
       </div>
     )
   }
-  if (!selection) {
+  // A knob the firmware keeps to itself can't be picked (a selection from the address included).
+  if (!selection || (selection.kind === 'knob' && keyboard.knobCount === 0)) {
     return (
-      <div data-tour="keys-page">
+      <div data-tour="keys-page" className="flex flex-col gap-3">
         <NothingSelected knob={keyboard.knobCount > 0} />
+        {/* Compatibility: knobs the firmware doesn't let apps change (device/knob-map.ts), said where they'd be. */}
+        {keyboard.fixedKnobs > 0 && <Notice>{FIXED_KNOBS} The picture marks it “Fixed”.</Notice>}
       </div>
     )
   }

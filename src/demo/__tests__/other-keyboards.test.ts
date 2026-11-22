@@ -48,7 +48,9 @@ describe('the demo standing in for other keyboards (?demo-keyboard=)', () => {
     expect(state.link).toMatchObject({ kind: 'cable', ...file.usb })
     expect(state.keyboard!.layers).toBe(file.firmware.layers)
     expect(matrixKeys(state.keyboard!)).toHaveLength(file.keys.length)
-    expect(state.keyboard!.knobCount).toBe(file.knobs.length)
+    // Knobs the firmware keeps to itself (no knob map) are counted apart.
+    expect(state.keyboard!.knobCount + state.keyboard!.fixedKnobs).toBe(file.knobs.length)
+    expect(state.keyboard!.fixedKnobs > 0).toBe(!file.firmware.knobMap)
     expect(state.keychron !== null).toBe(file.firmware.keychron)
   }, 20000)
 

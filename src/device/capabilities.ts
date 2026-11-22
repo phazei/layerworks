@@ -29,6 +29,8 @@ export interface CapabilitySources {
   vialProtocol: number
   layers: number
   knobs: number
+  /** Knobs the firmware doesn't let apps change (KeyboardData.fixedKnobs). */
+  fixedKnobs?: number
   counts: DynamicEntryCounts
   macroCount: number
   macroBytes: number
@@ -117,6 +119,9 @@ const yes: Availability = { available: true }
 const no = (reason: string): Availability => ({ available: false, reason })
 const NOT_IN_FIRMWARE = 'This keyboard’s firmware doesn’t include it.'
 const STILL_LOADING = 'Still reading this from the keyboard.'
+/** Said for knobs the firmware keeps to itself (./knob-map.ts). */
+export const FIXED_KNOBS =
+  'This keyboard’s firmware doesn’t let apps change its knob: it does what the firmware was built with.'
 
 /** See NkroMode. The keyboard says so itself (keychron/common/nkro.c: bit 0 on, bit 1 switchable, bit 2 adaptive). */
 export function nkroMode({ keychron, keychronPending }: CapabilitySources): NkroMode {
@@ -152,7 +157,8 @@ export function buildCapabilities(sources: CapabilitySources): Capabilities {
       case 'layerLock':
         return flag(FEATURE_FLAG_LAYER_LOCK)
       case 'knob':
-        return sources.knobs > 0 ? yes : no('This keyboard has no knob.')
+        if (sources.knobs > 0) return yes
+        return (sources.fixedKnobs ?? 0) > 0 ? no(FIXED_KNOBS) : no('This keyboard has no knob.')
       case 'qmkSettings':
         if (!qmkSettings) return no(STILL_LOADING)
         return qmkSettings.size > 0 ? yes : no(NOT_IN_FIRMWARE)
