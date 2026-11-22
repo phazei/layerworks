@@ -1203,6 +1203,13 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   keyboard's lighting answers to, and none without lighting. Decided in `lightingKeysFor` (`device/keycodes.ts`), from
   the definition's `lighting`. Test: `device/__tests__/lighting-keys.test.ts`.
 
+- **A definition whose `lighting` is an object or a list** (Corne and six others write `{ "extends": "qmk_rgblight" }`,
+  two `["qmk_rgblight"]`; 89 leave it out). The store reads it as one of a few known kinds, the name it holds (none
+  when it names none, "other" for a name the app doesn't know), so nothing else meets the object; Technical details
+  shows the kind with what was written beside it. Decided in `lightingKind` (`device/lighting-kind.ts`), which the
+  palette's lighting keys use too. Tests: `device/__tests__/lighting-kind.test.ts`,
+  `pages/device/__tests__/lighting-object.test.tsx` (on the demo Corne).
+
 - **No knob, or several.** The Test page says "the knob" or "each knob", "it" or "them". Decided in `severalKnobs`
   (`pages/test/knob.ts`). Test: `pages/test/__tests__/knob.test.ts`.
 

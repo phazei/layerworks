@@ -30,6 +30,7 @@ import type {
   TapDanceEntry,
   UnlockStatus,
 } from '../vendor/pipette/shared/types/protocol'
+import { lightingKind } from './lighting-kind'
 import { buildCapabilities, type Capabilities, type LightingInfo } from './capabilities'
 import type { HidLink, LinkKind } from './link'
 import { FACTORY_RESET_PUSH, LAYER_PUSH, parseLayerReport, type LayerState } from './pushes'
@@ -635,7 +636,8 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     },
 
     async lighting(kb) {
-      const kind = kb.definition.lighting ?? 'none'
+      // Read as a known kind (./lighting-kind.ts): some definitions write it as an object or a list.
+      const kind = lightingKind(kb.definition.lighting)
       const none: Lighting = { kind, effects: new Set(), maxBrightness: 0, mode: 0, speed: 0, hue: 0, sat: 0, val: 0 }
       if (kind !== 'vialrgb') return { lighting: none }
       const info = await protocol.getVialRGBInfo()

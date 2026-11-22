@@ -5,6 +5,7 @@
 import type { DynamicEntryCounts } from '../vendor/pipette/shared/types/protocol'
 import type { KeychronState } from '../vendor/pipette/shared/types/keychron'
 import { PER_KEY_EFFECT, ZONES_EFFECT } from './keychron-rgb'
+import type { LightingKind } from './lighting-kind'
 
 /** VialRGB's Off and Direct Control: listed by every VialRGB keyboard, never offered as effects. */
 const NOT_EFFECTS: readonly number[] = [0, 1]
@@ -15,8 +16,8 @@ export function offeredEffectCount(effects: ReadonlySet<number>, hidden: readonl
 }
 
 export interface LightingInfo {
-  /** The definition's lighting type: 'vialrgb', 'qmk_rgblight', ... or 'none'. */
-  kind: string
+  /** The definition's lighting, as a known kind (lightingKind, ./lighting-kind.ts): 'vialrgb', 'qmk_rgblight' … 'none'. */
+  kind: LightingKind
   /** VialRGB effect numbers the firmware has. */
   effects: ReadonlySet<number>
   maxBrightness: number

@@ -10,6 +10,8 @@ export { TransportError } from './transport'
 export type { RequestOptions, Transport, TransportStats } from './transport'
 export type { Availability, Capabilities, Feature, LightingInfo, NkroMode } from './capabilities'
 export { offeredEffectCount } from './capabilities'
+export { lightingAsWritten, lightingKind } from './lighting-kind'
+export type { LightingKind } from './lighting-kind'
 export { LOAD_PARTS, slotKeycode } from './store'
 export type {
   DeviceState,

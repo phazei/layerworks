@@ -3,7 +3,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { Cable, Cpu, Keyboard, Layers, Lock, LockOpen, Radio } from 'lucide-react'
-import { deviceStore, keyboardIdentity, matrixKeys, offeredEffectCount, receiverName, useDevice, type TransportStats } from '../../device'
+import { deviceStore, keyboardIdentity, lightingAsWritten, matrixKeys, offeredEffectCount, receiverName, useDevice, type TransportStats } from '../../device'
 import { Fact, Facts } from '../../ui/display'
 import { Card, Disclosure, HelpButton } from '../../ui/layout'
 import { readFirmware } from './firmware'
@@ -79,6 +79,10 @@ function TechnicalDetails() {
       {lighting && (
         <Row label="Lighting">
           {lighting.kind}
+          {/* The definition may write it otherwise (an object, a list): shown as written, as text. */}
+          {kb.definition.lighting === undefined
+            ? ' (not given in the definition)'
+            : typeof kb.definition.lighting !== 'string' && ` (written as ${lightingAsWritten(kb.definition.lighting)})`}
           {lighting.kind === 'vialrgb' && `, ${state.capabilities?.effectCount ?? offeredEffectCount(lighting.effects)} effects, brightness up to ${lighting.maxBrightness}`}
         </Row>
       )}

@@ -30,6 +30,7 @@ import {
   serialize,
 } from '../vendor/pipette/shared/keycodes/keycodes-utils'
 import { layoutActive, layoutChar } from './layout'
+import { lightingKind, type LightingKind } from './lighting-kind'
 
 export const KC_NOTHING = 0x0000
 export const KC_SAME_AS_BELOW = 0x0001
@@ -260,13 +261,14 @@ export interface LightingKeys {
   matrix: boolean
 }
 
-const LIGHTING_KEYS: Record<string, LightingKeys> = {
+const LIGHTING_KEYS: Record<LightingKind, LightingKeys | undefined> = {
   none: { backlight: false, underglow: false, matrix: false },
   vialrgb: { backlight: false, underglow: false, matrix: true },
   qmk_rgb_matrix: { backlight: false, underglow: false, matrix: true },
   qmk_rgblight: { backlight: false, underglow: true, matrix: false },
   qmk_backlight: { backlight: true, underglow: false, matrix: false },
   qmk_backlight_rgblight: { backlight: true, underglow: true, matrix: false },
+  other: undefined,
 }
 
 /**
@@ -274,19 +276,12 @@ const LIGHTING_KEYS: Record<string, LightingKeys> = {
  * and answer to different lighting keys (vial_qmk quantum/process_keycode/process_backlight.c, process_underglow.c,
  * which also drives an RGB matrix with the shared RGB_ keys); the definition names what it has (VIA's "lighting").
  *
- * The lighting keys for a keyboard, from its definition's `lighting` (the store's `keyboard.definition.lighting`):
- * a name such as "qmk_backlight", or, in a few definitions, a list or an object naming it (`["qmk_rgblight"]`,
- * `{ "extends": "qmk_rgblight" }`). No lighting, or none named, is "none". undefined for a name the app doesn't
- * know: then the palette offers the shared keys, as before it knew.
+ * The lighting keys for a keyboard, from its definition's `lighting` (the store's `keyboard.definition.lighting`),
+ * read as a kind by `lightingKind` (./lighting-kind.ts: objects and lists count as the name they hold). undefined
+ * for a name the app doesn't know: then the palette offers the shared keys, as before it knew.
  */
 export function lightingKeysFor(lighting: unknown): LightingKeys | undefined {
-  const named = Array.isArray(lighting)
-    ? lighting[0]
-    : lighting !== null && typeof lighting === 'object'
-      ? (lighting as Record<string, unknown>).extends
-      : lighting
-  if (named === undefined || named === null) return LIGHTING_KEYS.none
-  return typeof named === 'string' ? LIGHTING_KEYS[named] : undefined
+  return LIGHTING_KEYS[lightingKind(lighting)]
 }
 
 /** The palette's lighting keys for what the keyboard has; without knowing, the shared RGB keys. */
