@@ -74,6 +74,8 @@ interface Props {
   names: string[]
   /** The keyboard's base layer (from the Mac/Windows switch), for working out what falls through. */
   base: number
+  /** A shortcut just put on this key from its editor ("Put it on a key…"), and what the key held before. */
+  justPut?: { name: string; before: number }
 }
 
 /** Where the slot is, and whether it has its own assignment or falls through to a layer below. */
@@ -96,7 +98,7 @@ function Whereabouts({ keyboard, slot, names, base }: Props) {
   )
 }
 
-export function Inspector({ keyboard, slot, names, base }: Props) {
+export function Inspector({ keyboard, slot, names, base, justPut }: Props) {
   const current = slotKeycode(keyboard, slot)
   // The tables behind the palette describe the connected keyboard; rebuild them when it changes. The extra groups
   // leave out switches for features the keyboard reports no room for.
@@ -170,6 +172,13 @@ export function Inspector({ keyboard, slot, names, base }: Props) {
               <p className="mt-0.5 text-[13px] text-muted">
                 <Whereabouts keyboard={keyboard} slot={slot} names={names} base={base} />
               </p>
+              {justPut && (
+                <p role="status" className="mt-1 text-[13px] text-muted">
+                  <span className="font-medium text-content">{justPut.name}</span> is on it now. It was{' '}
+                  <span className="font-medium text-content">{describeKeycode(justPut.before, names)}</span>; Undo, at the
+                  bottom, puts that back.
+                </p>
+              )}
             </div>
             <div aria-label="What it does now" role="group" className="flex min-w-0 items-center gap-2.5">
               <span className="text-[13px] text-muted">Now</span>

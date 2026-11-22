@@ -59,15 +59,10 @@ The user's plan, in order: (1) list what is left from the spec: done and discuss
 documents; (4) update the files. Nothing is running in the background.
 
 - Decided by the user: Tap or hold does **not** build a multi-tap key by itself (it would hide what is going on).
-- **Decided, to build** (session `ses_e1debfc70ffey83TnPHv8IaaIG`, together with the next item once it is
-  decided): the "multi-tap key" link under Tap or hold (`pages/keys/TapHoldChoice.tsx`, today `#/shortcuts`)
-  opens the editor of the first empty multi-tap key (an address without a number, or one that redirects); with
-  none empty, the multi-tap section. The same for the other "set it up" links that land on the bare page
-  (`pages/keys/shortcut-keys.ts`) or on a fixed number (`pages/Typing.tsx`, `#/shortcuts/chord/1`).
-- **Waiting for the user's choice:** "Put it on a key…" in a shortcut's editor (`pages/shortcuts/Uses.tsx`) only
-  opens the Keys page, with nothing selected and no hint. Options given: (recommended) it opens Keys saying
-  "click the key that should run Multi-tap key 2", and the next key clicked gets it, with a cancel; or a layer
-  choice and keyboard picture inside the editor on Shortcuts, assigning without leaving the page.
+- The user asked about two Launcher settings; neither is in the app and nothing was asked for. The USB polling
+  rate: the K15 Max's firmware has it switched off, so a control couldn't be tried here (the vendored protocol
+  code reads it on keyboards that have it). "Keyboard Matrix Scanning Idle Time" is for Hall-effect keyboards
+  only. Both are in `../docs/research/launcher.md` and `k15-firmware-capabilities.md`.
 - Sessions to reuse: `ses_e1debfc70ffey83TnPHv8IaaIG` built the Keys inspector, palette, "Press a key", the
   Shortcuts pickers and list, and the key names by layout; `ses_dffa4d191ffeMwlEbSjDhltGcs` built the Caps Lock
   light, Lighting's picture for every effect, and Device's reset and firmware-update restart.
@@ -120,6 +115,8 @@ For the audit:
     keymap; each reset request waits 5 s, twice: say if the page reports a failure although the reset worked).
     **Restart for a firmware update** (unlock, restart, the keyboard shows up as the STM32 updater; replug to
     get it back). The Shortcuts list's sections; the still picture under Lighting's effect grid.
+    **"Put it on a key…"** in a macro or multi-tap key (opens Keys waiting for a click; another layer first,
+    then a key, then Undo), and Tap or hold's "multi-tap key" link (opens the first empty one).
   - The Shortcuts pickers: a key chord that sends Caps Word; a macro with a step "Swap Caps Lock and left
     Ctrl", pressed twice with Caps Lock tried in between; Shift + Backspace → Delete opens with no lighting
     keys in its "To send instead" list.

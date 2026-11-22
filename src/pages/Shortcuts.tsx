@@ -4,16 +4,19 @@
 // in place. "#/shortcuts/macro/1" opens Macro 1 (QMK's M1), "#/shortcuts/chord/1" Key chord 1 (shortcuts/route.ts). No
 // keyboard picture: the editors need the room, and the keys a shortcut is on are listed (and linked) in them.
 
+import { useEffect } from 'react'
 import { Command } from 'lucide-react'
 import { useDevice } from '../device'
 import type { PageDef } from '../plugins/api'
-import { usePath } from '../shell/router'
+import { replacePath, usePath } from '../shell/router'
 import { Card } from '../ui/layout'
 import { ChordEditor } from './shortcuts/ChordEditor'
 import { MacroEditor } from './shortcuts/MacroEditor'
 import { OverrideEditor } from './shortcuts/OverrideEditor'
 import { RepeatEditor } from './shortcuts/RepeatEditor'
-import { macroHref, openedFromPath, type Opened } from './shortcuts/route'
+import { useDrafts } from './shortcuts/drafts'
+import { firstFree } from './shortcuts/first-free'
+import { kindFromPath, macroHref, openedFromPath, shortcutPath, type Opened } from './shortcuts/route'
 import { ShortcutList } from './shortcuts/ShortcutList'
 import { TapDanceEditor } from './shortcuts/TapDanceEditor'
 
@@ -71,10 +74,22 @@ function ShortcutsPage() {
       }[opened.kind]
   const selected = opened && opened.index < count ? opened : null
 
+  // "#/shortcuts/multi-tap": the first free slot of that kind, in place of the address (Back skips it); with none
+  // free, that kind's section, shown.
+  const kind = kindFromPath(path)
+  const kb = useDevice((s) => s.keyboard)
+  const macros = useDevice((s) => s.macros)
+  const entries = useDevice((s) => s.entries)
+  const drafts = useDrafts()
+  const free = kind && kb ? firstFree(kind, kb, macros, entries, drafts) : undefined
+  useEffect(() => {
+    if (kind && free !== undefined && free !== null) replacePath(shortcutPath(kind, free))
+  }, [kind, free])
+
   return (
     <div className="@container">
       <div className="grid items-start gap-4 @2xl:grid-cols-[17rem_minmax(0,1fr)] @5xl:grid-cols-[22rem_minmax(0,1fr)]">
-        <ShortcutList selected={selected} />
+        <ShortcutList selected={selected} focus={kind && free === null ? kind : null} />
         {/* Keyed by keyboard too: what an editor holds (a save's outcome, an open picker) belongs to one keyboard. */}
         {selected === null ? <Nothing /> : <Editor key={`${uid}:${selected.kind}:${selected.index}`} opened={selected} />}
       </div>

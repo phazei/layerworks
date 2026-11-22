@@ -432,12 +432,12 @@ const topics = {
     qmkName: 'Dynamic macros, M0 – M15',
     body: [
       'A macro does several things when you press one key: types a piece of text, taps a shortcut, waits a moment, and so on, one step after another. It lives in the keyboard, so it works on any computer.',
-      'Build one from steps, or record it as you type. Save it to the keyboard, then put it on a key from the Keys page, where the macros are listed under Macros. They carry the firmware’s own numbers: Macro 1 is QMK’s M1, which Keychron keyboards put on the key printed M1; Macro 0 comes last.',
+      'Build one from steps, or record it as you type. Save it to the keyboard, then put it on a key: “Put it on a key…” in the macro opens the Keys page, and the next key you click there runs it (or pick it on the Keys page under Macros). They carry the firmware’s own numbers: Macro 1 is QMK’s M1, which Keychron keyboards put on the key printed M1; Macro 0 comes last.',
       'All the macros share one small space in the keyboard (926 bytes on the K15 Max): each typed character takes one byte, each key or wait a few.',
     ],
     example: 'A macro that types your e-mail address, on Fn + E.',
     docs: 'https://get.vial.today/manual/macros.html',
-    where: [{ label: 'Shortcuts & macros, Macros', href: '#/shortcuts' }],
+    where: [{ label: 'Shortcuts & macros, Macros', href: '#/shortcuts/macro' }],
     related: ['macro-record', 'macro-unlock', 'shortcut-drafts', 'tap-dance'],
   },
   'macro-record': {
@@ -448,7 +448,7 @@ const topics = {
     ],
     example: 'Record, type “Kind regards,”, tap Enter, type your name, stop.',
     docs: 'https://get.vial.today/manual/macros.html',
-    where: [{ label: 'Shortcuts & macros, in a macro', href: '#/shortcuts' }],
+    where: [{ label: 'Shortcuts & macros, in a macro', href: '#/shortcuts/macro' }],
     related: ['macros', 'macro-wait'],
   },
   'macro-wait': {
@@ -459,7 +459,7 @@ const topics = {
     ],
     example: 'Win + R, wait 0.3 s for the Run box, then type “notepad” and tap Enter.',
     docs: QMK + 'feature_macros#sendstring',
-    where: [{ label: 'Shortcuts & macros, in a macro', href: '#/shortcuts' }],
+    where: [{ label: 'Shortcuts & macros, in a macro', href: '#/shortcuts/macro' }],
     related: ['macros', 'macro-hold'],
   },
   'macro-hold': {
@@ -472,7 +472,7 @@ const topics = {
     ],
     example: 'Hold Alt, tap Tab, tap Tab, let Alt go: switches to the window two back.',
     docs: QMK + 'feature_macros#sendstring',
-    where: [{ label: 'Shortcuts & macros, in a macro, More options', href: '#/shortcuts' }],
+    where: [{ label: 'Shortcuts & macros, in a macro, More options', href: '#/shortcuts/macro' }],
     related: ['macros', 'macro-wait'],
   },
   'macro-unlock': {
@@ -483,7 +483,7 @@ const topics = {
       'You can edit a macro while the keyboard is locked; the changes wait in the app. “Unlock to save…” opens the unlock, and the macro is saved by itself as soon as the keyboard is unlocked. Undoing a saved macro needs the keyboard unlocked too.',
     ],
     example: 'Click “Unlock to save…” and hold Esc and Enter until the bar is full: the macro goes to the keyboard straight after.',
-    where: [{ label: 'Shortcuts & macros, in a macro', href: '#/shortcuts' }],
+    where: [{ label: 'Shortcuts & macros, in a macro', href: '#/shortcuts/macro' }],
     related: ['unlock', 'macros'],
   },
   'shortcut-drafts': {
@@ -501,12 +501,12 @@ const topics = {
     qmkName: 'Tap dance, TD(0) – TD(15)',
     body: [
       'One key that does different things depending on how you press it: a tap, a hold, two quick taps, or a tap followed by a hold. Leave any of them empty if you don’t need it.',
-      'It only works once it is on a key: on the Keys page, click a key and pick it under Multi-tap keys.',
+      'It only works once it is on a key: “Put it on a key…” in its editor opens the Keys page, and the next key you click there gets it (or, on the Keys page, click a key and pick it under Multi-tap keys).',
       'Each of them can be any key the Keys page offers, the less common ones (Caps Word, swapped keys, restart) included.',
     ],
     example: 'Tap for Esc, tap twice for Caps Lock: Caps Lock is still there but hard to hit by accident.',
     docs: QMK + 'features/tap_dance',
-    where: [{ label: 'Shortcuts & macros, Multi-tap keys', href: '#/shortcuts' }],
+    where: [{ label: 'Shortcuts & macros, Multi-tap keys', href: '#/shortcuts/multi-tap' }],
     related: ['tapping-term', 'tap-hold', 'macros'],
   },
   'tapping-term': {
@@ -518,7 +518,7 @@ const topics = {
     ],
     example: 'If a double tap often comes out as two single taps, raise it to 250 ms.',
     docs: QMK + 'tap_hold#tapping-term',
-    where: [{ label: 'Shortcuts & macros, in a multi-tap key', href: '#/shortcuts' }],
+    where: [{ label: 'Shortcuts & macros, in a multi-tap key', href: '#/shortcuts/multi-tap' }],
     related: ['tap-dance', 'typing-tap-hold'],
   },
   combos: {
@@ -531,7 +531,7 @@ const topics = {
     ],
     example: 'J and K together for Esc: no need to reach for the corner.',
     docs: QMK + 'features/combo',
-    where: [{ label: 'Shortcuts & macros, Key chords', href: '#/shortcuts/chord/1' }],
+    where: [{ label: 'Shortcuts & macros, Key chords', href: '#/shortcuts/chord' }],
     related: ['typing-chords', 'key-overrides'],
   },
   'key-overrides': {
@@ -544,7 +544,7 @@ const topics = {
     ],
     example: 'Shift + Backspace sends Delete, with Shift taken away so it isn’t Shift + Delete.',
     docs: QMK + 'features/key_overrides',
-    where: [{ label: 'Shortcuts & macros, Shortcut replacements', href: '#/shortcuts/replacement/1' }],
+    where: [{ label: 'Shortcuts & macros, Shortcut replacements', href: '#/shortcuts/replacement' }],
     related: ['override-modifiers', 'override-options', 'combos'],
   },
   'override-modifiers': {
@@ -556,7 +556,7 @@ const topics = {
     ],
     example: 'Shift + Esc → ~, but not with Ctrl held: tick Ctrl under “Must not be held”, so Ctrl + Shift + Esc still opens the Task Manager.',
     docs: QMK + 'features/key_overrides',
-    where: [{ label: 'Shortcuts & macros, in a shortcut replacement, More options', href: '#/shortcuts/replacement/1' }],
+    where: [{ label: 'Shortcuts & macros, in a shortcut replacement, More options', href: '#/shortcuts/replacement' }],
     related: ['key-overrides', 'override-options'],
   },
   'override-options': {
@@ -568,7 +568,7 @@ const topics = {
     ],
     example: 'Untick “Start when a modifier is pressed while the key is held” if holding Backspace and then pressing Shift shouldn’t turn it into Delete.',
     docs: QMK + 'features/key_overrides#key-override-options',
-    where: [{ label: 'Shortcuts & macros, in a shortcut replacement, More options', href: '#/shortcuts/replacement/1' }],
+    where: [{ label: 'Shortcuts & macros, in a shortcut replacement, More options', href: '#/shortcuts/replacement' }],
     related: ['key-overrides', 'override-modifiers'],
   },
   'alt-repeat': {
@@ -576,11 +576,11 @@ const topics = {
     qmkName: 'Alt repeat key, QK_AREP',
     body: [
       'The alternate repeat key does the “opposite” of the key you pressed last: after Ctrl + Z, Ctrl + Y; after Page Up, Page Down. A rule says what it sends after a given key; without a rule it has a few built in (arrows, Page Up/Down …).',
-      'It needs the key itself on the keyboard: on the Keys page, click a key and pick “Alt Repeat” under Repeat keys.',
+      'It needs the key itself on the keyboard: “Put it on a key…” in a repeat rule opens the Keys page, and the next key you click there gets it (or pick “Alt Repeat” under Repeat keys on the Keys page).',
     ],
     example: 'After Ctrl + Z, the alternate repeat key sends Ctrl + Y: undo with one hand, redo with the other.',
     docs: QMK + 'features/repeat_key',
-    where: [{ label: 'Shortcuts & macros, Repeat rules', href: '#/shortcuts/repeat/1' }],
+    where: [{ label: 'Shortcuts & macros, Repeat rules', href: '#/shortcuts/repeat' }],
     related: ['repeat-options'],
   },
   'repeat-options': {
@@ -592,7 +592,7 @@ const topics = {
     ],
     example: 'Home ↔ End with “Both ways”: after Home the repeat key sends End, and after End it sends Home.',
     docs: QMK + 'features/repeat_key',
-    where: [{ label: 'Shortcuts & macros, in a repeat rule, More options', href: '#/shortcuts/repeat/1' }],
+    where: [{ label: 'Shortcuts & macros, in a repeat rule, More options', href: '#/shortcuts/repeat' }],
     related: ['alt-repeat'],
   },
 

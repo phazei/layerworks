@@ -192,7 +192,7 @@ function extraFor(group: SettingGroupId, searching: boolean): ReactNode {
     return (
       <p className="mt-4 text-[13px] text-muted">
         The chords themselves are on{' '}
-        <a className="font-medium text-accent hover:underline" href="#/shortcuts/chord/1">
+        <a className="font-medium text-accent hover:underline" href="#/shortcuts/chord">
           Shortcuts &amp; macros
         </a>
         . Multi-tap keys each have their own time there.

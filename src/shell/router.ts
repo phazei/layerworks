@@ -17,3 +17,9 @@ export function usePath(): string {
 export function navigate(path: string): void {
   location.hash = path
 }
+
+/** Goes to a path in place of the current one, so Back skips it (an address that only redirects). */
+export function replacePath(path: string): void {
+  history.replaceState(history.state, '', `#${path}`)
+  window.dispatchEvent(new HashChangeEvent('hashchange'))
+}

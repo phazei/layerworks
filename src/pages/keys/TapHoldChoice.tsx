@@ -114,7 +114,7 @@ export function TapHoldChoice({ current, names, ownLayer, groups, onAssign }: Pr
       </div>
       <p className="text-[13px] text-muted">
         Only plain keys can be tapped; for a media key or a shortcut, use a{' '}
-        <PageLink href="#/shortcuts">multi-tap key</PageLink>. How long counts as a hold is set on the{' '}
+        <PageLink href="#/shortcuts/multi-tap">multi-tap key</PageLink>. How long counts as a hold is set on the{' '}
         <PageLink href="#/typing">Typing feel page</PageLink>.
       </p>
 

@@ -35,7 +35,7 @@ export function RepeatEditor({ index }: { index: number }) {
         </p>
       }
       example={{ label: 'after Ctrl + Z, send Ctrl + Y', entry: EXAMPLE }}
-      usage={<Uses code={altRepeatKeycode()} howTo="On the Keys page, click a key and pick Alt Repeat under Repeat keys." />}
+      usage={<Uses code={altRepeatKeycode()} name="the alternate repeat key" howTo="Or, on the Keys page, click a key and pick Alt Repeat under Repeat keys." />}
     >
       <KeyField label="After" use="repeatAfter" shortcuts value={entry.lastKey} onChange={(lastKey) => set({ lastKey })} />
       <KeyField label="The repeat key sends" use="repeatSends" shortcuts value={entry.altKey} onChange={(altKey) => set({ altKey })} />

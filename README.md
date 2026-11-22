@@ -32,6 +32,7 @@ Options in the URL, before the `#`:
 | `?choice=tapHold` | The Keys inspector opens on that choice (`key`, `shortcut`, `layer`, `tapHold`) rather than the one the key's assignment belongs to, for screenshots; with `?select=` |
 | `?open-picker=Sends` | On Shortcuts & macros, the key field with that label ("Sends", "To send instead" …) opens its picker, for screenshots |
 | `?layout=KeyY:z,KeyZ:y,Semicolon:ö` | Key legends as on a layout typing those characters (`KeyboardEvent.code:character`, URL-encoded), in place of the browser's own reading; for screenshots, as headless Edge is US |
+| `?put-on-key=TD(1)` | The Keys page starts armed with that keycode (QMK name), as "Put it on a key…" leaves it, for screenshots |
 | `?press-key` | The Keys palette's "Press a key" starts out waiting, for screenshots of what it says; with `?select=` |
 | `?key-search=magic` | The key palette opens with that search typed, for screenshots; with `?select=` |
 | `?demo-effect=<id>` | Starts the demo keyboard on another lighting effect (VialRGB id, e.g. `25`), for screenshots |
@@ -217,7 +218,8 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
   (`home/features.ts` gives each feature its friendly and QMK name), with the missing ones and their reasons
   behind a `Disclosure`. With no keyboard it shows the connect prompt and three lines on what the app is for.
 - **Keys** (`Keys.tsx`, `keys/`): click a key or one side of the knob on the stage; with nothing selected the
-  page says so. The inspector (`keys/Inspector.tsx`) is two columns from 42rem (a container query), so in a small
+  page says so. Armed from a shortcut's "Put it on a key…" (see Shortcuts & macros, the macro editor), it says
+  which shortcut the next click puts on a key instead, and the clicked key gets it. The inspector (`keys/Inspector.tsx`) is two columns from 42rem (a container query), so in a small
   window the palette starts at the top of the card; one column when narrower. With two columns the card fills
   exactly the space under the stage (placed absolutely in a wrapper, at least 15rem tall), so nothing in it makes
   the page taller: the palette scrolls in its box, and the left column (question, choice, More options) and a
@@ -458,7 +460,12 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
 - **Shortcuts & macros** (`Shortcuts.tsx`, `shortcuts/`): full height, no stage (the editors need the room, and
   the keys a shortcut is on are listed and linked instead). A list on the left and the one picked on the right, two
   columns from 42rem; no tabs. The page's own addresses (`shortcuts/route.ts`): `#/shortcuts/macro/1` opens Macro 1,
-  likewise `multi-tap/N`, `chord/N`, `replacement/N` and `repeat/N`, with the number shown on screen.
+  likewise `multi-tap/N`, `chord/N`, `replacement/N` and `repeat/N`, with the number shown on screen. Without a
+  number (`#/shortcuts/multi-tap`, `shortcutKindHref`) it opens the first slot of that kind with nothing saved and
+  no draft, in Add's order (`shortcuts/first-free.ts`; number 0 last), replacing the address so Back skips it
+  (`replacePath` in `shell/router.ts`); with none free it shows that kind's section, scrolled to and above the fold.
+  Links that mean "set one up" use these (Tap or hold's "multi-tap key", the palette's "Set up on Shortcuts &
+  macros", Typing feel's chords, the help topics' "where"); links to a given entry keep its number.
   - *Numbering*: macros and multi-tap keys carry QMK's own number: "Macro 1" is `M1` (Keychron keyboards map the
     keys printed M1 – M5 to QMK's M1 – M5), "Macro 0" is `M0`, "Multi-tap key 1" is `TD(1)`; `macro/0` and
     `multi-tap/0` address slot 0. Slot 0 comes last wherever they are listed (here, the Keys palette), and "Add"
@@ -518,7 +525,15 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     unlock completes; cancelled or not completed, nothing is saved and the draft stays), Revert,
     what stands in the way (steps to fix, no room, locked). "Runs when you press": the keys and knob turns with this
     macro, as layer and key ("Windows: the M1 key"); a click shows that key on the Keys page (`stage.showLayer`,
-    `stage.select`). None: how to put it on a key, and a button to the Keys page. Then the steps
+    `stage.select`), then a quiet "Put it on another key…"; none: "Put it on a key…" and where else to find it.
+    Both open the Keys page armed with this keycode (`keys/arming.ts`, `armKey`; `shortcuts/Uses.tsx`, also for
+    multi-tap keys and the alternate repeat key): a card says "Click the key that should run Macro 1" (by its
+    name), on which layer, and with a hint when the shortcut is empty or has unsaved changes (allowed, as from the
+    palette: the key does nothing, or runs what the keyboard holds, until saved), with Cancel. The stage stops
+    following the keyboard's layer while it waits, and nothing is selected, so the next key or knob direction
+    clicked is selected and gets the keycode through `deviceStore.assign` (one undo step); the inspector then says
+    "Macro 1 is on it now. It was A; Undo, at the bottom, puts that back." Esc, Cancel or leaving the Keys page end
+    it without assigning. Then the steps
     (`shortcuts/StepRow.tsx`), numbered, each edited in place, with move up, move down and remove: *Type text* (a
     field), *Tap a key* (keycaps and the key in words; "Change key…" opens the Keys page's palette with Ctrl, Shift,
     Alt and Win to tick, `shortcuts/KeyPicker.tsx`), *Wait* (seconds, with 0.05 – 1 s choices); under *More

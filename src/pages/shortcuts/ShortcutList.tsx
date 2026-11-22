@@ -4,7 +4,7 @@
 // slots in use (or being edited), with "Add" opening the next free one, so 80 slots stay a short list. Macros and
 // multi-tap keys go by QMK's numbers (M1 is Macro 1), slot 0 last.
 
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { CircleDot, Plus } from 'lucide-react'
 import {
   ENTRY_KINDS,
@@ -92,11 +92,17 @@ interface SectionProps {
   free: number | null
   addLabel: string
   children?: ReactNode
+  /** Brought into view: a number-less address named this kind and none of its slots is free. */
+  focused?: boolean
 }
 
-function Section({ kind, name, qmk, help, used, count, free, addLabel, children }: SectionProps) {
+function Section({ kind, name, qmk, help, used, count, free, addLabel, children, focused = false }: SectionProps) {
+  const ref = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (focused) ref.current?.scrollIntoView?.({ block: 'start' })
+  }, [focused])
   return (
-    <section aria-label={name} className="flex flex-col gap-2 border-t border-edge pt-4 first:border-t-0 first:pt-0">
+    <section ref={ref} aria-label={name} className="flex flex-col gap-2 border-t border-edge pt-4 first:border-t-0 first:pt-0">
       <header className="flex items-start gap-2">
         <div className="min-w-0">
           <h3 className="flex items-center gap-0.5 text-[15px] font-semibold">
@@ -160,7 +166,7 @@ function entryRows(kb: KeyboardData, kind: EntryKind, saved: AnyEntry[], drafts:
   return { rows, free, used }
 }
 
-export function ShortcutList({ selected }: { selected: Opened | null }) {
+export function ShortcutList({ selected, focus = null }: { selected: Opened | null; focus?: DraftKind | null }) {
   const kb = useDevice((s) => s.keyboard)
   const buffer = useDevice((s) => s.macros)
   const entries = useDevice((s) => s.entries)
@@ -205,12 +211,13 @@ export function ShortcutList({ selected }: { selected: Opened | null }) {
   // Kinds with something in use, a draft, or the editor open come up under Macros; the rest wait under More options.
   // An unused kind moves up when its editor opens (from Add, or an address), not when its first entry is saved, so
   // the list doesn't shift under the pointer then.
-  const inView = (s: (typeof sections)[number]) => s.rows.length > 0 || selected?.kind === s.kind
+  const inView = (s: (typeof sections)[number]) => s.rows.length > 0 || selected?.kind === s.kind || focus === s.kind
   const above = sections.filter(inView)
   const below = sections.filter((s) => !inView(s))
   const section = (s: (typeof sections)[number]) => (
     <Section
       key={s.kind}
+      focused={focus === s.kind}
       kind={s.kind}
       name={KINDS[s.kind].name}
       qmk={KINDS[s.kind].qmk}
@@ -233,6 +240,7 @@ export function ShortcutList({ selected }: { selected: Opened | null }) {
           ) : (
             <Section
               kind="macro"
+              focused={focus === 'macro'}
               name="Macros"
               qmk="Macros"
               help="macros"

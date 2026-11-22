@@ -40,6 +40,23 @@ export function openedFromPath(path: string): Opened | null {
   return index >= 0 ? { kind, index } : null
 }
 
+/**
+ * "#/shortcuts/multi-tap": a kind without a number. The page opens the first slot of that kind with nothing in it,
+ * in the order Add uses (macros and multi-tap keys from 1, number 0 last), or, with none free, shows that kind's
+ * section. For links that mean "set one up" rather than a given entry.
+ */
+export const shortcutKindHref = (kind: DraftKind): string => `#/shortcuts/${SLUGS[kind]}`
+
+/** The kind a number-less path names ("/shortcuts/chord"), or null. */
+export function kindFromPath(path: string): DraftKind | null {
+  const match = /^\/shortcuts\/([a-z-]+)\/?$/.exec(path)
+  if (!match) return null
+  return (Object.keys(SLUGS) as DraftKind[]).find((k) => SLUGS[k] === match[1]) ?? null
+}
+
+/** The page's path for a slot, without "#". */
+export const shortcutPath = (kind: DraftKind, index: number): string => shortcutHref(kind, index).slice(1)
+
 /** The macro the path opens (QMK's index), or null. */
 export function macroFromPath(path: string): number | null {
   const opened = openedFromPath(path)

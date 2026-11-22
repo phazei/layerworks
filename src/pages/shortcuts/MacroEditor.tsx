@@ -26,7 +26,7 @@ import { draftOf, getDraft, renamedMacro, setDraft, useDrafts } from './drafts'
 import { Recorder } from './Recorder'
 import { SaveBar, SaveState } from './SaveBar'
 import { StepRow } from './StepRow'
-import { Uses } from './Uses'
+import { unsavedHint, Uses } from './Uses'
 
 const UNLOCK_REASON = 'The keyboard only takes macro changes while it is unlocked.'
 
@@ -199,7 +199,12 @@ export function MacroEditor({ index }: { index: number }) {
               )}
             </SaveBar>
           )}
-          <Uses code={macroKeycode(index)} howTo={`On the Keys page, click a key and pick “${macroName}” under Macros.`} />
+          <Uses
+            code={macroKeycode(index)}
+            name={macroName}
+            hint={unsavedHint(macroName, saved.length === 0, dirty)}
+            howTo={`Or, on the Keys page, click a key and pick “${macroName}” under Macros.`}
+          />
         </header>
 
         <section aria-label="Steps" className="flex flex-col gap-2">

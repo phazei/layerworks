@@ -18,7 +18,7 @@ import {
 } from '../../device'
 import { useStoredMacroNames } from '../../shell/layer-names'
 import { summarize, summarizeEntry } from '../shortcuts/describe'
-import { shortcutHref } from '../shortcuts/route'
+import { shortcutHref, shortcutKindHref } from '../shortcuts/route'
 
 export interface ShortcutKey {
   kind: 'macro' | 'tapDance'
@@ -110,7 +110,8 @@ export function nameShortcutGroups(groups: PaletteGroup[], shortcutKey: (code: n
     if (group.id !== 'macros' && group.id !== 'tapDance') return group
     return {
       ...group,
-      link: group.link ?? { label: 'Set up on Shortcuts & macros', href: '#/shortcuts' },
+      // The first free one of that kind, ready to set up (shortcuts/route.ts, a number-less address).
+      link: group.link ?? { label: 'Set up on Shortcuts & macros', href: shortcutKindHref(group.id === 'macros' ? 'macro' : 'tapDance') },
       keys: group.keys.map((key) => {
         const found = shortcutKey(key.code)
         return found ? { ...key, label: found.label, description: shortcutKeyWords(found), empty: found.empty } : key

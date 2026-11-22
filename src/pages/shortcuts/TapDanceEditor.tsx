@@ -2,11 +2,11 @@
 // A multi-tap key (tap dance): one key, different things for a tap, a hold, a double tap and a tap then hold. It
 // works once it is on a key (TD(n)).
 
-import { DEFAULT_TAPPING_TERM, MAX_TAPPING_TERM, tapDanceKeycode, type TapDanceEntry } from '../../device'
+import { DEFAULT_TAPPING_TERM, entryIsEmpty, MAX_TAPPING_TERM, tapDanceKeycode, tapDanceTitle, type TapDanceEntry } from '../../device'
 import { OptionButton, TextInput } from '../../ui/controls'
 import { Disclosure, HelpButton } from '../../ui/layout'
 import { EntryFrame, KeyField, useEntryDraft } from './EntryEditor'
-import { Uses } from './Uses'
+import { unsavedHint, Uses } from './Uses'
 
 const EXAMPLE: TapDanceEntry = { onTap: 0x29, onHold: 0, onDoubleTap: 0x39, onTapHold: 0, tappingTerm: DEFAULT_TAPPING_TERM }
 const TERM_CHOICES = [150, 200, 250, 300]
@@ -61,7 +61,9 @@ export function TapDanceEditor({ index }: { index: number }) {
       usage={
         <Uses
           code={tapDanceKeycode(index)}
-          howTo={`On the Keys page, click a key and pick “Multi-tap ${index}” (TD(${index})) under Multi-tap keys.`}
+          name={tapDanceTitle(index)}
+          hint={unsavedHint(tapDanceTitle(index), entryIsEmpty('tapDance', draft.saved), draft.dirty)}
+          howTo={`Or, on the Keys page, click a key and pick “Multi-tap ${index}” (TD(${index})) under Multi-tap keys.`}
         />
       }
     >
