@@ -20,26 +20,37 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
 Everything but the Ripple plugin and the firmware extras is built. Three audits are done and applied: the spec
 and the documents, the Help section, and the text on the pages themselves (findings in
 `%TEMP%\opencode\layerworks-audit\`: `spec-audit.md`, `help-audit.md`, `ui-text-audit.md`). The parent repo's
-documents are edited and uncommitted (the user commits there). Nothing is running in the background.
+documents are edited and uncommitted (the user commits there).
 
-**Next: preparing a release** (the user's answers, 2026-11-21; nothing started, the user compacts the session
-first). Hosting: GitHub Pages from this repo, like the user's `https://phazei.github.io/MediaSyncer/`. The user
-won't test everything on the keyboard: bugs are reported as found, and people who find one are asked to open
-an issue.
+**Preparing a release** (the user's answers, 2026-11-21). Hosting: GitHub Pages from this repo, like the user's
+`https://phazei.github.io/MediaSyncer/`. The user won't test everything on the keyboard: bugs are reported as
+found, and people who find one are asked to open an issue. The licence stays GPL-3.0-or-later (the user: "since
+everything else is GPL then GPL it is").
+
+**In progress right now** (both read-only; findings in `%TEMP%\opencode\layerworks-audit\`):
+
+- `ses_dfe287d45ffeph6OlbTU2Fsd01`: item 1, other keyboards, to `other-keyboards-audit.md`. It may have scratch
+  tests in `src/__audit__/` while it runs and must delete them (check `git status` is clean when it reports).
+  Port 5203.
+- `ses_dfe2813d0ffeNquf1IgNow84cr`: item 2, licences, notices, personal data in files and history, the name, to
+  `licence-audit.md`.
+
+When each reports: read the findings file, check firmware claims against `../vial_qmk`, tell the user, and give
+the fixes to a building agent once the user has chosen. Then items 3 to 5, two at a time.
 
 1. **Other keyboards** (a read-only agent first): load a spread of public Vial definitions into the fake keyboard
    (no knob, no lighting, lighting that isn't VialRGB, not Keychron, odd matrix sizes, layout options, few or no
    macros and entries, older Vial protocol) and report what breaks or reads wrongly on each page. "Layout
    options" below belongs to this.
 2. **Licences and the name** (a read-only agent): how much of the app is vendored GPL code (files, lines, what
-   each part does) and what replacing it would take; that the notices, SPDX headers, the Settings licence list
-   and the dependencies' licences are complete and compatible; the demo data's origin (Keychron's keymap and
-   definition) and whether it holds anything personal; "Layerworks" against existing projects and trademarks.
-   The user asked whether rewriting the vendored parts would allow Apache or MIT: the answer given is under
-   "Later"; the agent's numbers settle the size.
+   each part does); that the notices, SPDX headers, the Settings licence list and the dependencies' licences are
+   complete and compatible; the demo data's origin (Keychron's keymap and definition) and whether the files or
+   the git history hold anything personal; "Layerworks" against existing projects and trademarks.
 3. **Things that go wrong mid-write** (a read-only agent): unplugging during a restore, a reset or a macro save;
-   two tabs on one keyboard; a damaged or hostile backup or `.vil` file; a browser without WebHID (the user will
-   look at Firefox). What the app says and whether the keyboard can be left half-written.
+   two tabs on one keyboard; a damaged or hostile backup or `.vil` file. What the app says and whether the
+   keyboard can be left half-written. A browser without WebHID is checked: in Firefox the user sees "This browser
+   can’t talk to keyboards. Open Layerworks in Chrome or Edge on a computer. You can still try the demo
+   keyboard.", and the demo works.
 4. **Accessibility and colours**: text contrast of the token pairs in both themes, keyboard-only use, screen
    reader names. The user: worth a look, not important as long as it is close.
 5. **Hosting**: `vite.config.ts` sets no `base`, so the build's asset addresses would break under
