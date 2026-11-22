@@ -1192,6 +1192,10 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   (`device/restore.ts`). Test: `device/__tests__/file-checks.test.ts` ("a backup from firmware that numbers keys
   differently").
 
+- **One unlock key, or three or more.** The unlock dialog says "Hold A" for one key, "Hold A and B together" and
+  "both keys" for two, "all of them" for more (a firmware names up to 15). Decided in `holdUnlockKeys`
+  (`shell/UnlockDialog.tsx`). Test: `shell/__tests__/unlock-keys.test.ts`.
+
 ## Tests
 
 Unit tests sit in `__tests__/` beside the code. `src/device/fake-keyboard.ts` provides a `HidLink` with no

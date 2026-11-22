@@ -31,6 +31,19 @@ export function unlockKeyNames(keyboard: KeyboardData, layer: number, keys: [num
   return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
 }
 
+/**
+ * How to say "hold the unlock keys" for how many there are. Compatibility: most keyboards name two unlock keys, but
+ * a firmware can name one or up to 15 (vial-qmk quantum/vial.c, VIAL_UNLOCK_COMBO_ROWS / _COLS, "Max 15 unlock
+ * keys"). `keys` is unlockKeyNames' text.
+ */
+export function holdUnlockKeys(keys: string, count: number): { hold: string; again: string } {
+  if (count === 1) return { hold: `Hold ${keys}`, again: 'The count started again: keep holding the key down.' }
+  return {
+    hold: `Hold ${keys} together`,
+    again: `The count started again: hold ${count === 2 ? 'both keys' : 'all of them'} at the same time.`,
+  }
+}
+
 function Warning({ children }: { children: ReactNode }) {
   return (
     <div className="flex gap-2.5 rounded-control border border-edge bg-raised px-3 py-2.5 text-[13px] text-content">
@@ -55,7 +68,7 @@ export function Counting({ progress, keys, count }: { progress: UnlockProgress |
   return (
     <div className="flex flex-col gap-4">
       <p className="text-content">
-        Hold <strong>{keys}</strong> together and keep holding until the bar is full.
+        <strong>{holdUnlockKeys(keys, count).hold}</strong> and keep holding until the bar is full.
       </p>
       <div className="flex flex-col gap-1.5">
         <ProgressBar label="Unlocking" value={done} max={total} valueText={`${done} of ${total} steps`} />
@@ -68,7 +81,7 @@ export function Counting({ progress, keys, count }: { progress: UnlockProgress |
             ) : progress.silent ? (
               'The keyboard isn’t answering right now. Still asking…'
             ) : restarted ? (
-              `The count started again: hold ${count === 2 ? 'both keys' : 'all of them'} at the same time.`
+              holdUnlockKeys(keys, count).again
             ) : done === 0 ? (
               'Waiting for the keys…'
             ) : (
@@ -190,8 +203,8 @@ export function UnlockDialog() {
               {request.reason && <> {request.reason}</>}
             </p>
             <p className="text-content">
-              After you start, hold <strong>{keys}</strong> together on the keyboard (marked below) until the bar is
-              full, about 6 seconds.
+              After you start, <strong>{holdUnlockKeys(keys, unlockKeys.length).hold.replace(/^Hold/, 'hold')}</strong>{' '}
+              on the keyboard (marked below) until the bar is full, about 6 seconds.
             </p>
             {keyboard && (
               <div className="rounded-control bg-surface p-2">
