@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, Lock, LockOpen, MousePointerClick, Pause, RotateCcw, RotateCw } from 'lucide-react'
 import { keycodeTitle, MATRIX_TOO_BIG, matrixKeys, matrixReadable, useDevice, type KeyboardData, type LayerState } from '../device'
+import { notSeenLine } from './test/not-seen'
 import type { PageDef } from '../plugins/api'
 import { useConnectedLayerNames } from '../shell/layer-names'
 import { knobDirections, useKnobTurns, usePressedKeys } from '../shell/pressed-keys'
@@ -187,6 +188,12 @@ function KeyTest({ keyboard }: { keyboard: KeyboardData }) {
   // anyway); the rest can't be checked here, which is not the knob's fault.
   const knobsCheckable = new Set([...plan.checkable, ...knobsSeen]).size
   const everything = all.length > 0 && seenHere.size === all.length && knobsSeen.size >= knobsCheckable
+  // Once most keys are seen, the rest by name (not only as keys still plain on the picture).
+  const layerNames = useConnectedLayerNames()
+  const notSeen = useMemo(
+    () => notSeenLine(keyboard, layer?.active ?? 0, all, seenHere, plan.checkable.filter((turn) => !knobsSeen.has(turn)), layerNames),
+    [keyboard, layer, all, seenHere, plan, knobsSeen, layerNames],
+  )
   const check = capabilities?.check('keyMatrix')
   const canUnlock = check !== undefined && !check.available && check.needsUnlock === true
 
@@ -229,6 +236,7 @@ function KeyTest({ keyboard }: { keyboard: KeyboardData }) {
             Press each key once{knobs.length > 0 && (severalKnobs(keyboard) ? ' and turn each knob both ways' : ' and turn the knob both ways')}. A key lights up while it is down
             and stays marked once seen; any key still plain at the end didn’t reach the app.
           </p>
+          {notSeen && <p className="text-[13px] text-content">{notSeen}</p>}
         </div>
       </Card>
       <div className="flex flex-col gap-2 rounded-card bg-card px-5 py-4 text-[13px] text-muted shadow-card">

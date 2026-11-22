@@ -55,6 +55,18 @@ interface Props {
 // takes a token.
 const SEEN_FILL = 'var(--key-bg-seen)'
 
+/**
+ * Seen keys and knob directions (the Test page) get a thick outline as well as their tint, so they stand out from the
+ * keys not seen yet by more than a faint colour (--key-edge-seen is 3:1 against a key's face in both themes).
+ */
+function seenRules(scope: string, seen: ReadonlySet<string> = new Set(), knobsSeen: ReadonlySet<string> = new Set()): string {
+  const edge = 'stroke: var(--key-edge-seen); stroke-width: 3px'
+  return [
+    ...[...seen].map((pos) => `[data-picture="${scope}"] [data-key-pos="${pos}"] > :first-child { ${edge} }`),
+    ...[...knobsSeen].map((pos) => `[data-picture="${scope}"] [data-encoder-pos="${pos}"] > circle { ${edge} }`),
+  ].join('\n')
+}
+
 /** The label of a knob the firmware doesn't let apps change, in place of what it does. */
 const FIXED = 'Fixed'
 
@@ -107,7 +119,9 @@ export function KeyboardPicture({
   const names = layerNames ?? connectedNames
   // The labels follow the computer's layout; this changes when it does.
   const legends = useLegendRevision()
-  const knobStyle = [knobRules(scope, knobsTurned, knobsSeen), keyRules(scope, outlines, fills)].filter(Boolean).join('\n')
+  const knobStyle = [knobRules(scope, knobsTurned, knobsSeen), keyRules(scope, outlines, fills), seenRules(scope, seen, knobsSeen)]
+    .filter(Boolean)
+    .join('\n')
   const seenFills = useMemo(() => (seen ? new Map([...seen].map((pos) => [pos, SEEN_FILL])) : undefined), [seen])
   const fillColours = useMemo(() => (fills ? new Map([...fills].map(([pos, f]) => [pos, f.colour])) : undefined), [fills])
 

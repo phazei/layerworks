@@ -488,6 +488,11 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
 
   A note under the picture says which source is in use; locked, it names what can't be seen and offers "Unlock to
   see every key…". Seen keys survive a visit to another page (`test/seen.ts`), not another keyboard.
+  Seen keys show by more than their tint: `seen` also outlines them in `--key-edge-seen`, 3:1 against a key not seen
+  yet in both themes. Once no more than a quarter of the keys is left, "Not seen yet: F5, Insert and Right Ctrl."
+  under the picture names them, up to 20 then "and 7 more", with knob turns still to check (`test/not-seen.ts`): by
+  what a key does on the layer shown (the base layer's where it does nothing there, "the key at row 3, column 5"
+  where neither), in the picture's words where the description is only QMK's name ("Macro 1").
 - **Device** (`Device.tsx`, `device/`): full height, no stage; two columns from 56rem (like Settings).
   - *Back up and restore* (`device/Backup.tsx`, `device/Restore.tsx`): "Save a backup" downloads the backup file
     (see "Backups") once every part has been read, and says which parts are missing if some couldn't be read.
