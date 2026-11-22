@@ -4,16 +4,17 @@
 
 import { useEffect, useRef } from 'react'
 import { Keyboard, MousePointerClick, Pointer } from 'lucide-react'
-import { deviceStore, FIXED_KNOBS, keycodeTitle, parseKeycode, slotKeycode, useDevice } from '../device'
+import { deviceStore, FIXED_KNOBS, keycodeTitle, matrixKeys, parseKeycode, slotKeycode, useDevice } from '../device'
 import type { PageDef } from '../plugins/api'
 import { useConnectedLayerNames } from '../shell/layer-names'
 import { screenshotOption } from '../shell/session'
-import { shownLayer, toSlot, useStage, type Selection } from '../shell/stage-store'
+import { shownLayer, stage as stageStore, toSlot, useStage, type Selection } from '../shell/stage-store'
 import { Button } from '../ui/controls'
 import { Card, Notice } from '../ui/layout'
 import { armedDone, armingState, armKey, disarm, forgetJustPut, useArming, type Armed } from './keys/arming'
 import { Inspector } from './keys/Inspector'
 import { layerName } from './keys/describe'
+import { LayoutCard } from './keys/LayoutCard'
 import { useShortcutKeys } from './keys/shortcut-keys'
 
 /** The card before a key is picked; `knob` mentions the knob only on a keyboard that has one. */
@@ -102,6 +103,14 @@ function KeysPage() {
     return () => window.removeEventListener('keydown', onKey)
   }, [armed])
 
+  // A layout option changed (device/layout-options.ts) and the selected key went with it: let go of it, so the
+  // inspector doesn't edit a key the keyboard no longer has.
+  useEffect(() => {
+    if (keyboard && selection?.kind === 'key' && !matrixKeys(keyboard).includes(`${selection.row},${selection.col}`)) {
+      stageStore.select(null)
+    }
+  }, [keyboard, selection])
+
   // "It held … before" is about the key it went on; another key, or another layer, forgets it.
   const here = selection ? whereOf(layer, selection) : null
   useEffect(() => {
@@ -123,6 +132,8 @@ function KeysPage() {
         <NothingSelected knob={keyboard.knobCount > 0} />
         {/* Compatibility: knobs the firmware doesn't let apps change (device/knob-map.ts), said where they'd be. */}
         {keyboard.fixedKnobs > 0 && <Notice>{FIXED_KNOBS} The picture marks it “Fixed”.</Notice>}
+        {/* Compatibility: layout options (device/layout-options.ts), changed here, beside the picture they change. */}
+        <LayoutCard keyboard={keyboard} />
       </div>
     )
   }

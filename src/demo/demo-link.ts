@@ -222,6 +222,12 @@ const K15_UNLOCK_KEYS: [number, number][] = [
 
 const params = () => new URLSearchParams(typeof location === 'undefined' ? '' : location.search)
 
+/** `?demo-layout=<n>`: the demo keyboard's stored layout options value at start (VIA's number; see README). */
+function startLayout(): number | null {
+  const value = Number(params().get('demo-layout') ?? NaN)
+  return Number.isInteger(value) && value >= 0 ? value >>> 0 : null
+}
+
 /** `?demo-effect=<VialRGB id>` starts the demo on another effect, e.g. for screenshots. */
 function startEffect(): number | null {
   const value = Number(params().get('demo-effect') ?? NaN)
@@ -293,6 +299,8 @@ export function createDemoLink(other: DemoKeyboardFile | null = null): DemoLink 
     ...(other ? demoKeyboardConfig(other, K15_SETTINGS) : k15),
     // `?demo-unlocked` starts the demo unlocked, e.g. for screenshots of the Test page reading every key.
     ...(params().has('demo-unlocked') ? { unlocked: true } : {}),
+    // `?demo-layout=<n>`: the layout options value the demo keyboard starts with, for screenshots of another layout.
+    ...(startLayout() !== null ? { layoutOptions: startLayout()! } : {}),
     // Restarting for a firmware update: the real keyboard answers, waits 100 ms and leaves USB.
     onBootloaderJump: () => setTimeout(() => link.drop(), 100),
   })

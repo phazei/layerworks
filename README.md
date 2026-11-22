@@ -42,6 +42,7 @@ The `?demo-…` options act on the demo keyboard only by nature.
 | `?press-key` | The Keys palette's "Press a key" starts out waiting, for screenshots of what it says; with `?select=` |
 | `?key-search=magic` | The key palette opens with that search typed, for screenshots; with `?select=` |
 | `?demo-keyboard=<name>` | A developer option: the demo keyboard stands in for another keyboard instead of the K15 Max, to see the app on keyboards that differ from it: `corne`, `gh80`, `splinter`, `cloud`, `q2`, `q0`, `c100`, `vipad`, `klein`, `macropad` (README "Demo keyboard", "Other keyboards in the demo") |
+| `?demo-layout=<n>` | The demo keyboard starts with that layout options value (VIA's number, the last label in the lowest bits; with `?demo-keyboard=gh80`, `518` is Split Backspace and a split space bar), for screenshots of another layout |
 | `?demo-effect=<id>` | Starts the demo keyboard on another lighting effect (VialRGB id, e.g. `25`), for screenshots |
 | `?demo-unlocked` | Starts the demo keyboard unlocked (the Test page reads every key) |
 | `?demo-wireless` | The demo keyboard is reached through the 2.4 GHz receiver, reports a battery level (76 %) and has the K15 Max's wireless timers and debounce, for screenshots of the wireless parts |
@@ -1270,9 +1271,15 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   A stored value out of range for the labels, or a choice without keys, counts as the first choice, so a whole
   keyboard is always drawn. Counts follow the same keys (`matrixKeys`): the Test page's "N of M keys seen" (so it can
   reach "Every key works"), Device's "Keys", and Lighting's groups for colouring keys (no LED under an unchosen
-  alternative counts, and "Rainbow across" spreads over the keys drawn). Decided in `layoutChoices` and
-  `visibleLayoutKeys` (`device/layout-options.ts`). Tests: `device/__tests__/layout-options.test.tsx`,
-  `pages/__tests__/layout-counts.test.tsx` (on the demo GH80-3000).
+  alternative counts, and "Rainbow across" spreads over the keys drawn). The **Layout** card on Keys, under the
+  first card while no key is selected (beside the picture it changes), sets them in the definition's own words: a
+  switch for a plain label, a list for a title and its choices (`layoutOptionList`). A change is written to the
+  keyboard at once (VIA's `0x03 0x02`, read back if the write fails; `setLayoutChoice` in the store, the one group's
+  bits changed, `withLayoutChoice`) and is one undo step per group; a selected key the new layout doesn't have is let
+  go of. Backups keep the value as before; the restore review names what changes ("Layout: Bottom Row: Default",
+  `layoutChangeWords`). Help topic `layout-options`. Decided in `layoutChoices` and `visibleLayoutKeys`
+  (`device/layout-options.ts`). Tests: `device/__tests__/layout-options.test.tsx`,
+  `pages/__tests__/layout-counts.test.tsx`, `pages/keys/__tests__/LayoutCard.test.tsx` (on the demo GH80-3000).
 
 - **No knob, or several.** The Test page says "the knob" or "each knob", "it" or "them". Decided in `severalKnobs`
   (`pages/test/knob.ts`). Test: `pages/test/__tests__/knob.test.ts`.

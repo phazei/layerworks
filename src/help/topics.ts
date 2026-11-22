@@ -332,6 +332,19 @@ const topics = {
     ],
     related: ['layers', 'backup'],
   },
+  'layout-options': {
+    title: 'Layout',
+    qmkName: 'Layout options',
+    body: [
+      'Many keyboards come in more than one arrangement of keys from the same circuit board: a split or a whole Backspace, an ANSI or ISO Enter, a choice of bottom rows. The keyboard can’t tell which keycaps and switches you fitted, so it keeps a note of it, and the app draws, tests and counts only those keys.',
+      'Pick what is on your keyboard in the Layout card on the Keys page, in the words its maker’s description uses. The change goes to the keyboard at once (nothing about how the keys work changes, only which ones are shown) and Undo takes it back. A key you had selected that the new layout doesn’t have is let go of.',
+      'The choice is kept in backups; restoring one puts it back.',
+    ],
+    example: 'Your board has a split Backspace: switch “Split Backspace” on, and the picture shows two keys where it showed one, each with its own assignment.',
+    docs: 'https://www.caniusevia.com/docs/layouts',
+    where: [{ label: 'Keys page, Layout (with no key selected)', href: '#/keys' }],
+    related: ['assign-key', 'backup'],
+  },
   'key-legends': {
     title: 'Key names and your keyboard layout',
     body: [

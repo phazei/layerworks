@@ -32,6 +32,7 @@ import type {
   UnlockStatus,
 } from '../vendor/pipette/shared/types/protocol'
 import { answersVial, NOT_VIAL } from './vial-firmware'
+import { layoutChoices, layoutOptionList, withLayoutChoice } from './layout-options'
 import { firmwareKeepsKnobs } from './knob-map'
 import { keyboardName } from './keyboard-name'
 import { firmwareHasVialRgb, lightingKind } from './lighting-kind'
@@ -439,6 +440,12 @@ export interface DeviceStore {
    * Resolves false when it wasn't written: unknown or unreported setting, or the write failed (`writeError`).
    */
   setSetting(qsid: number, value: number): Promise<boolean>
+  /**
+   * Sets one layout option group (./layout-options.ts) to `choice`, the others as they are: which of the definition's
+   * alternative keys the keyboard has. The keyboard keeps it at once. One undo step per group. Resolves false when
+   * it wasn't written: no such group or choice, or the write failed (`writeError`).
+   */
+  setLayoutChoice(group: number, choice: number): Promise<boolean>
   /**
    * Puts every QMK setting back to the firmware's defaults (Vial's reset command), then reads them again. Includes
    * the swapped and disabled keys and N-key rollover. Not undoable.
@@ -1567,6 +1574,37 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     return true
   }
 
+  /** Writes the whole layout options value, read back if the write failed (VIA's 0x03 0x02, ./layout-options.ts). */
+  function writeLayoutOptions(value: number): Promise<boolean> {
+    const withValue = (layoutOptions: number) => (state.keyboard ? { keyboard: { ...state.keyboard, layoutOptions } } : {})
+    return write(
+      () => protocol.setLayoutOptions(value),
+      () => withValue(value),
+      async () => {
+        const now = await protocol.getLayoutOptions()
+        return { took: now === value, patch: withValue(now) }
+      },
+    )
+  }
+
+  /** Sets one group's choice in the value the keyboard holds now (undo and redo of a group go through it too). */
+  function writeLayoutChoice(group: number, choice: number): Promise<boolean> {
+    const kb = state.keyboard
+    if (!kb) return Promise.resolve(false)
+    return writeLayoutOptions(withLayoutChoice(kb.layoutOptions, kb.definition.layouts?.labels ?? [], group, choice))
+  }
+
+  async function setLayoutChoice(group: number, choice: number): Promise<boolean> {
+    const kb = state.keyboard
+    const option = kb ? layoutOptionList(kb.definition.layouts?.labels).find((o) => o.group === group) : undefined
+    if (!kb || !option || !Number.isInteger(choice) || choice < 0 || choice >= option.choices.length) return false
+    const from = layoutChoices(kb).get(group) ?? 0
+    if (from === choice) return true
+    if (!(await writeLayoutChoice(group, choice))) return false
+    rememberValue(`layout:${group}`, from, choice, (v) => writeLayoutChoice(group, v as number))
+    return true
+  }
+
   async function resetSettings(): Promise<boolean> {
     if (!state.settings) return false
     const ids = Object.keys(state.settings).map(Number)
@@ -1997,6 +2035,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       }),
     setWirelessTimers: (timers) => inOrder(() => setWirelessTimers(timers), undefined),
     setSetting: (qsid, value) => inOrder(() => setSetting(qsid, value), false),
+    setLayoutChoice: (group, choice) => inOrder(() => setLayoutChoice(group, choice), false),
     resetSettings: () => inOrder(resetSettings, false),
     setDebounce: (debounce) => inOrder(() => setDebounce(debounce), false),
     setSnapClick: (index, entry) => inOrder(() => setSnapClick(index, entry), false),

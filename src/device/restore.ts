@@ -14,6 +14,7 @@ import type { DeviceState, Entries, Slot } from './store'
 import { formatDuration, timersProblem, type WirelessTimers } from './wireless'
 import { debounceMax, debounceType, snapClickProblem, type SnapClickEntry } from './keychron-typing'
 import { keycodeName, macroTitle, parseKeycode, readMacroKey, readTapDanceKey } from './keycodes'
+import { layoutChangeWords } from './layout-options'
 import { readMacros } from './macros'
 import { keymapRisks, type Risk } from './risks'
 import { settingValueProblem } from './settings'
@@ -176,6 +177,8 @@ export interface RestorePlan {
   /** Keys and knob directions. */
   keys: KeyChange[]
   layoutOptions: number | null
+  /** The layout options that change, in the definition's words ("Split Backspace on"); empty where none it names. */
+  layoutChanges: string[]
   /** The whole macro buffer, when any of it differs. */
   macros: number[] | null
   tapDance: EntryChange<TapDanceEntry>[]
@@ -281,6 +284,7 @@ export function planRestore(
   const plan: RestorePlan = {
     keys: [],
     layoutOptions: null,
+    layoutChanges: [],
     macros: null,
     tapDance: [],
     combo: [],
@@ -330,6 +334,7 @@ export function planRestore(
 
   if (contents.layoutOptions !== undefined && contents.layoutOptions !== kb.layoutOptions) {
     plan.layoutOptions = contents.layoutOptions
+    plan.layoutChanges = layoutChangeWords(kb, contents.layoutOptions)
   }
 
   // Macros: one buffer, written whole.
@@ -683,7 +688,10 @@ export function describePlan(plan: RestorePlan, layerNames: string[], boot: numb
   const bootIn = (changes: KeyChange[]) => boot !== null && changes.some((c) => c.to === boot)
   if (keys.length) lines.push({ part: 'keys', text: `${countOf('keys', keys.length)} ${onLayers(keys)}`, needsUnlock: bootIn(keys) })
   if (knob.length) lines.push({ part: 'knob', text: `${countOf('knob', knob.length)} ${onLayers(knob)}`, needsUnlock: bootIn(knob) })
-  if (plan.layoutOptions !== null) lines.push({ part: 'layoutOptions', text: 'Layout options', needsUnlock: false })
+  if (plan.layoutOptions !== null) {
+    const text = plan.layoutChanges.length > 0 ? `Layout: ${plan.layoutChanges.join(', ')}` : 'Layout options'
+    lines.push({ part: 'layoutOptions', text, needsUnlock: false })
+  }
   if (plan.macros) lines.push({ part: 'macros', text: 'Macros (all of them are replaced)', needsUnlock: true })
   for (const kind of ENTRY_KINDS) {
     const changes = plan[kind] as EntryChange<object>[]

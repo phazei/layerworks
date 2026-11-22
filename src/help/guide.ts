@@ -40,6 +40,7 @@ export const GUIDE: GuideGroup[] = [
       'knob',
       'raw-code',
       'layer-names',
+      'layout-options',
       'key-legends',
       'caps-word',
       'layer-lock',
