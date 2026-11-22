@@ -37,13 +37,17 @@ everything else is GPL then GPL it is").
   blocked while locked in this fork). When it reports: the three checks, the diff, screenshots, commit; its "to
   try on the real keyboard" list goes under "Waiting on the user"; **then tell the other session the store is
   free** (round two).
-- `ses_dfe287d45ffeph6OlbTU2Fsd01`: the other-keyboards audit's fixes (K1 to K15 in `other-keyboards-audit.md`),
-  round one, outside the store: the error boundary, Keychron layer names from a generated table (K5), live
-  typing on the stage (K7), the palette's lighting group (K11), texts (K13). Its files:
-  `src/shell/layer-names.ts`, `src/pages/keys/Stage.tsx`, `src/device/keycodes.ts`, `src/main.tsx`,
-  `src/pages/Test.tsx`, `src/pages/home/Status.tsx`. Port 5203. **Round two, when the store is free:** K1's store
-  part, layout options in full (K2: decode, picture, counts, a "Layout" card), K3, K6, K8, K9, K10, K12, K14, and
-  a developer option that loads another keyboard's definition into the demo.
+- `ses_dfe287d45ffeph6OlbTU2Fsd01` is **waiting** (not running): its round one is committed as eight
+  `fix(compat):` commits (`8afa732` to `d675f0c`: the error boundary, Keychron layer names from a generated table,
+  typed keys on keyboards that don't report their layer, the palette's lighting keys, texts). **Round two, when
+  the store is free:** K1's store part, layout options in full (K2: decode, picture, counts, a "Layout" card), K3,
+  K6, K8, K9, K10, K12, K14, and a developer option that loads another keyboard's definition into the demo. It
+  works **one item at a time and stops for a commit after each** (the user: each compatibility item is its own
+  commit; `AGENTS.md` "Rules"). Port 5203.
+- Committing one item out of a file with several items' edits: `node %TEMP%\opencode\stage-hunks.mjs <file>
+  <regex>…` stages the hunks (and, in a block of new lines, the paragraphs) that match; if the script is gone,
+  build the wanted content from `git show :<file>`, then `git hash-object -w` and
+  `git update-index --cacheinfo`.
 
 **Item 1 is audited** (22 set-ups through the fake keyboard, all 857 definitions in `../vial_qmk` surveyed): the
 app loads on every one, but "works on any Vial keyboard" is not yet a fair claim. The worst: a definition whose
