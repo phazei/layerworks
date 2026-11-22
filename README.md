@@ -58,7 +58,7 @@ Example: `http://localhost:5199/?demo&theme=light#/keys`.
 
 | Command | |
 |---|---|
-| `pnpm typecheck` / `pnpm lint` / `pnpm test` | Must pass before every hand-over. `test` includes the vendored tests and uses half the CPU cores (`--maxWorkers=50%`), so a run doesn't stall the rest of the computer. |
+| `pnpm typecheck` / `pnpm lint` / `pnpm test` | Must pass before every hand-over. `test` includes the vendored tests; `pnpm test <file>` runs one file. These three, `pnpm build` and `pnpm shots` go through `scripts/calm.mjs`: on Windows they and everything they start (test workers, the build's threads, headless Edge) are held to a quarter of the computer's cores, four at most, at below-normal priority, so a run never takes the whole computer (`LAYERWORKS_CORES=6` changes the number; the publishing workflow is not held). The tests' workers are the same number however they are started (`maxWorkers` in `vite.config.ts`). Anything else heavy runs as `node scripts/calm.mjs <command>`. The full suite takes about 70 s this way. |
 | `pnpm build` | Production build into `dist/`, with `licences.txt` and `LICENSE.txt` beside the page (see "Hosting") |
 | `pnpm hardware` | Loads the real keyboard through the device layer, without a browser, and prints what it read. Reads only. Set `LINK=receiver` to go through the 2.4 GHz receiver (`$env:LINK='receiver'; pnpm hardware`). |
 | `pnpm vendor check` | Vendored files still match the recorded Pipette commit (see `VENDOR.md`) |
@@ -165,6 +165,7 @@ src/
   main.tsx           registers the pages, reads the URL options, renders the shell
 hardware/            checks against the real keyboard (pnpm hardware)
 scripts/vendor.mjs      keeps src/vendor in step with the Pipette clone
+scripts/calm.mjs        runs a command on a few cores at low priority (the checks, the build and the screenshots)
 scripts/demo-data.mjs   rebuilds the demo keyboard from ../keyboards/.../vial.json and ../backups/keymap.json
 scripts/demo-keyboards.mjs  rebuilds src/demo/keyboards/*.json, the other keyboards the demo can be, from ../vial_qmk
 scripts/keychron-layers.mjs  rebuilds src/shell/keychron-layers.ts from the Keychron keymaps in ../vial_qmk

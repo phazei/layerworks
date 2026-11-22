@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { execFileSync } from 'node:child_process'
+import { availableParallelism } from 'node:os'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -42,6 +43,12 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['src/test-setup.ts'],
       clearMocks: true,
       restoreMocks: true,
+      // A quarter of the cores, four at most, however the tests are started (the same number scripts/calm.mjs holds
+      // `pnpm test` to), so a run never takes the whole computer. The publishing workflow uses what it has.
+      // Under calm.mjs the system only reports the cores it was held to, so calm passes the number on.
+      maxWorkers: process.env.CI
+        ? undefined
+        : Number(process.env.LAYERWORKS_CALM) || Math.max(1, Math.min(4, Math.floor(availableParallelism() / 4))),
     },
   }
 })

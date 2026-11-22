@@ -60,6 +60,19 @@ If the script leaves a server behind (it was killed half-way):
 
 ## Rules
 
+- **Never load the whole computer** (the user: "DO NOT use all my cores, EVER"; an earlier round of work lagged it
+  badly).
+  - Checks, builds and screenshots run only through the package scripts (`pnpm typecheck`, `pnpm lint`,
+    `pnpm test`, `pnpm build`, `pnpm shots`). They go through `scripts/calm.mjs`, which holds the command and
+    everything it starts to a quarter of the cores, four at most, at below-normal priority. Anything else that does
+    real work (a one-off Node script, a helper that starts a browser, a loop of test runs) is started as
+    `node scripts/calm.mjs <command>`. Never `vite build`, `tsc`, `vitest` or Edge by another route.
+  - While working, run only the test files you touch (`pnpm test <file>`); the full suite once, at the end. The
+    orchestrator runs the three checks once before a commit and no more. No watch modes, no loops left running.
+  - Screenshots only where they are needed to judge the result: `--no-build` after the first build, one theme
+    unless both matter.
+  - Close what you start. No server, browser or script may be left running when you report; say in the report
+    that nothing is. The orchestrator looks for leftovers after each report (`node`, `msedge --headless`).
 - `pnpm typecheck`, `pnpm lint` and `pnpm test` pass before every hand-over.
 - Git: the orchestrator may stage and commit in this repo after reviewing a package; delegated agents never run a
   git command that changes anything. Commit messages in the user's style (`feat(device): ...`, `docs: ...`).

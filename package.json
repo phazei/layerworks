@@ -16,14 +16,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/calm.mjs vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.json",
-    "lint": "eslint src/ hardware/",
-    "test": "vitest run --maxWorkers=50%",
+    "typecheck": "node scripts/calm.mjs tsc -p tsconfig.json",
+    "lint": "node scripts/calm.mjs eslint src/ hardware/",
+    "test": "node scripts/calm.mjs vitest run",
     "test:watch": "vitest",
     "vendor": "node scripts/vendor.mjs",
-    "shots": "node scripts/screenshot.mjs",
+    "shots": "node scripts/calm.mjs node scripts/screenshot.mjs",
     "hardware": "vitest run --config vitest.hardware.config.ts"
   },
   "dependencies": {
