@@ -100,7 +100,23 @@ export function positionsSending(keyboard: KeyboardData, layer: LayerState, keyc
 const typingInField = (target: EventTarget | null) =>
   target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
 
-/** "row,col" of the keys the browser currently sees held. Empty when the keyboard doesn't report its layer. */
+/**
+ * Compatibility: only Keychron's firmware reports its layer (the `0xA3` command and push, vial_qmk
+ * keyboards/keychron/common/keychron_raw_hid.c); every other Vial keyboard answers "unknown command" (quantum/via.c,
+ * raw_hid_receive_kb), and the store's `layer` is null. Whether there is a layer to follow is decided here.
+ */
+export const reportsLayer = (live: LayerState | null): live is LayerState => live !== null
+
+/**
+ * The layer to work keys out on for a keyboard that doesn't report its layer (see reportsLayer): layer 0, the one it
+ * starts on. One object, so hooks given it don't start over on every render.
+ */
+export const NO_LAYER: LayerState = { base: 0, held: 0, active: 0 }
+
+/**
+ * "row,col" of the keys the browser currently sees held. Empty without a keyboard or a layer; pass NO_LAYER for a
+ * keyboard that doesn't report its layer.
+ */
 export function usePressedKeys(keyboard: KeyboardData | null, layer: LayerState | null): Set<string> {
   const [pressed, setPressed] = useState<Set<string>>(() => new Set())
 

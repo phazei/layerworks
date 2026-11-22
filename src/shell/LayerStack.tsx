@@ -8,6 +8,7 @@ import type { KeyboardData, LayerState } from '../device'
 import { cx, IconButton, TextInput, Toggle } from '../ui/controls'
 import { HelpButton } from '../ui/layout'
 import { renameLayer } from './layer-names'
+import { reportsLayer } from './pressed-keys'
 import { stage, type StageState } from './stage-store'
 
 interface RowProps {
@@ -114,16 +115,18 @@ export function LayerStack({ keyboard, names, live, state, shown }: Props) {
     // Beside the picture: the toggle above a column of layers. Above it: one row, the layers and the toggle at its
     // right end, wrapping under them only when the row is too narrow.
     <div className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-2 @3xl:w-54 @3xl:flex-col @3xl:flex-nowrap @3xl:items-stretch @3xl:gap-3">
-      <div className="order-last ml-auto text-[13px] @3xl:order-first @3xl:ml-0">
-        <Toggle
-          checked={state.follow && live !== null}
-          disabled={live === null}
-          onChange={(follow) => stage.setFollow(follow, shown)}
-          label="Follow the keyboard"
-          help={<HelpButton topic="live-layer" />}
-          hint={live === null ? 'This keyboard doesn’t say which layer is on.' : undefined}
-        />
-      </div>
+      {/* Compatibility: only where the keyboard reports its layer (pressed-keys.ts, reportsLayer); elsewhere there is
+          nothing to follow. */}
+      {reportsLayer(live) && (
+        <div className="order-last ml-auto text-[13px] @3xl:order-first @3xl:ml-0">
+          <Toggle
+            checked={state.follow}
+            onChange={(follow) => stage.setFollow(follow, shown)}
+            label="Follow the keyboard"
+            help={<HelpButton topic="live-layer" />}
+          />
+        </div>
+      )}
       <ul aria-label="Layers" className="flex flex-wrap gap-0.5 @3xl:flex-col @3xl:flex-nowrap @3xl:gap-1">
         {names.map((name, i) => (
           <LayerRow

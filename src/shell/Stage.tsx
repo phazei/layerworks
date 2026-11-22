@@ -12,7 +12,7 @@ import { ResizeHandle } from '../ui/ResizeHandle'
 import { useElementSize } from '../ui/useElementSize'
 import { useConnectedLayerNames } from './layer-names'
 import { LayerStack } from './LayerStack'
-import { usePressedKeys } from './pressed-keys'
+import { NO_LAYER, reportsLayer, usePressedKeys } from './pressed-keys'
 import { CAP, legibleHeight, maxHeight, minHeight, naturalHeight, stageHeight, toFraction, type StageMeasures } from './stage-size'
 import { shownLayer, stage, useStage } from './stage-store'
 
@@ -41,7 +41,9 @@ export function Stage({ keyboard, selectable, space }: Props) {
   const live = useDevice((s) => s.layer)
   const state = useStage()
   const names = useConnectedLayerNames()
-  const pressed = usePressedKeys(keyboard, live)
+  // Compatibility: a keyboard that doesn't report its layer (pressed-keys.ts, reportsLayer) is taken to be on layer 0,
+  // as the Test page does.
+  const pressed = usePressedKeys(keyboard, reportsLayer(live) ? live : NO_LAYER)
   const shown = shownLayer(state, live, keyboard.layers)
 
   const [fraction, setFraction] = usePref<number | null>(STAGE_SIZE_PREF, null)

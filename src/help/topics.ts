@@ -81,7 +81,7 @@ const topics = {
   'live-layer': {
     title: 'Follow the keyboard',
     body: [
-      'The keyboard tells the app which layer is active. With this on, the picture always shows that layer: hold Fn and you see the Fn layer.',
+      'The keyboard tells the app which layer is active. With this on, the picture always shows that layer: hold Fn and you see the Fn layer. Only keyboards that report their layer offer it (Keychron’s do); on others the picture stays on the layer you pick.',
       'Turn it off, or click a layer, to look at or edit a layer without holding anything.',
     ],
     example: 'Hold Fn on the keyboard and watch the picture change to the Fn layer; let go and it changes back.',

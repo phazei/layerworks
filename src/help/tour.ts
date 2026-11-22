@@ -35,7 +35,7 @@ export const TOUR_STEPS: TourStep[] = [
     title: 'Your keyboard, live',
     body: [
       'This is your keyboard as it is set up right now. Beside it are its layers: complete sets of keys, one on top of another.',
-      'Hold Fn on the keyboard and watch the picture switch to the Fn layer (while Follow the keyboard is on).',
+      'Hold Fn on the keyboard and, on keyboards that report their layer, watch the picture switch to the Fn layer (while Follow the keyboard is on). Elsewhere, click a layer in the list to see its keys.',
     ],
     demoBody: [
       'This is the keyboard as it is set up right now. Beside it are its layers: complete sets of keys, one on top of another.',
