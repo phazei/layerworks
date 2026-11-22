@@ -8,7 +8,7 @@ import { Card } from '../../ui/layout'
 
 export function TourCard() {
   return (
-    <Card title="Getting to know Layerworks" description="The tour from the first visit, and every explanation in one place.">
+    <Card title="Getting to know Layerworks" help="app-settings" description="The tour from the first visit, and every explanation in one place.">
       <div className="flex flex-wrap items-center gap-2">
         <Button icon={<Route size={16} aria-hidden />} onClick={() => tour.start(0)}>
           Take the tour

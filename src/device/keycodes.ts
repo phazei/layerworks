@@ -465,7 +465,7 @@ function extraGroups(features: PaletteFeatures): PaletteGroup[] {
     {
       id: 'magic',
       title: 'Swapped and disabled keys',
-      note: 'Each press changes a switch the keyboard remembers; the same switches are on the Typing feel page.',
+      note: 'Each press changes a switch the keyboard remembers; most of the same switches are on the Typing feel page (swapping Esc and Caps Lock is only here).',
       link: { label: 'Typing feel', href: '#/typing/magic' },
       keys: ordered(tables.KEYCODES_BEHAVIOR_MAGIC, MAGIC_ORDER),
     },
@@ -669,7 +669,7 @@ export function keycodeTitle(code: number): string {
   const tapHold = readTapHold(code)
   if (tapHold) return tapHoldWords(tapHold, (layer) => `layer ${layer}`)
   const oneShot = readOneShotMod(code)
-  if (oneShot) return `${modifierWords(oneShot.mods)} for the next key only`
+  if (oneShot) return `One-tap ${modifierWords(oneShot.mods)}`
   const layerMod = readLayerMod(code)
   if (layerMod) return `While held, use layer ${layerMod.layer} with ${modifierWords(layerMod.mods)}`
   return keycodeName(code)

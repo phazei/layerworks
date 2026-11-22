@@ -65,7 +65,7 @@ export function Overview() {
         </ul>
         <p className="mt-3 flex items-center gap-1.5 text-[13px] text-muted">
           <BookA size={14} aria-hidden />
-          Each topic links to the place in the app it is about, and to the QMK documentation for more depth.
+          Each topic links to the place in the app it is about, and most to the QMK, Vial or Keychron documentation for more depth.
         </p>
       </Card>
     </div>

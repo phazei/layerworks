@@ -26,7 +26,7 @@ function SettingsPage() {
     <div className="@container max-w-6xl">
       <div className="grid items-start gap-4 @4xl:grid-cols-2">
         <div className="flex flex-col gap-4">
-          <Card title="Appearance" description="How Layerworks looks in this browser.">
+          <Card title="Appearance" help="app-settings" description="How Layerworks looks in this browser.">
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <span>Theme</span>
               <Segmented label="Theme" value={theme} options={THEMES} onChange={setTheme} />

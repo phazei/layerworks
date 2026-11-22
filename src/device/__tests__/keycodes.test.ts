@@ -169,7 +169,7 @@ describe('tap / hold keys', () => {
     expect(modifierShort(0x03)).toBe('Ctrl+Shift')
     expect(keycodeTitle(modTapKeycode(0x01, ESC)!)).toBe('Tap: Escape · Hold: Ctrl')
     expect(keycodeTitle(layerTapKeycode(4, SPACE)!)).toBe('Tap: Space bar · Hold: layer 4')
-    expect(keycodeTitle(oneShotModKeycode(0x02)!)).toBe('Shift for the next key only')
+    expect(keycodeTitle(oneShotModKeycode(0x02)!)).toBe('One-tap Shift')
     expect(keycodeTitle(layerModKeycode(3, 0x01)!)).toBe('While held, use layer 3 with Ctrl')
     expect(keycodeName(modTapKeycode(0x01, ESC)!)).toBe('Esc / Ctrl')
     expect(keycodeCap(layerTapKeycode(4, SPACE)!)).toBe('Space\nLayer 4')

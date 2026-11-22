@@ -182,7 +182,8 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
   related topics (they open in the panel) and "Open on the Help page".
 - **The first-run tour** (see "Help and the tour") is mounted once in the shell (`shell/Tour.tsx`).
 - **Theme**: dark by default; Settings offers dark, light and "Like the system". Stored with `prefs.ts`
-  (`theme`); a small script in `index.html` applies it before the app loads, so nothing flashes.
+  (`theme`); a small script in `index.html` applies it before the app loads, and a `<style>` there gives the page its
+  colour (`--surface`, each theme's) before the stylesheet arrives, so a reload doesn't flash white.
 - Designed for 1280 × 800, usable down to 1000 × 700 (nothing enforces a minimum). When the stage itself is narrower than 768 px (a
   container query; a window of about 1050 px), the layer stack becomes one row above the picture: the layers as
   chips (the dot marks the active one, the rename pencil appears on pointing or focus) and "Follow the keyboard" at
@@ -296,9 +297,9 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     ("Use Tap: Escape · Hold: Ctrl"). A note under the palette (under it, so in a small window the palette starts high) points to
     multi-tap keys for anything that isn't a plain key, and to the Typing feel page for how long counts as a hold. Under "Left- or right-hand modifier", the side
     (QMK can't mix sides in one key; opened by itself for a right-hand key).
-  - *More options* (`keys/MoreOptions.tsx`): Nothing, Same as the layer below, a modifier for the next key only
-    (QMK's one-shot modifier, `OSM`: Ctrl, Shift, Alt, Win and Right-hand to tick, none ticked unless the key holds
-    one, then "Use Shift for the next key"), and a key-code field that shows what the typed code means (`parseKeycode`) before "Use this code". It
+  - *More options* (`keys/MoreOptions.tsx`): Nothing, Same as the layer below, a one-tap modifier ("a modifier for
+    the next key only"; QMK's one-shot modifier, `OSM`: Ctrl, Shift, Alt, Win and Right-hand to tick, none ticked unless the key holds
+    one, then "Use one-tap Shift"), and a key-code field that shows what the typed code means (`parseKeycode`) before "Use this code". It
     opens by itself when the current assignment lives there (nothing, transparent, a one-shot modifier, or a code
     no choice builds, which is put in the field), for that key only: `Disclosure`'s `forceOpen` leaves the
     remembered open/closed state alone.
@@ -562,9 +563,12 @@ written `{layer:N|Generic name}` (`help/text.ts`): the connected keyboard's name
 with none, so the Help page reads right offline.
 
 **The guide** (`help/guide.ts`) puts every topic in exactly one group, in reading order: Getting started; Keys and
-layers; Shortcuts and macros; Lighting; Typing feel; Testing; Backing up and the keyboard; Firmware and QMK words.
-`GUIDE_ONLY` names the few topics no "?" opens (Caps Word, Layer Lock, "Two names for everything"); the tests check
-that every other topic is opened somewhere in the app and that every topic is in the guide. **The glossary**
+layers; Shortcuts & macros; Lighting; Typing feel; Testing; Device: backups and the keyboard; Firmware and QMK
+words. `GUIDE_ONLY` names the few topics no "?" opens (Caps Word, Layer Lock, "Two names for everything"); the tests
+check that every other topic is opened somewhere in the app and that every topic is in the guide. Every typing
+setting has help: `FIELD_HELP` (`pages/typing/help.ts`) gives a setting its own "?" where a topic other than its
+card's explains it (the tap-or-hold settings past the everyday one, `typing-hold-decision` and
+`typing-tap-hold-more`); the rest are explained by their card's topic (`GROUP_HELP`), which a test checks. **The glossary**
 (`help/glossary.ts`) maps the words other apps and guides use (QMK, Vial, VIA, keycode, tap dance, combo,
 KC_TRNS, EEPROM, bootloader, N-key rollover …) to the app's name and topic.
 
@@ -576,8 +580,11 @@ Getting started", the groups as tiles), `#/help/<topic>`, `#/help/glossary`, and
 with a search. A topic shows its text, "Where this is in the app" as links, related topics, and the previous and
 next topic in reading order; opening one moves the focus to its title. **The search** (`help/search.ts`) wants every
 word of the query in a topic's title, QMK name, text, example or a glossary line pointing to it; titles and QMK names
-weigh most, so "MO", "LT", "tap dance", "combo", "KC_TRNS" or "debounce" find the friendly topic first. Words of one
-or two letters only match whole words. Each result shows its group and the passage where the words are, marked
+weigh most, so "MO", "LT", "tap dance", "combo", "KC_TRNS" or "debounce" find the friendly topic first, and a query
+that is one of a topic's names (its title, a part of its QMK name, a glossary term) puts that topic first. Variants
+are handled there, in one place: US spellings ("color", "gray"); hyphen, space and joined forms ("mod-tap", "mod
+tap", "modtap"); codes with any number ("TD(1)" finds "TD(0)"); and words of three letters or fewer match only whole
+words, plurals included ("mac" finds "Mac", not "macro"). Each result shows its group and the passage where the words are, marked
 (`help/Highlight.tsx`), and the topic opened from it is marked too. Nothing found: suggestions to click and the
 glossary.
 

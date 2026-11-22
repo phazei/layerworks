@@ -67,3 +67,74 @@ describe('searching the help', () => {
     expect(matchRanges('tapping', ['tap', 'tapp'])).toEqual([[0, 4]])
   })
 })
+
+describe('variants of a word', () => {
+  const ids = (query: string) => searchHelp(query).map((hit) => hit.id)
+
+  it('understands US spellings', () => {
+    expect(queryWords('Color gray colors')).toEqual(['colour', 'grey', 'colours'])
+    expect(first('color')).toBe('lighting-colour')
+    expect(ids('per key color')).toContain('key-colours')
+  })
+
+  it('treats hyphen, space and joined forms alike', () => {
+    for (const query of ['mod-tap', 'mod tap', 'modtap']) expect(first(query), query).toBe('mod-tap')
+    for (const query of ['auto-shift', 'auto shift', 'autoshift']) expect(first(query), query).toBe('typing-auto-shift')
+    for (const query of ['one-shot', 'one shot', 'oneshot']) expect(['one-shot-mod', 'typing-one-shot'], query).toContain(first(query))
+    expect(first('tap-hold')).toBe('typing-tap-hold')
+  })
+
+  it('finds a code with any number', () => {
+    expect(first('TD(1)')).toBe('tap-dance')
+    expect(first('td(7)')).toBe('tap-dance')
+    expect(matchRanges('TD(0), TD(1) …', ['td(5)'])).toEqual([
+      [0, 5],
+      [7, 12],
+    ])
+  })
+
+  it('matches words of three letters or fewer only whole, plurals included', () => {
+    expect(first('mac')).toBe('layers')
+    expect(ids('mac')).not.toContain('macros')
+    expect(first('mac windows')).toBe('layers')
+    expect(first('fn')).toBe('layers')
+    expect(matchRanges('keys and keyboards', ['key'])).toEqual([[0, 4]])
+  })
+})
+
+describe('ranking', () => {
+  it('puts each topic first for its own word', () => {
+    expect(first('backup')).toBe('backup')
+    expect(first('restore')).toBe('restore')
+    expect(first('knob')).toBe('knob')
+    expect(first('qmk settings')).toBe('typing-feel')
+    expect(first('default layer')).toBe('layer-key')
+    expect(first('swap esc caps')).toBe('magic-keys')
+    expect(first('scroll speed')).toBe('typing-mouse-keys')
+  })
+
+  it('finds what the audit found missing', () => {
+    expect(first('retro tapping')).toBe('typing-tap-hold-more')
+    expect(first('flow tap')).toBe('typing-tap-hold-more')
+    expect(first('quick tap')).toBe('typing-tap-hold-more')
+    expect(first('factory reset')).toBe('keymap-reset')
+    expect(first('tour')).toBe('app-settings')
+    expect(first('theme')).toBe('app-settings')
+    expect(first('dark mode')).toBe('app-settings')
+    expect(first('qwertz')).toBe('key-legends')
+    expect(first('repeat key')).toBe('alt-repeat')
+    expect(first('leader')).toBe('left-out-keys')
+    expect(first('dongle')).toBe('connecting')
+    expect(first('numlock')).toBe('lock-lights')
+    expect(first('adaptive nkro')).toBe('typing-magic')
+    for (const query of ['numpad', 'copy paste', 'emoji', 'hyper', 'meh', 'cmd', 'super', 'bootmagic', 'autocorrect', 'fn2']) {
+      expect(searchHelp(query).length, query).toBeGreaterThan(0)
+    }
+  })
+
+  it('finds one-tap modifiers by their name and by their description', () => {
+    expect(first('one-tap modifier')).toBe('one-shot-mod')
+    expect(first('one tap')).toMatch(/^(one-shot-mod|typing-one-shot)$/)
+    expect(searchHelp('next key only').slice(0, 2).map((hit) => hit.id)).toContain('one-shot-mod')
+  })
+})

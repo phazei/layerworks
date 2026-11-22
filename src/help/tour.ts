@@ -35,7 +35,7 @@ export const TOUR_STEPS: TourStep[] = [
     title: 'Your keyboard, live',
     body: [
       'This is your keyboard as it is set up right now. Beside it are its layers: complete sets of keys, one on top of another.',
-      'Hold Fn on the keyboard and watch the picture switch to the Fn layer.',
+      'Hold Fn on the keyboard and watch the picture switch to the Fn layer (while Follow the keyboard is on).',
     ],
     demoBody: [
       'This is the keyboard as it is set up right now. Beside it are its layers: complete sets of keys, one on top of another.',
@@ -92,7 +92,7 @@ export const TOUR_STEPS: TourStep[] = [
     title: 'Back up before you experiment',
     body: [
       'Save a backup now: one file with everything the keyboard holds. If an experiment goes wrong, restoring it puts the keyboard back as it was.',
-      'Saving only reads; nothing on the keyboard changes.',
+      'Saving only reads; nothing on the keyboard changes. Take this tour again any time from Settings or the Help page.',
     ],
   },
 ]

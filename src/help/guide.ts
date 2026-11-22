@@ -18,8 +18,8 @@ export const GUIDE: GuideGroup[] = [
   {
     id: 'start',
     title: 'Getting started',
-    description: 'What the app does, connecting, the picture and layers, your first change, and how to take it back.',
-    topics: ['welcome', 'connecting', 'demo', 'layers', 'live-layer', 'assign-key', 'undo', 'saving', 'unlock'],
+    description: 'What the app does, connecting, the picture and layers, your first change, how to take it back, and the app’s own settings.',
+    topics: ['welcome', 'connecting', 'demo', 'layers', 'live-layer', 'assign-key', 'undo', 'saving', 'unlock', 'app-settings'],
   },
   {
     id: 'keys',
@@ -53,7 +53,7 @@ export const GUIDE: GuideGroup[] = [
   },
   {
     id: 'shortcuts',
-    title: 'Shortcuts and macros',
+    title: 'Shortcuts & macros',
     description: 'Keys that type text, do something else on a double tap, or fire when pressed together.',
     topics: [
       'macros',
@@ -96,6 +96,7 @@ export const GUIDE: GuideGroup[] = [
       'typing-feel',
       'typing-tap-hold',
       'typing-hold-decision',
+      'typing-tap-hold-more',
       'typing-chords',
       'typing-auto-shift',
       'typing-one-shot',
@@ -115,8 +116,8 @@ export const GUIDE: GuideGroup[] = [
   },
   {
     id: 'device',
-    title: 'Backing up and the keyboard',
-    description: 'Backups, restoring, Vial files, the sleep timers, what the keyboard says about itself, resetting and firmware updates.',
+    title: 'Device: backups and the keyboard',
+    description: 'The Device page: backups, restoring, Vial files, the sleep timers, what the keyboard says about itself, resetting and firmware updates.',
     topics: ['backup', 'restore', 'vial-file', 'keyboard-info', 'keyboard-features', 'lights-off-timer', 'sleep-timer', 'keymap-reset', 'bootloader'],
   },
   {

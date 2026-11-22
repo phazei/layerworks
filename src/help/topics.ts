@@ -36,7 +36,7 @@ const topics = {
     body: [
       'Layerworks changes what your keyboard does: what each key types, what the knob turns, the lighting, and how the keyboard reacts to your typing. The changes go into the keyboard itself, not into this computer, so they work on any computer you plug it into, without this app running.',
       'It runs in Chrome or Edge, on the cable or through the 2.4 GHz receiver. Nothing to install, and the computer’s own keyboard settings are left alone.',
-      'Start on the Keys page: click a key in the picture and choose what it should do. Every change can be undone, and a backup on the Device page keeps a copy of the whole keyboard.',
+      'Start on the Keys page: click a key in the picture and choose what it should do. Key changes can be undone with Undo, and a backup on the Device page keeps a copy of the whole keyboard.',
     ],
     example: 'Make Caps Lock a second Esc, try it, and take it back with Undo if you miss Caps Lock. A minute’s work.',
     where: [
@@ -50,7 +50,7 @@ const topics = {
     body: [
       'Plug the keyboard in with its cable, or plug its Keychron Link receiver into the computer and set the keyboard’s switch to 2.4 GHz. Click Connect a keyboard… and pick it in the list the browser shows: the keyboard by its name, or “Keychron Link” for the receiver. Bluetooth can’t be used for this.',
       'Only one program can talk to the keyboard at a time. Close Vial, Keychron Launcher and other keyboard apps first, browser tabs included.',
-      'It needs Chrome or Edge on a computer; other browsers can’t talk to keyboards. Once you have allowed it, the keyboard is offered straight away next time.',
+      'It needs Chrome or Edge on a computer; other browsers can’t talk to keyboards. Once you have allowed it, this browser offers the keyboard straight away next time, as “Connect to” and its name. Through the receiver the keyboard’s card at the top left shows the battery too; on the cable the keyboard doesn’t report it. Disconnect, in that card, lets go of the keyboard so another app can use it.',
     ],
     example: 'The keyboard isn’t in the list, or won’t connect? Close the other keyboard apps and tabs, unplug it, plug it in again and try once more.',
     where: [{ label: 'Home, when no keyboard is connected', href: '#/' }],
@@ -92,7 +92,8 @@ const topics = {
     title: 'Changing what a key does',
     body: [
       'Click a key in the picture, then choose what it should do. The change is written to the keyboard straight away and stays there, on any computer, without this app running.',
-      'To change what a key does while Fn is held, pick that layer in the list beside the picture first. Every change can be undone with Undo in the bar at the bottom.',
+      'To change what a key does while Fn is held, pick that layer in the list beside the picture first. Every key change can be undone with Undo in the bar at the bottom, and Esc lets go of the selected key.',
+      'A key that runs a macro or a multi-tap key says so under Now, with a link to change what it does on Shortcuts & macros.',
     ],
     example: 'Click Caps Lock, then pick Esc: the Caps Lock key now sends Esc.',
     where: [{ label: 'Keys page', href: '#/keys' }],
@@ -101,8 +102,8 @@ const topics = {
   undo: {
     title: 'Undo and redo',
     body: [
-      'Undo, in the bar at the bottom, takes back the last change; Redo puts it back. It goes back one change at a time, across every page: keys and the knob, saved macros and shortcuts, typing settings, key colours and zones.',
-      'Some changes can’t be undone: the lighting effect, brightness, speed and colour, the sleep timers, restoring a backup (apart from its keys and knob), and resetting all typing settings. The app says so before the last two. A backup made first gets you back from anything.',
+      'Undo, in the bar at the bottom, takes back the last change; Redo puts it back. It goes back one change at a time, across every page: keys and the knob, saved macros and shortcuts, typing settings, the key bounce filter and Snap Click, key colours and how they light up, zones and their effects, and the Caps Lock light. It remembers the last 100 changes.',
+      'Some changes can’t be undone: the lighting effect, brightness, speed and colour, the wireless timers, the macros, settings and lighting of a restored backup (its keys and knob can), resetting all typing settings, and Reset to defaults, which also empties Undo. The app asks before each of the last three. Undoing a macro, or a shortcut that holds the firmware-update key, needs the keyboard unlocked. A backup made first gets you back from anything.',
       'Undo remembers this visit only; it starts empty when the page is reloaded or the keyboard reconnects. The changes themselves stay on the keyboard.',
     ],
     example: 'Put Esc on Caps Lock, type with it for a minute, then Undo if you miss Caps Lock.',
@@ -113,7 +114,7 @@ const topics = {
     title: 'Where changes are kept',
     qmkName: 'EEPROM',
     body: [
-      'Everything you change is stored in the keyboard’s own memory, not on this computer, and stays there when it is unplugged. The bar at the bottom says “Saved on the keyboard” once it has it.',
+      'Everything you change is stored in the keyboard’s own memory, not on this computer, and stays there when it is unplugged. The bar at the bottom says “Saved on the keyboard” once it has it. While the app is still reading something from the keyboard, the bar says so; if a change didn’t reach the keyboard, it says that instead, in red.',
       'A few things the keyboard has no room for live in this browser instead: the names you give layers and macros, and the app’s own settings. Backup files hold the names too.',
       'Putting new firmware on the keyboard can erase what it holds, so make a backup first (Device page).',
     ],
@@ -125,16 +126,29 @@ const topics = {
     title: 'Locked and unlocked',
     qmkName: 'Vial unlock',
     body: [
-      'The keyboard keeps a few powerful changes locked, so a web page can’t make them behind your back: editing macros, watching every key for the key test, and restarting into firmware update mode.',
-      'Everyday changes such as keys, layers and lighting work while it is locked. When something needs unlocking, the app says so and shows you how: you hold two keys on the keyboard for a few seconds.',
-      'While it unlocks, the keyboard doesn’t type and the unlock can’t be cancelled; letting go of the keys only starts the count again. Unplugging the keyboard, or moving its connection switch, ends it. Once unlocked, it stays so until it restarts or changes connection mode, or until you lock it again from the device card.',
+      'The keyboard keeps a few powerful changes locked, so a web page can’t make them behind your back: editing macros, putting the firmware-update key on a key, reading every switch (for the key test and “Press a key”), and restarting into firmware update mode.',
+      'Everyday changes such as keys, layers and lighting work while it is locked. When something needs unlocking, the app says so and shows you how: you hold the keys the keyboard names, two on most keyboards, for a few seconds.',
+      'While it unlocks, the keyboard doesn’t type and the unlock can’t be cancelled; letting go of the keys only starts the count again. Unplugging the keyboard, or moving its connection switch, ends it. Once unlocked, it stays so until it restarts or changes connection mode, or until you lock it again with Lock in the keyboard’s card at the top left.',
     ],
-    example: 'On the K15 Max: click Unlock… in the device card, then hold Esc and Enter until the bar is full.',
+    example: 'On the K15 Max: click Unlock… in the keyboard’s card at the top left, then hold Esc and Enter until the bar is full.',
     where: [
-      { label: 'The device card, top left', href: '#/' },
-      { label: 'Device page, About this keyboard', href: '#/device' },
+      { label: 'The keyboard’s card, top left, above the pages', href: '#/' },
+      { label: 'Home, Protection', href: '#/' },
     ],
     related: ['macro-unlock', 'test-keys'],
+  },
+  'app-settings': {
+    title: 'The app’s own settings and the tour',
+    body: [
+      'The Settings page is about Layerworks itself, not the keyboard: the theme, dark or light (or like the computer’s), the names of your layers, and whether keys are named by your computer’s keyboard layout. It works without a keyboard connected, and what it keeps stays in this browser.',
+      'The tour from the first visit points at the main parts of the screen in six short stops. Take it again any time with “Take the tour”, on the Settings page or on the Help page.',
+    ],
+    example: 'Prefer a light window during the day? Settings, Appearance, Light; “Like the system” follows the computer’s dark mode.',
+    where: [
+      { label: 'Settings', href: '#/settings' },
+      { label: 'Help, Start here', href: '#/help' },
+    ],
+    related: ['welcome', 'layer-names', 'key-legends'],
   },
 
   // ---- Keys and layers ----
@@ -143,7 +157,7 @@ const topics = {
     title: 'Picking a key',
     qmkName: 'Basic keycodes',
     body: [
-      'The keys are grouped the way you would look for them: letters, numbers, editing, media, mouse, lighting and the keys only this keyboard has. Point at one to see what it does; click it and the selected key does that from then on.',
+      'The keys are grouped the way you would look for them: letters, numbers and symbols, editing, function keys, media, number pad (numpad), mouse, lighting, the keys only this keyboard has, macros and multi-tap keys, then typing helpers, swapped keys and international keys. Rarely needed ones wait under More keys at the end. Point at one to see what it does; click it and the selected key does that from then on.',
       'The search looks at the names on the keys, what they do and their QMK names, so "volume", "esc" and "KC_MUTE" all work.',
     ],
     example: 'Search "play" and click Media Play: the key now plays and pauses music.',
@@ -169,7 +183,7 @@ const topics = {
       'One key that presses a key together with Ctrl, Shift, Alt or the Windows key.',
       'Tick the modifiers, pick the key, then use the button that names the result. Nothing is written before that, so trying costs nothing.',
     ],
-    example: 'Tick Ctrl and pick C: the key sends Ctrl+C (copy) in one press.',
+    example: 'Tick Ctrl and pick C: the key sends Ctrl+C (copy) in one press; Ctrl and V on another key pastes.',
     docs: QMK + 'feature_advanced_keycodes',
     where: [{ label: 'Keys page, “A shortcut”', href: '#/keys' }],
     related: ['macros', 'tap-hold'],
@@ -181,7 +195,7 @@ const topics = {
       'A layer key switches to another layer. The usual kind works while held, like Fn. Others switch a layer on until pressed again, or just for the next key.',
       '“Hold for a layer, or tap it 5 times to keep it on” (TT) works while held too, but that many quick taps leave the layer on until you do it again. The number is the keyboard’s Tapping toggle: a typing setting where the keyboard reports it (Typing feel page), otherwise fixed in its firmware (5).',
       'The key that takes you to a layer should be empty ("same as the layer below") on that layer, or you can get stuck there.',
-      'Some keyboards, Keychron’s among them, have a Mac / Windows switch that picks the base layer again every time the keyboard starts, so “Make … the base layer” lasts only until then.',
+      'The base layer (QMK’s default layer, DF) is the one the keyboard rests on. Some keyboards, Keychron’s among them, have a Mac / Windows switch that picks the base layer again every time the keyboard starts, so “Make … the base layer” lasts only until then.',
     ],
     example: '“While held, use {layer:3|Windows Fn}” on Caps Lock: hold Caps Lock and the keys do what they do while Fn is held.',
     docs: QMK + 'feature_layers#switching-and-toggling-layers',
@@ -190,7 +204,7 @@ const topics = {
   },
   'tap-hold': {
     title: 'Tap or hold',
-    qmkName: 'Mod-tap, layer-tap',
+    qmkName: 'Mod-tap and layer-tap',
     body: [
       'One key that does one thing when you tap it and another while you hold it down: a modifier such as Ctrl, or a layer. Tapped, it sends a plain key.',
       'The keyboard waits to see which it is, so a tap is sent when you let go rather than when you press. How long counts as a hold is a typing setting (Typing feel page).',
@@ -229,15 +243,15 @@ const topics = {
     related: ['tap-hold', 'mod-tap', 'layer-key'],
   },
   'one-shot-mod': {
-    title: 'Modifier for the next key only',
+    title: 'One-tap modifier',
     qmkName: 'One-shot modifier, OSM(mod)',
     body: [
-      'Tap it and let go: the next key you press comes with that modifier, as if you had held it. Handy for capitals without holding Shift, or Ctrl shortcuts with one hand.',
-      'Held down, it works like the ordinary modifier. How long it waits for the next key is a typing setting.',
+      'A modifier for the next key only. Tap it and let go: the next key you press comes with that modifier, as if you had held it. Handy for capitals without holding Shift, or Ctrl shortcuts with one hand.',
+      'Held down, it works like the ordinary modifier. How long it waits for the next key, and how many taps lock it on, are typing settings (Typing feel, One-tap modifiers).',
     ],
-    example: 'Shift for the next key only: tap it, then tap A, and you get a capital A.',
+    example: 'A one-tap Shift: tap it, then tap A, and you get a capital A.',
     docs: QMK + 'one_shot_keys',
-    where: [{ label: 'Keys page, More options', href: '#/keys' }],
+    where: [{ label: 'Keys page, More options, One-tap modifier', href: '#/keys' }],
     related: ['typing-one-shot', 'caps-word'],
   },
   'layer-mod': {
@@ -303,7 +317,7 @@ const topics = {
   'layer-names': {
     title: 'Layer names',
     body: [
-      'The names in the list of layers are only for you: Mac, Windows Fn, or whatever helps you remember what a layer is for. Rename one with a double click in the list (or its pencil), or on the Settings page.',
+      'The names in the list of layers are only for you: Mac, Windows Fn, or whatever helps you remember what a layer is for. Rename one with a double click in the list (or its pencil), or on the Settings page; up to 24 characters, and an empty name brings the default back.',
       'The keyboard has nowhere to keep names, so they live in this browser, for this keyboard, and travel in backup files.',
     ],
     example: 'Call {layer:4|Layer 4} “Numbers” once it holds a number pad.',
@@ -319,6 +333,7 @@ const topics = {
       'A keyboard doesn’t send letters: it sends which key was pressed, and the computer’s keyboard layout decides the character. The same key types Y on a US layout and Z on a German one. Layerworks names keys by what your computer’s layout types, so the picture and the lists match the keys in front of you. The QMK name beside them (KC_Y) stays as it is: it means a position, whatever the layout.',
       'Chrome and Edge tell which character each key types without Shift, but not with Shift or AltGr. So on a layout other than US a key shows only its unshifted character, and the symbols QMK stores as Shift + a key read “Shift + 1” rather than a symbol, since which symbol that gives depends on the layout. The search still finds a key by its US name too.',
       'Text in a macro is typed as on a US layout whatever the computer uses: the keyboard presses the keys where a US keyboard has those characters.',
+      'It works for any layout the browser can read, German (QWERTZ), French (AZERTY), Nordic, UK and the rest. The switch under Settings, Key names, goes back to US names.',
     ],
     example: 'On a German layout the key right of T reads Z, the key right of L reads Ö, and Ctrl + the key a US keyboard calls Z reads “Ctrl + Y”.',
     where: [{ label: 'Settings, Key names', href: '#/settings' }],
@@ -328,7 +343,7 @@ const topics = {
     title: 'Capitals for one word',
     qmkName: 'Caps Word, CW_TOGG',
     body: [
-      'A key that turns on capitals until the end of the word: type a name in capitals without holding Shift or touching Caps Lock. A space or most punctuation ends it; letters, numbers, Backspace and _ keep it going.',
+      'A key that turns on capitals until the end of the word: type a name in capitals without holding Shift or touching Caps Lock. A space or most punctuation ends it, as do 5 seconds without typing; letters, numbers, Backspace, Delete and _ keep it going, and - types _ (handy for CONSTANT_NAMES).',
       'Put it on a key from the Keys page (search “Caps Word”). Home lists whether your keyboard has it.',
     ],
     example: 'Tap it and type nasa: you get NASA, and the next word is small again.',
@@ -365,10 +380,10 @@ const topics = {
     title: 'Keys that swap or switch off keys',
     qmkName: 'Magic keycodes, CL_SWAP, GU_TOGG, NK_TOGG …',
     body: [
-      'A press changes one of the keyboard’s switches for swapped and disabled keys: swap Caps Lock and Ctrl, swap Alt and Win for a Mac, switch the Windows keys off for a game, or let the computer see any number of keys at once (N-key rollover). The keyboard remembers the switch until it is changed again.',
-      'The same switches are on the Typing feel page, under Swapped and disabled keys; a key for them is handy for switching often without opening the app. “Toggle” keys flip the switch each press; the others set it one way.',
+      'A press changes one of the keyboard’s switches for swapped and disabled keys: swap Caps Lock and Ctrl, swap Esc and Caps Lock, swap Alt and Win for a Mac, switch the Windows keys off for a game, or let the computer see any number of keys at once (N-key rollover; Keychron keyboards do that by themselves, so those keys change nothing there). The keyboard remembers the switch until it is changed again.',
+      'Most of the same switches are on the Typing feel page, under Swapped and disabled keys; swapping Esc and Caps Lock is only here, as keys. A key for them is handy for switching often without opening the app. “Toggle” keys flip the switch each press; the others set it one way.',
     ],
-    example: 'Put “Windows keys off, or on again” on Fn + Windows key: one press before a game, one after.',
+    example: 'Put “Windows keys off, or on again” on a key of an Fn layer: one press before a game, one after.',
     docs: QMK + 'keycodes_magic',
     where: [
       { label: 'Keys page, “A key”, Swapped and disabled keys', href: '#/keys' },
@@ -383,7 +398,7 @@ const topics = {
       'Keys that only some keyboards have: the two extra keys of ISO keyboards (beside Enter, and beside left Shift), the Japanese keys and the language keys of Korean and Japanese keyboards.',
       'What one types depends on the computer’s keyboard layout, not on the keyboard: the key beside left Shift types \\ in the UK and < in Germany.',
     ],
-    example: 'A German keyboard layout on an ANSI keyboard has no < key: put “Key beside left Shift on ISO keyboards” on an Fn layer.',
+    example: 'A German keyboard layout on an ANSI (US-style) keyboard has no < key: put “Key beside left Shift on ISO keyboards” on an Fn layer.',
     docs: QMK + 'keycodes_basic',
     where: [{ label: 'Keys page, “A key”, International keys', href: '#/keys' }],
     related: ['key-palette'],
@@ -393,7 +408,7 @@ const topics = {
     qmkName: 'AS_TOGG, CM_TOGG, KO_TOGG, OS_TOGG',
     body: [
       'Keys that turn a whole feature off for a while, and on again: Capitals by holding, key chords, shortcut replacements and one-tap modifiers.',
-      'Key chords, shortcut replacements and Capitals by holding are on again after the keyboard restarts; the one-tap switch is kept. The Capitals by holding keys only work while that setting is on in Typing feel.',
+      'Key chords and shortcut replacements are on again after the keyboard restarts, and Capitals by holding goes back to its Typing feel switch; the one-tap switch is kept. The Capitals by holding keys only work while that Typing feel switch is on.',
     ],
     example: 'Key chords getting in the way in a game? A key that turns them off for the session, and on again.',
     docs: QMK + 'features/combo#keycodes',
@@ -414,9 +429,10 @@ const topics = {
   },
   'left-out-keys': {
     title: 'Keys the app leaves out',
-    qmkName: 'Joystick, programmable buttons, MIDI, audio, haptic, steno, backlight, underglow, dynamic macros, swap hands, Unicode',
+    qmkName: 'Joystick, programmable buttons, MIDI, audio, haptic, steno, backlight, underglow, dynamic macros, swap hands, Unicode, leader key, autocorrect',
     body: [
-      'QMK has keys for hardware and features most keyboards’ firmware doesn’t include: joystick and programmable buttons, MIDI and music, sound, vibration, stenography, single-colour backlights and underglow strips, keys that record macros on the keyboard, swapping the halves of split keyboards, Unicode characters. Pressed on a keyboard without the feature, they do nothing, so the palette leaves them out. The K15 Max’s firmware, Keychron’s and the Vial build alike, has none of them.',
+      'QMK has keys for hardware and features most keyboards’ firmware doesn’t include: joystick and programmable buttons, MIDI and music, sound, vibration, stenography, single-colour backlights and underglow strips, keys that record macros on the keyboard (QMK’s dynamic macros), swapping the halves of split keyboards, Unicode characters (emoji, accented letters). Pressed on a keyboard without the feature, they do nothing, so the Keys page leaves them out. The K15 Max’s firmware, Keychron’s and the Vial build alike, has none of them.',
+      'The leader key (a key that starts a sequence of letters standing for a command) and the Autocorrect switch aren’t offered either; whether a firmware has them depends on how it was built.',
       'If your firmware has one, type its QMK name under More options, Key code (PB_1, JS_0, MI_C …). A key that already holds one shows what kind of key it is.',
     ],
     example: 'Want extra buttons for a streaming app? F13 – F24, under Function keys, work everywhere without anything in the firmware.',
@@ -425,17 +441,18 @@ const topics = {
     related: ['raw-code', 'key-palette'],
   },
 
-  // ---- Shortcuts and macros ----
+  // ---- Shortcuts & macros ----
 
   macros: {
     title: 'Macros',
-    qmkName: 'Dynamic macros, M0 – M15',
+    qmkName: 'Macros, M0, M1 …',
     body: [
       'A macro does several things when you press one key: types a piece of text, taps a shortcut, waits a moment, and so on, one step after another. It lives in the keyboard, so it works on any computer.',
-      'Build one from steps, or record it as you type. Save it to the keyboard, then put it on a key: “Put it on a key…” in the macro opens the Keys page, and the next key you click there runs it (or pick it on the Keys page under Macros). They carry the firmware’s own numbers: Macro 1 is QMK’s M1, which Keychron keyboards put on the key printed M1; Macro 0 comes last.',
-      'All the macros share one small space in the keyboard (926 bytes on the K15 Max): each typed character takes one byte, each key or wait a few.',
+      'Build one from steps, or record it as you type. Save it to the keyboard, then put it on a key: “Put it on a key…” in the macro opens the Keys page, and the next key you click there runs it (pick the layer in the list first; Esc or Cancel stops without changing anything, and Undo takes the key back). Or pick it on the Keys page under Macros. They carry the firmware’s own numbers: Macro 1 is QMK’s M1, which Keychron keyboards put on the key printed M1; Macro 0 comes last.',
+      'Text is typed as on a US keyboard layout. On another layout some characters come out differently (on a German one, @ gives " and y and z swap), so type those with Tap a key steps, pressing the keys your layout uses for them.',
+      'All the macros share one small space in the keyboard (Device page, About this keyboard, says how much): each typed character takes one byte, each key or wait a few.',
     ],
-    example: 'A macro that types your e-mail address, on Fn + E.',
+    example: 'A macro that types your e-mail address, on a key of an Fn layer.',
     docs: 'https://get.vial.today/manual/macros.html',
     where: [{ label: 'Shortcuts & macros, Macros', href: '#/shortcuts/macro' }],
     related: ['macro-record', 'macro-unlock', 'shortcut-drafts', 'tap-dance'],
@@ -458,7 +475,7 @@ const topics = {
       'A pause between steps, for a program that needs a moment: a window opening, a menu appearing. Up to about 65 seconds per wait.',
     ],
     example: 'Win + R, wait 0.3 s for the Run box, then type “notepad” and tap Enter.',
-    docs: QMK + 'feature_macros#sendstring',
+    docs: QMK + 'feature_macros#tap-down-and-up',
     where: [{ label: 'Shortcuts & macros, in a macro', href: '#/shortcuts/macro' }],
     related: ['macros', 'macro-hold'],
   },
@@ -468,10 +485,10 @@ const topics = {
     body: [
       '“Tap a key” presses and releases a key in one go, with Ctrl, Shift, Alt or Win if ticked. For a key that must stay down while other steps happen, use “Hold a key down”, then “Let a key go” later.',
       'Let every held key go before the macro ends, or the computer thinks it is still held until you press it yourself.',
-      '“Tap a key” can be any key the Keys page offers, the less common ones (Caps Word, swapped keys) included; holding and letting go offer the keys that mean something while held.',
+      '“Tap a key” can be nearly any key the Keys page offers, the less common ones (Caps Word, swapped keys) included; only macros, multi-tap keys and repeat keys are left out. Holding and letting go offer the keys that mean something while held.',
     ],
     example: 'Hold Alt, tap Tab, tap Tab, let Alt go: switches to the window two back.',
-    docs: QMK + 'feature_macros#sendstring',
+    docs: QMK + 'feature_macros#tap-down-and-up',
     where: [{ label: 'Shortcuts & macros, in a macro, More options', href: '#/shortcuts/macro' }],
     related: ['macros', 'macro-wait'],
   },
@@ -489,8 +506,10 @@ const topics = {
   'shortcut-drafts': {
     title: 'Saving shortcuts and macros',
     body: [
-      'Keys change the moment you pick something. Macros and the other shortcuts are edited first and written to the keyboard when you click Save to keyboard, so half-finished steps never reach it. Until then the editor says “Not saved yet”, and Revert puts back what the keyboard has.',
+      'Keys change the moment you pick one (a shortcut or a tap-or-hold key when you press the button that names it). Macros and the other shortcuts are edited first and written to the keyboard when you click Save to keyboard, so half-finished steps never reach it. Until then the editor says “Not saved yet”, and Revert puts back what the keyboard has.',
       'Unsaved changes are kept while you visit other pages, and the bar at the bottom says which are waiting. The browser asks before the tab is closed with any left.',
+      'The list on the left shows each kind with how many of its slots are used, and Add opens the next free one. Kinds in use are listed first; the others wait under More options.',
+      '“Try: …” in an editor fills in a working example to start from. Each editor lists the keys that run it under “Runs when you press”: click one to see that key on the Keys page. To get rid of one (delete or empty it), use “Clear this …” at the bottom of its editor (for a macro, remove its steps), then Save to keyboard.',
     ],
     example: 'Change a macro’s text, look something up on the Keys page, come back: the change is still there, waiting for Save to keyboard.',
     where: [{ label: 'Shortcuts & macros', href: '#/shortcuts' }],
@@ -498,11 +517,11 @@ const topics = {
   },
   'tap-dance': {
     title: 'Multi-tap keys',
-    qmkName: 'Tap dance, TD(0) – TD(15)',
+    qmkName: 'Tap dance, TD(0), TD(1) …',
     body: [
       'One key that does different things depending on how you press it: a tap, a hold, two quick taps, or a tap followed by a hold. Leave any of them empty if you don’t need it.',
       'It only works once it is on a key: “Put it on a key…” in its editor opens the Keys page, and the next key you click there gets it (or, on the Keys page, click a key and pick it under Multi-tap keys).',
-      'Each of them can be any key the Keys page offers, the less common ones (Caps Word, swapped keys, restart) included.',
+      'Each of them can be any key the Keys page offers apart from multi-tap and repeat keys, the less common ones (Caps Word, swapped keys, restart) included.',
     ],
     example: 'Tap for Esc, tap twice for Caps Lock: Caps Lock is still there but hard to hit by accident.',
     docs: QMK + 'features/tap_dance',
@@ -510,10 +529,10 @@ const topics = {
     related: ['tapping-term', 'tap-hold', 'macros'],
   },
   'tapping-term': {
-    title: 'How long counts as a hold',
-    qmkName: 'Tapping term',
+    title: 'A multi-tap key’s hold time',
+    qmkName: 'Tapping term (per tap dance)',
     body: [
-      'How long the key must stay down to count as held rather than tapped, and how quickly a second tap must follow to count as a double tap. Each multi-tap key has its own; 200 ms suits most people.',
+      'How long the key must stay down to count as held rather than tapped, and how quickly a second tap must follow to count as a double tap. Each multi-tap key has its own, separate from “How long counts as a hold” on Typing feel, which is for tap-or-hold keys; 200 ms suits most people.',
       'Shorter makes taps quicker but holds easier to trigger by accident; longer the other way round.',
     ],
     example: 'If a double tap often comes out as two single taps, raise it to 250 ms.',
@@ -527,7 +546,7 @@ const topics = {
     body: [
       'Press two to four keys at the same moment and the keyboard sends something else instead of them. Pressed one after the other, they type as usual.',
       'A chord works on its own once saved, on every layer. The keys are named by what they send (J, K), not by where they are, so a chord follows a key you move. How close together the presses must be is a typing setting (Typing feel page).',
-      'What it sends can be any key the Keys page offers, the less common ones too: a chord is a good place for Caps Word or a key that switches the Windows keys off.',
+      'What it sends can be any key the Keys page offers apart from multi-tap and repeat keys, the less common ones too: a chord is a good place for Caps Word or a key that switches the Windows keys off.',
     ],
     example: 'J and K together for Esc: no need to reach for the corner.',
     docs: QMK + 'features/combo',
@@ -567,18 +586,19 @@ const topics = {
       '“Any one of the modifiers” makes one of the trigger modifiers enough. The last two decide what happens to the original key afterwards; leave them alone unless something feels wrong.',
     ],
     example: 'Untick “Start when a modifier is pressed while the key is held” if holding Backspace and then pressing Shift shouldn’t turn it into Delete.',
-    docs: QMK + 'features/key_overrides#key-override-options',
+    docs: QMK + 'features/key_overrides#reference-for-ko_option_t',
     where: [{ label: 'Shortcuts & macros, in a shortcut replacement, More options', href: '#/shortcuts/replacement' }],
     related: ['key-overrides', 'override-modifiers'],
   },
   'alt-repeat': {
     title: 'Repeat rules',
-    qmkName: 'Alt repeat key, QK_AREP',
+    qmkName: 'Alt repeat key, QK_AREP; Repeat key, QK_REP',
     body: [
-      'The alternate repeat key does the “opposite” of the key you pressed last: after Ctrl + Z, Ctrl + Y; after Page Up, Page Down. A rule says what it sends after a given key; without a rule it has a few built in (arrows, Page Up/Down …).',
+      'The alternate repeat key does the “opposite” of the key you pressed last: after Page Up, Page Down; after ←, →. A rule says what it sends after a given key, such as Ctrl + Y after Ctrl + Z. Without a rule it has pairs of its own: the arrows, Home and End, Page Up and Down, Backspace and Delete, the volume and media keys, and a few letter pairs from the Vim editor (after J it sends K, after H, L).',
       'It needs the key itself on the keyboard: “Put it on a key…” in a repeat rule opens the Keys page, and the next key you click there gets it (or pick “Alt Repeat” under Repeat keys on the Keys page).',
+      'The plain Repeat key, beside it under Repeat keys, sends the last key again, modifiers included: after Ctrl + Z it undoes once more. It needs no rules.',
     ],
-    example: 'After Ctrl + Z, the alternate repeat key sends Ctrl + Y: undo with one hand, redo with the other.',
+    example: 'A rule “after Ctrl + Z, send Ctrl + Y”: undo with one hand, and the alternate repeat key redoes.',
     docs: QMK + 'features/repeat_key',
     where: [{ label: 'Shortcuts & macros, Repeat rules', href: '#/shortcuts/repeat' }],
     related: ['repeat-options'],
@@ -602,7 +622,7 @@ const topics = {
     title: 'Lighting effects',
     qmkName: 'RGB Matrix',
     body: [
-      'The effect is the pattern the lights play. Each tile shows a small preview of how it moves. Brightness, speed and colour apply to whichever effect is chosen; some effects ignore the colour and cycle through all of them.',
+      'The effect is the pattern the lights play. Each tile shows a small preview of how it moves, and under the effects, On the keys shows a still picture of how the keys light up; on the keyboard the effect moves. Brightness, speed and colour apply to whichever effect is chosen; some effects ignore the colour and cycle through all of them.',
       'Changes show on the keyboard at once and are saved to it after a moment. Lighting changes aren’t undoable: pick the old effect again to go back.',
     ],
     example: '“Breathing” in a soft blue for a calm glow; “Typing heat map” to see which keys you use most.',
@@ -661,7 +681,7 @@ const topics = {
     title: 'Key colours',
     qmkName: 'Keychron per-key RGB',
     body: [
-      'With the “Key by key” effect every key shows a colour of its own. Pick a colour, then click a key or drag across several; the keyboard changes as you paint and keeps the colours after a moment.',
+      'With the “Key by key” effect every key shows a colour of its own. Pick a colour, then click a key or drag across several; the keyboard changes as you paint and keeps the colours after a moment. Paint all keys, or a group such as the letters, in one click; Start from gives a ready-made scheme to change; Pick up a colour takes a key’s colour to paint with.',
       'Brightness is one setting for the whole keyboard (the Brightness slider), so a key’s colour is only its colour and vividness. Undo takes back one stroke at a time.',
     ],
     example: 'Paint the letters white, then W, A, S and D red, for games.',
@@ -682,8 +702,8 @@ const topics = {
     related: ['key-colours', 'lighting-speed'],
   },
   'lighting-zones': {
-    title: 'Lighting zones',
-    qmkName: 'Keychron mixed RGB',
+    title: 'Mixed zones',
+    qmkName: 'Keychron mixed RGB, lighting zones',
     body: [
       'With the “Mixed zones” effect the keyboard is split into zones, and each zone plays its own effects. Every key belongs to one zone; paint keys to move them.',
       'A zone can play several effects in turn, each for as long as you set, fading from one to the next. Each effect has its own colour and speed; brightness is the keyboard’s.',
@@ -698,10 +718,10 @@ const topics = {
     qmkName: 'Keychron indicators (lock lights)',
     body: [
       'While Caps Lock is on, its key lights up in a colour of its own, over whatever the lighting effect is doing, so you can see it is on. Keyboards with Num Lock or Scroll Lock lights have a switch for each; they all share the one colour.',
-      'Switched off, the key just shows the effect like the others. The keyboard keeps the brightness at half or more. How the light is drawn is up to the firmware: Keychron’s own lights the key steadily at the brightness set here; others can do more with the colour (the K15 Max’s ripple keymap flashes Caps Lock on and off at full brightness).',
+      'Switched off, the key just shows the effect like the others. Its brightness is under More options on the card; the keyboard keeps it at half or more. How the light is drawn is up to the firmware: Keychron’s own lights the key steadily at the brightness set here; a custom keymap can do more with the colour (flash Caps Lock at full brightness, for example).',
     ],
     example: 'Red, so Caps Lock left on by accident is hard to miss; or switched off if the light distracts you.',
-    docs: QMK + 'feature_rgb_matrix#indicators',
+    docs: QMK + 'features/rgb_matrix#indicators',
     where: [{ label: 'Lighting page, Caps Lock light', href: '#/lighting' }],
     related: ['lighting-colour', 'key-colours'],
   },
@@ -728,10 +748,10 @@ const topics = {
       '“How long counts as a hold” is that time. Under More options are ways to decide sooner when you press another key in the meantime; try one at a time, in the box on this card.',
       'Multi-tap keys each have their own time, set on Shortcuts & macros.',
     ],
-    example: 'Home-row Ctrl on F: at 200 ms, a quick “f” types f; F held while you press C gives Ctrl + C.',
+    example: 'Ctrl when held on F (a “home-row mod”): at 200 ms, a quick “f” types f; F held while you press C gives Ctrl + C.',
     docs: QMK + 'tap_hold',
     where: [{ label: 'Typing feel, Tap or hold', href: '#/typing/tapHold' }],
-    related: ['typing-hold-decision', 'tap-hold', 'tapping-term'],
+    related: ['typing-hold-decision', 'typing-tap-hold-more', 'tap-hold', 'tapping-term'],
   },
   'typing-hold-decision': {
     title: 'Deciding sooner between tap and hold',
@@ -743,7 +763,20 @@ const topics = {
     example: 'With “Hold when another key is tapped inside it”, holding F (Ctrl when held) and tapping C gives Ctrl + C even if you are quick.',
     docs: QMK + 'tap_hold#permissive-hold',
     where: [{ label: 'Typing feel, Tap or hold, More options', href: '#/typing/tapHold' }],
-    related: ['typing-tap-hold', 'mod-tap'],
+    related: ['typing-tap-hold', 'typing-tap-hold-more', 'mod-tap'],
+  },
+  'typing-tap-hold-more': {
+    title: 'More tap-or-hold settings',
+    qmkName: 'Retro Tapping, Quick Tap Term, Flow Tap, Tapping Toggle, Tap Hold Caps Delay, Tap Code Delay',
+    body: [
+      'Under More options on the Tap or hold card. Tap anyway when held alone (Retro Tapping): a tap-or-hold key held past its time and let go with nothing else pressed still sends its tap. Tap, then hold to repeat (Quick Tap Term): tap the key, then press and hold it again within this time, and it repeats its tap key instead of acting as held. Taps only while typing fast (Flow Tap): a tap-or-hold letter pressed within this time after another letter, Space or punctuation is always a tap. For the last two, 0 turns them off.',
+      'Taps to lock a layer on (Tapping Toggle) is how many taps keep a layer on with a “Hold for a layer, or tap it 5 times to keep it on” key. Caps Lock press length and Length of taps the keyboard sends only matter if a program, or macOS, misses taps the keyboard makes by itself.',
+      'Keyboards with older firmware show a few of these as switches instead (marked “older firmware” in QMK’s names), with two more: Ignore other keys while deciding, where only the time decides, and No repeat after a quick tap, the opposite of Tap, then hold to repeat.',
+    ],
+    example: 'Space as Tap: Space · Hold: a layer, and holding Space types no spaces? Set “Tap, then hold to repeat” to 150 ms: tap, then hold, and spaces repeat.',
+    docs: QMK + 'tap_hold',
+    where: [{ label: 'Typing feel, Tap or hold, More options', href: '#/typing/tapHold' }],
+    related: ['typing-tap-hold', 'typing-hold-decision', 'layer-key'],
   },
   'typing-chords': {
     title: 'Key chord timing',
@@ -762,7 +795,7 @@ const topics = {
     qmkName: 'Auto Shift',
     body: [
       'With this on, a key held a little longer than a normal tap types its shifted version: a capital letter, or the symbol above a number. A normal tap types as before.',
-      'Under More options: which keys it works on, whether it still works with Ctrl or Alt held, and what a held key does instead of repeating.',
+      'How long to hold sets how much longer than a tap that is. Under More options: which keys it works on (letters, numbers, symbols), whether it still works with Ctrl, Alt or Win held, and whether a held key repeats.',
     ],
     example: 'Tap 1 for 1, hold it for !; tap a for a, hold it for A.',
     docs: QMK + 'features/auto_shift',
@@ -773,8 +806,8 @@ const topics = {
     title: 'One-tap modifiers',
     qmkName: 'One Shot Keys',
     body: [
-      'A one-tap modifier is a Shift, Ctrl, Alt or Win key (or a layer key) that you tap instead of holding: it stays on for the next key you press, then lets go. Easier on the hands, and handy with one hand.',
-      'They only work once such a key is on the keyboard: on the Keys page, under Switch layer for layers, or under More options for modifiers. Tapping one several times locks it on until you tap it again.',
+      'A one-tap modifier is a modifier for the next key only: a Shift, Ctrl, Alt or Win key (or a layer key) that you tap instead of holding. It stays on for the next key you press, then lets go. Easier on the hands, and handy with one hand.',
+      'They only work once such a key is on the keyboard: on the Keys page, under Switch layer for layers, or under More options, “One-tap modifier”, for modifiers. Forget it after is how long one waits for the next key. Tapping one 5 times in a row (Taps to lock it on, on this card) locks it on until you tap it again.',
     ],
     example: 'Tap the one-tap Shift, then a: you get A, and the next letter is small again.',
     docs: QMK + 'one_shot_keys',
@@ -786,7 +819,8 @@ const topics = {
     qmkName: 'Mouse Keys',
     body: [
       'Keys can move the mouse pointer, click and scroll. A press moves the pointer one small step; held, it starts moving and speeds up until it reaches top speed.',
-      'Top speed is how far it moves at once at full speed, and how long it takes to get there is counted in moves. The line under each says what that means in pixels a second. Scrolling works the same way, in wheel notches.',
+      'Top speed is how far it moves at once at full speed, and how long it takes to get there is counted in moves. The line under each says what that means in pixels a second. Scrolling works the same way, in wheel notches, with a top scroll speed of its own.',
+      'Under More options: the first step, the wait before a held key starts moving on, and the time between moves, with the same for scrolling and how long scrolling takes to reach top speed. Most people never change them.',
     ],
     example: 'Put the mouse keys on the arrows of an Fn layer: a tap nudges the pointer, holding sweeps it across the screen.',
     docs: QMK + 'features/mouse_keys',
@@ -797,9 +831,9 @@ const topics = {
     title: 'Swapped and disabled keys',
     qmkName: 'Magic keycodes',
     body: [
-      'Switches that change what modifier keys do on every layer at once, without editing each key: swap Caps Lock and Ctrl, swap Alt and Win for a Mac, or switch the Windows keys off for games.',
+      'Switches that change what modifier keys do on every layer at once, without editing each key: swap Caps Lock and Ctrl, swap Alt and Win for a Mac, or switch the Windows keys off for games. Swapping Esc and Caps Lock has no switch here; it is a key on the Keys page.',
       'The keys still show their own names on the Keys page; the swap happens in the keyboard after that. Turn the switch off to undo it.',
-      'Here too, under More options: “Any number of keys at once” (N-key rollover), which lets the computer see every key held together rather than six. A few BIOS screens and old computers don’t understand it; turn it off if keys stop working there.',
+      'Here too, under More options: “Any number of keys at once” (N-key rollover), which lets the computer see every key held together rather than six; the switch turns it on and off. A few BIOS screens and old computers don’t understand it; turn it off if keys stop working there. Keychron keyboards do it by themselves (adaptive N-key rollover): they send keys the ordinary way and switch over once more than six are held, so on them the switch changes nothing.',
     ],
     example: 'Turn on “Windows keys do nothing” before a game, and off again afterwards.',
     docs: QMK + 'keycodes_magic',
@@ -810,7 +844,7 @@ const topics = {
     related: ['magic-keys', 'nothing', 'typing-reset'],
   },
   'typing-grave-esc': {
-    title: 'The combined Esc and ` key',
+    title: 'The Esc and ` key',
     qmkName: 'Grave Escape, QK_GESC',
     body: [
       'On small keyboards one key often does both Esc and `: it sends Esc, or ` while Shift or Win is held (so Shift gives ~). You can put it on any key from the Keys page (search “Grave Escape”).',
@@ -847,7 +881,7 @@ const topics = {
   },
   'typing-reset': {
     title: 'Resetting the typing settings',
-    qmkName: 'QMK Settings reset',
+    qmkName: 'Reset QMK Settings (Vial)',
     body: [
       'Puts every setting on this page back to how the firmware came, in one go: the timings, Capitals by holding, the mouse keys, and the swapped and disabled keys. The key bounce filter and Snap Click are Keychron’s and stay as they are.',
       'It can’t be undone with Undo, so make a backup first (Device page) if you might want your settings back.',
@@ -866,9 +900,9 @@ const topics = {
     body: [
       'Press every key once: each lights up while it is down and stays marked afterwards, so a key that never lights is one that doesn’t work.',
       'While the keyboard is locked, the app sees keys the way any web page does, through the browser: only the keys that type something, and only while this window is in front. Fn and other layer keys send nothing the browser can see. Unlocked, the app reads every switch straight from the keyboard, Fn included.',
+      'The marks stay while you look at other pages; Start again clears them. Through the 2.4 GHz receiver, reading the switches pauses after two minutes without a key press, so the keyboard can go to sleep; any key carries on.',
     ],
     example: 'Unlock, then hold Fn: its key lights up although your computer never hears about it.',
-    docs: QMK + 'faq_debug',
     where: [{ label: 'Test page', href: '#/test' }],
     related: ['test-knob', 'unlock', 'typing-debounce'],
   },
@@ -885,24 +919,24 @@ const topics = {
     related: ['test-keys', 'knob'],
   },
 
-  // ---- Backing up and the keyboard ----
+  // ---- Device: backups and the keyboard ----
 
   backup: {
-    title: 'Backing up',
+    title: 'Making a backup',
     body: [
-      'A backup is one file with everything the keyboard holds: every key on every layer, the knob, macros, multi-tap keys and the other extras, typing settings, lighting and the wireless timers. Your layer names, which live in this browser, go in it too.',
+      'A backup is one file with everything the keyboard holds: every key on every layer, the knob, macros, multi-tap keys, key chords, shortcut replacements and repeat rules, typing settings, the lighting with key colours, zones and the Caps Lock light, the key bounce filter, Snap Click and the wireless timers. The names you gave layers and macros, which live in this browser, go in it too.',
       'Saving a backup only reads from the keyboard; nothing on it changes. Keep the file somewhere safe and make a new one after big changes.',
     ],
     example: 'Back up before flashing new firmware; afterwards, restore the file to get your layout back.',
-    docs: QMK + 'newbs_flashing',
+    docs: 'https://get.vial.today/manual/',
     where: [{ label: 'Device page, Back up and restore', href: '#/device' }],
     related: ['restore', 'vial-file', 'saving'],
   },
   restore: {
-    title: 'Restoring a backup',
+    title: 'Restore a backup',
     body: [
       'Restoring makes the keyboard match a backup file. The app first lists what is different and only writes that; everything else stays as it is.',
-      'A file from a different keyboard is refused. Macros, and the key that restarts the keyboard for a firmware update, can only be written while the keyboard is unlocked; the app says so first, and leaves them out if it stays locked.',
+      'A file from a different model is refused; one from the same model running other firmware is allowed, with a warning that some keys and settings may not work the same. Macros, and the key that restarts the keyboard for a firmware update, can only be written while the keyboard is unlocked; the app says so first, and leaves them out if it stays locked.',
       'The keys and knob can be put back afterwards with Undo; macros, settings and lighting can’t, so back up first if you might want them again.',
     ],
     example: 'Restore last week’s backup to undo an afternoon of experiments in one go.',
@@ -914,7 +948,7 @@ const topics = {
     qmkName: '.vil',
     body: [
       'Vial, the app this firmware was made for, saves layouts in its own kind of file. Layerworks can save one for Vial to load, and restore from one Vial saved.',
-      'A Vial file holds the keys, knob, macros, the extras and typing settings, but not lighting, wireless timers or layer names. For a complete backup, use the Layerworks file.',
+      'A Vial file holds the keys, knob, macros, multi-tap keys, key chords, shortcut replacements, repeat rules and typing settings, but not the lighting (key colours included), the key bounce filter, Snap Click, wireless timers, or layer and macro names. For a complete backup, use the Layerworks file.',
     ],
     example: 'Save a Vial file to share your layout with someone who uses Vial.',
     docs: 'https://get.vial.today/manual/',
@@ -924,7 +958,7 @@ const topics = {
   'keyboard-info': {
     title: 'About this keyboard',
     body: [
-      'What the keyboard says about itself when it connects: its name, how it is connected, the firmware version, how many layers and keys it has, and how much room it has for macros, multi-tap keys and the other extras.',
+      'What the keyboard says about itself when it connects: its name, how it is connected, the firmware version, how many layers and keys it has, and how much room it has for macros, multi-tap keys, key chords, shortcut replacements and repeat rules.',
       'Technical details lists the numbers behind it: USB IDs, protocol versions, the features the firmware reports. They help when asking for help or reporting a problem; you never need them to use the app.',
     ],
     example: 'Asked which firmware you are on? It is under Firmware; the rest is under Technical details.',
@@ -945,8 +979,8 @@ const topics = {
     title: 'Lights off after',
     qmkName: 'Wireless backlight timeout',
     body: [
-      'On Bluetooth or 2.4 GHz, the key lights turn off after this long without a key press, to save the battery. The first key you press turns them on again. On the cable they stay on.',
-      'It must be at least 5 seconds and shorter than the sleep time. The keyboard keeps it until you change it.',
+      'On Keychron wireless keyboards, on Bluetooth or 2.4 GHz, the key lights turn off after this long without a key press, to save the battery. The first key you press turns them on again. The card shows only on keyboards that have these timers.',
+      'It must be at least 5 seconds and shorter than the sleep time. The keyboard keeps it until you change it. The card offers the usual choices; a time set elsewhere shows as it is.',
     ],
     example: '30 seconds makes a charge last noticeably longer than the default 10 minutes.',
     where: [{ label: 'Device page, Wireless and sleep', href: '#/device' }],
@@ -957,7 +991,7 @@ const topics = {
     qmkName: 'Wireless idle timeout',
     body: [
       'On Bluetooth or 2.4 GHz, the keyboard goes to sleep after this long without a key press. Pressing a key wakes it; the first press may be lost while it reconnects.',
-      'It must be at least a minute. Changing either timer while connected wirelessly makes the mouse pointer twitch once: the keyboard does that on purpose, to show the computer it is awake.',
+      'It must be at least a minute. Changing either timer while connected through the receiver can make the mouse pointer twitch once.',
     ],
     example: 'The default is 2 hours; 30 minutes saves battery if you often leave the keyboard on.',
     where: [{ label: 'Device page, Wireless and sleep', href: '#/device' }],
@@ -965,14 +999,15 @@ const topics = {
   },
   'keymap-reset': {
     title: 'Reset to defaults',
-    qmkName: 'Dynamic keymap reset (VIA)',
+    qmkName: 'Dynamic keymap reset (VIA); Keychron factory reset',
     body: [
       'The firmware has a keymap built in, the one it came with. Resetting puts it back on every layer and the knob, and clears what was set up on top: the typing settings, multi-tap keys, key chords, shortcut replacements and repeat rules. Macros stay unless you tick “Empty the macros too”; neither needs the keyboard unlocked.',
-      'The lighting, the key colours and zones, the Caps Lock light, the layer and macro names, and Keychron’s key bounce filter, Snap Click and wireless timers stay as they are. Undo can’t bring the old setup back, so save a backup first: restoring it puts everything back.',
+      'The lighting, the key colours and zones, the Caps Lock light, the layer and macro names, and Keychron’s key bounce filter, Snap Click and wireless timers stay as they are. Undo can’t bring the old setup back, and resetting empties Undo, so save a backup first: restoring it puts everything back.',
+      'Keychron keyboards also have a factory reset of their own, on the keyboard: hold Fn, J and Z together for about three seconds. It wipes everything the keyboard holds, the key bounce filter, Snap Click, lighting and wireless timers included, and forgets its Bluetooth and 2.4 GHz pairings. Back up first.',
     ],
-    example: 'Lost track of what you changed? Save a backup, reset, and start from the keys printed on the keyboard.',
+    example: 'Lost track of what you changed? Save a backup, reset, and start from the firmware’s own keys.',
     docs: 'https://get.vial.today/manual/',
-    where: [{ label: 'Device page, More options', href: '#/device' }],
+    where: [{ label: 'Device page, Start over or update, More options', href: '#/device' }],
     related: ['backup', 'restore', 'typing-reset'],
   },
   bootloader: {
@@ -984,7 +1019,7 @@ const topics = {
     ],
     example: 'About to flash a new build: restart it from here, then run the flashing tool.',
     docs: QMK + 'newbs_flashing',
-    where: [{ label: 'Device page, More options', href: '#/device' }],
+    where: [{ label: 'Device page, Start over or update, More options', href: '#/device' }],
     related: ['firmware', 'unlock', 'restart-keys'],
   },
 

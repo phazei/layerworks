@@ -32,8 +32,16 @@ there). The findings files are in `%TEMP%\opencode\layerworks-audit\` (`spec-aud
 
 Asked of the user, not yet answered:
 
-- N-key rollover does nothing on firmware with Keychron's adaptive N-key rollover (see "Small things"): hide
-  the switch and keys there (recommended), or keep them with a note?
+- Nothing open.
+
+**Next package, when the Help session has reported and is committed** (it edits `src/device/keycodes.ts` and
+`settings.ts` too, so not side by side): decided by the user, hide N-key rollover where the keyboard handles it
+itself. The keyboard says so: Keychron's `0xA7 0x12` reply has bit 2 set for adaptive N-key rollover
+(`../vial_qmk/keyboards/keychron/common/nkro.c`), read into the Keychron state as `nkroAdaptive`. There, Typing
+feel's N-key rollover switch and the palette's `NK_*` keys are not offered (a key already holding one still reads
+by its name), Home's "what the keyboard can do" says the keyboard does it by itself, and the help keeps the
+topic, saying the switch is hidden on such keyboards (the user: "if someone happens to know about it, and looks
+for it, they can find the note"). Fake keyboard and demo report it as the K15 Max does.
 
 Answered: "One-tap modifier" is the name everywhere and "a modifier for the next key only" its description (the
 user; being applied by the Help session, on the Keys page too). The backup files in `..\backups\` are left alone.
@@ -120,8 +128,7 @@ extensions (under "Later"):
 - Typing feel: clicking a group in the side list scrolls to it but doesn't move keyboard focus there.
 - Typing feel and the palette offer N-key rollover on / off (Magic's bit, the `NK_*` keys), which changes nothing
   on firmware with Keychron's adaptive N-key rollover, the K15 Max included (README "Typing settings"); the help
-  topics say it works. Decide: hide it where the firmware reports adaptive N-key rollover (Keychron's `0xA7 0x12`
-  says so), or word it as "on firmware that honours it".
+  topics said it works. Decided: hidden there (see "Where the conversation stands", next package).
 - Lighting: a zone slot's play time can't be set while it is the zone's only effect (harmless). The picture in
   the key colours editor is small at 1000×700. Read back while the lights are off, the keyboard can report the
   saved colour rather than the last one sent; turning the lights on sends the values the page shows.

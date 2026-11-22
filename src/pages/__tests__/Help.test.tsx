@@ -68,7 +68,7 @@ describe('the Help page, offline', () => {
     const firstHit = within(results).getAllByRole('link')[0]
     expect(firstHit).toHaveAttribute('href', '#/help/tap-dance')
     expect(firstHit.querySelectorAll('mark').length).toBeGreaterThan(0)
-    expect(screen.getByText('2 topics match')).toBeInTheDocument()
+    expect(screen.getByText(/^\d+ topics match$/)).toBeInTheDocument()
   })
 
   it('suggests other words when nothing matches', async () => {

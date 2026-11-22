@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// The inspector's "More options": nothing, same as the layer below, a modifier for the next key only, and typing a
+// The inspector's "More options": nothing, same as the layer below, a one-tap modifier, and typing a
 // key code, which says what the code means before it is used.
 
 import { useState, type ReactNode } from 'react'
@@ -87,7 +87,7 @@ function KeyCodeField({ current, names, initialCode, onAssign }: Omit<Props, 'la
   )
 }
 
-/** A modifier for the next key only (QMK's one-shot modifier): tick, then use. */
+/** A one-tap modifier, for the next key only (QMK's one-shot modifier): tick, then use. */
 function OneShotModifier({ current, onAssign }: { current: number; onAssign: (code: number) => void }) {
   // Nothing ticked unless the key already holds one: a tick should mean the user chose it.
   const [mods, setMods] = useState(readOneShotMod(current)?.mods ?? 0)
@@ -95,17 +95,17 @@ function OneShotModifier({ current, onAssign }: { current: number; onAssign: (co
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-0.5 font-medium">
-        Modifier for the next key only
+        One-tap modifier
         <HelpButton topic="one-shot-mod" />
       </div>
-      <p className="text-[13px] text-muted">Tap it, then the next key you press comes with the modifier, without holding anything.</p>
+      <p className="text-[13px] text-muted">A modifier for the next key only: tap it, then the next key you press comes with it, without holding anything.</p>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <ModifierBoxes mods={mods} onChange={setMods} />
         <Checkbox label="Right-hand" checked={(mods & RIGHT_HAND) !== 0} onChange={(on) => setMods(on ? mods | RIGHT_HAND : mods & ~RIGHT_HAND)} />
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" disabled={code === null || code === current} onClick={() => code !== null && onAssign(code)}>
-          {code === null ? 'Tick a modifier' : code === current ? 'This is what it does now' : `Use ${modifierWords(mods)} for the next key`}
+          {code === null ? 'Tick a modifier' : code === current ? 'This is what it does now' : `Use one-tap ${modifierWords(mods)}`}
         </Button>
         {code !== null && <span className="font-mono text-xs text-muted">{keycodeId(code)}</span>}
       </div>

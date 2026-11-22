@@ -9,6 +9,8 @@ import { GUIDE, GUIDE_ONLY, groupOf, neighbours, READING_ORDER, relatedTopics } 
 import { fillLayers } from '../text'
 import { HELP_TOPIC_IDS, HELP_TOPICS } from '../topics'
 import { TOUR_STEPS } from '../tour'
+import { SETTING_FIELDS } from '../../device'
+import { FIELD_HELP, GROUP_HELP } from '../../pages/typing/help'
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -67,6 +69,16 @@ describe('the guide', () => {
     // A guide-only topic that is opened from the app after all should lose the label.
     const opened = [...GUIDE_ONLY].filter((id) => new RegExp(`(topic|help)[=:]\\s*\\{?['"]${id}['"]`).test(code))
     expect(opened).toEqual([])
+  })
+
+  it('gives every typing setting help: its own topic, or its card’s', () => {
+    for (const field of SETTING_FIELDS) {
+      const topic = FIELD_HELP[field.key] ?? GROUP_HELP[field.group]
+      expect(topic, field.key).toBeDefined()
+      expect(HELP_TOPICS[topic!], field.key).toBeDefined()
+    }
+    // The tap-or-hold settings past the everyday ones each have a "?" of their own.
+    for (const field of SETTING_FIELDS.filter((f) => f.group === 'tapHold')) expect(FIELD_HELP[field.key], field.key).toBeDefined()
   })
 
   it('has a glossary of unique terms pointing at topics', () => {

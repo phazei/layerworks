@@ -61,7 +61,7 @@ function ModeNote({ mode, wireless, canUnlock, resume }: { mode: MatrixMode; wir
         <p className="flex min-w-0 flex-1 gap-2.5">
           <Lock size={16} aria-hidden className="mt-0.5 shrink-0" />
           <span>
-            Seeing keys through the browser, as any web page can. Fn, Fn2 and other layer keys send
+            Seeing keys through the browser, as any web page can. Fn and other layer keys send
             nothing the browser sees, so they can’t be tested while the keyboard is locked.
           </span>
         </p>

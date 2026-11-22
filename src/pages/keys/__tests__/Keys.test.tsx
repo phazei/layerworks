@@ -239,12 +239,16 @@ describe('the Keys page', () => {
     expect(within(now).getByRole('link', { name: 'Open on Shortcuts & macros' })).toHaveAttribute('href', '#/shortcuts/macro/1')
   })
 
-  it('ticks no modifier for the next key only until one is chosen', async () => {
+  it('ticks no modifier for a one-tap modifier until one is chosen, then names it so', async () => {
     await openKeys(A_KEY)
     openMoreOptions()
+    expect(screen.getByText('One-tap modifier')).toBeInTheDocument()
+    expect(screen.getByText(/A modifier for the next key only/)).toBeInTheDocument()
     const use = screen.getAllByRole('button', { name: 'Tick a modifier' }).at(-1)!
     expect(use).toBeDisabled()
     for (const box of screen.getAllByRole('checkbox', { name: 'Shift' })) expect(box).not.toBeChecked()
+    fireEvent.click(screen.getAllByRole('checkbox', { name: 'Shift' }).at(-1)!)
+    expect(screen.getByRole('button', { name: 'Use one-tap Shift' })).toBeEnabled()
   })
 
   it('ticks no modifier for a layer with modifiers until one is chosen', async () => {
