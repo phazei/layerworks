@@ -45,9 +45,17 @@ everything else is GPL then GPL it is").
   seen keys on Test are only a faint tint and nothing lists the missing ones; zones differ by outline colour
   alone; the help panel never takes focus when it opens; a few colour values ("Not saved" badge, red notices,
   field borders). The rest is polish (page title per page, skip link, 200 % zoom on Keys, high-contrast themes,
-  painting and macro recording without a mouse). **The user's choice: the two blockers plus the small ones**; the
-  polish stays a list under "Later". It goes to that session after round two (the same pages are being changed),
+  painting and macro recording without a mouse). **The user's choice: the two blockers plus the small ones, and the
+  page title that follows the page**; the rest of the polish stays a list under "Later". It goes to that session after round two (the same pages are being changed),
   each fix with a test, as `fix(a11y): …` commits.
+- **The sidebar collapses to its icons** (the user: "right now the left menu doesn't collapse, but it should
+  collapse to just the icons, so narrow devices work"). Not started; after round two, beside the accessibility
+  fixes (a different agent; its files are the shell's sidebar and device card). Orchestrator's reading, for the
+  user to flip: it collapses by itself when the window is narrow, and a button collapses or widens it by hand,
+  remembered in the browser; the icons keep their names for screen readers and show the name on hover and focus
+  (the app's own label, not a `title`); the keyboard's card becomes one icon showing connected / locked that
+  opens the card beside it; the pages below must then hold up at the narrower widths this makes usable (say
+  down to which width, and update the spec's "designed for 1280 × 800, usable down to 1000 × 700").
 - Committing one item out of a file with several items' edits: `node %TEMP%\opencode\stage-hunks.mjs [--not]
   <file> <regex>…` stages the hunks (and, in a block of new lines, the paragraphs) that match; if the script is
   gone, build the wanted content from `git show :<file>`, then `git hash-object -w` and
