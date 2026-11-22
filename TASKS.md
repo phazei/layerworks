@@ -27,27 +27,34 @@ documents are edited and uncommitted (the user commits there).
 found, and people who find one are asked to open an issue. The licence stays GPL-3.0-or-later (the user: "since
 everything else is GPL then GPL it is").
 
-**In progress right now** (two building agents side by side, files divided between them):
+**In progress right now:**
 
-- `ses_dfe21a33cffeE72FiCdiqmXdSX`: item 3's fixes, all 19 (F1 to F19 in
-  `%TEMP%\opencode\layerworks-audit\failure-audit.md`; approved by the user), plus K4, K15 and part of K13 from
-  the other-keyboards audit. Its files: `src/device/` except `keycodes.ts`, `src/ui/prefs.ts`,
-  `src/shell/UnlockDialog.tsx`, `src/pages/device/*`. Port 5204. Two firmware claims were checked (macros play
-  unless the buffer's last byte is non-zero, `dynamic_keymap.c:250`; a single `set_keycode` of `QK_BOOT` is not
-  blocked while locked in this fork). When it reports: the three checks, the diff, screenshots, commit; its "to
-  try on the real keyboard" list goes under "Waiting on the user"; **then tell the other session the store is
-  free** (round two).
-- `ses_dfe287d45ffeph6OlbTU2Fsd01` is **waiting** (not running): its round one is committed as eight
-  `fix(compat):` commits (`8afa732` to `d675f0c`: the error boundary, Keychron layer names from a generated table,
-  typed keys on keyboards that don't report their layer, the palette's lighting keys, texts). **Round two, when
-  the store is free:** K1's store part, layout options in full (K2: decode, picture, counts, a "Layout" card), K3,
-  K6, K8, K9, K10, K12, K14, and a developer option that loads another keyboard's definition into the demo. It
-  works **one item at a time and stops for a commit after each** (the user: each compatibility item is its own
-  commit; `AGENTS.md` "Rules"). Port 5203.
-- Committing one item out of a file with several items' edits: `node %TEMP%\opencode\stage-hunks.mjs <file>
-  <regex>…` stages the hunks (and, in a block of new lines, the paragraphs) that match; if the script is gone,
-  build the wanted content from `git show :<file>`, then `git hash-object -w` and
-  `git update-index --cacheinfo`.
+- `ses_dfe287d45ffeph6OlbTU2Fsd01`: the other-keyboards fixes, **round two, one item at a time, stopping for a
+  commit after each** (the user: each compatibility item is its own commit; `AGENTS.md` "Rules"). Its order: a
+  developer option that loads another keyboard into the demo (`?demo-keyboard=`); a definition whose lighting is
+  an object; keyboards without a name; non-Vial firmware said plainly at connect; a knob the firmware won't let
+  apps change; firmware that never locks; a matrix too big for the matrix read; RGB the definition doesn't
+  describe; Keychron per-key RGB beyond 8 rows; layout options in full (decode and picture, counts, a "Layout"
+  card); last, README "Other keyboards" complete and the sentence for the public README. Each time it stops:
+  the three checks, the diff, commit that item alone, tell it to go on. Port 5203. Round one is committed
+  (`8afa732` to `d675f0c`).
+- `ses_dfd4e15edffeI6UpU02bmDT4JA` (read-only): item 4, accessibility and colours, a light look, findings to
+  `%TEMP%\opencode\layerworks-audit\accessibility-audit.md`. Port 5206. When it reports: tell the user; fixes
+  after round two (they touch the same pages).
+- Committing one item out of a file with several items' edits: `node %TEMP%\opencode\stage-hunks.mjs [--not]
+  <file> <regex>…` stages the hunks (and, in a block of new lines, the paragraphs) that match; if the script is
+  gone, build the wanted content from `git show :<file>`, then `git hash-object -w` and
+  `git update-index --cacheinfo`. To check a staged state by itself: `git checkout-index -a --prefix=<temp>/`, a
+  junction to `node_modules`, then `tsc` and `vitest` there.
+
+**Item 3 is done** (`f348984`, `2a1ae1e`; findings in `failure-audit.md`, built by
+`ses_dfe21a33cffeE72FiCdiqmXdSX`; README and `AGENTS.md` "Things that bite" describe the result): macros are
+written in VIA's order and read back after a failed save; a write that gets no reply is read back; the
+firmware-update key needs unlocking on every route; one Layerworks tab per keyboard; a restore stops on a silent
+keyboard, is recorded, and its review lists the changes and the risks; backup and Vial file values are checked
+before anything is written; URL options made for screenshots work only on the demo. Its four compatibility items
+are separate commits (`cd77dfd` to `48619b7`). What the user should try on the real keyboard is under "Waiting on
+the user".
 
 **Item 1 is audited** (22 set-ups through the fake keyboard, all 857 definitions in `../vial_qmk` surveyed): the
 app loads on every one, but "works on any Vial keyboard" is not yet a fair claim. The worst: a definition whose
@@ -71,11 +78,8 @@ Left open:
 - **The address** is `https://layerworks.tybyfy.com/` (the user's own domain, registered at Porkbun; decided), and
   the first release is `0.1.0` (`package.json`). "Report a problem" goes to the GitHub issues, from About and
   Help's start page, and not from the connect error (the user agrees).
-- **A Ko-fi link, quiet** (the user; to add once the running edits are finished): one plain line in About
-  (`src/pages/settings/About.tsx`), such as "Layerworks is free. If it saved you some time, you can buy me a
-  coffee.", a text link to `https://ko-fi.com/phazei` (the address as a constant in `src/project.ts`); no widget
-  or button image (nothing is loaded from other servers), nowhere else in the app. Plus `.github/FUNDING.yml`
-  (`ko_fi: phazei`) for the repo's Sponsor button, and one line near the bottom of the rewritten README.
+- **The Ko-fi link** (`https://ko-fi.com/phazei`, `TIP_URL` in `src/project.ts`) is one plain line in About and
+  `.github/FUNDING.yml`; the rewritten README gets one line near the bottom (item 6). Nowhere else, no widget.
 - The bundle is one chunk, 857 kB (275 kB gzipped); the builder advises against splitting pages, at most React in
   a chunk of its own. `pnpm audit --prod` is clean; one moderate finding in a lint-only package (minimatch).
 - The user's steps on GitHub are under "Waiting on the user".
@@ -128,6 +132,14 @@ Left open:
 - The user is testing page by page and reports bugs as found; the dev server (`pnpm dev`) is open while agents
   edit, so the user sees work in progress.
 - **To try on the real keyboard** (take a backup first):
+  - From the mid-write fixes: save a macro and check the M keys still play; unplug during a long macro save and
+    reconnect (the macro page says it was interrupted; saving again fixes it). Through the receiver: let the
+    keyboard fall asleep, then change a key (a plain "didn't answer, press a key" message, no hex codes); start a
+    restore and switch the keyboard off half-way (it stops within seconds and, after reconnecting, says it stopped
+    part-way); unlock, then switch the keyboard off ("Stop waiting" appears; the keyboard types again after the
+    mode switch is moved away and back). Two tabs: the second shows the notice, "Use it here" takes over. Change
+    lighting and close the tab at once: the change is still there after a replug. Restore a backup and open "Show
+    the changes".
   - Built last, not yet tried: **Press a key** on Keys (locked: a letter, then Fn to see the explanation;
     unlocked: the M1 key and the Fn2 key, on the cable and over 2.4 GHz). **Caps Lock light** on Lighting (colour,
     off and on, undo, replug after 2 s to see it was saved). **Reset to defaults** on Device, More options (box
