@@ -24,12 +24,9 @@ findings files are in `%TEMP%\opencode\layerworks-audit\` (`spec-audit.md`, `hel
 
 The text on the pages themselves (hover lines, hints, effect descriptions, confirmations, messages) was audited
 and corrected too (`ui-text-audit.md` in the same folder, T1 to T43, by `ses_dff103bf6ffeeheF4xktrsBLLr`).
-Nothing is running in the background.
-
-Asked of the user: the K15's own keys carry names from the definition in the parent project
-(`..\keyboards\keychron\k15_max\ansi_encoder\rgb\keymaps\ripple\vial.json`, `..\via\*.json`): "Misson Control"
-(a typo), "2.4G", "Bluetooth Host 1". Better titles are proposed in the audit's T11; changing them needs a
-firmware build and flash, and is the user's call.
+**In progress right now:** `ses_dff103bf6ffeeheF4xktrsBLLr`: the still picture for "Rainbow, all keys" drawn as a
+rainbow across the keys, not solid red (the user). Files: `src/pages/lighting/picture.ts`, `EffectPicture.tsx`,
+their test, one README sentence. Port 5202. When it reports: checks, screenshot, commit.
 
 - The audit's calls made by the orchestrator, for the user to flip if wanted: the firmware key push and matrix
   read stay optional and deferred; creating a macro from the Keys inspector is dropped; the main lighting and the
@@ -151,6 +148,11 @@ waits on them: unlocking shows every key on the Test page and to "Press a key".
   doesn't read. Make it write a known format instead (a `.layerworks.json` holding only keys and knob, with the
   app accepting such partial files, is the least work; `.vil` needs QMK key names in Python), and point
   `scripts/demo-data.mjs` at the new file (also in `../TASKS.md` "Small things").
+- **The K15's own key names** in the palette's "This keyboard" group come from the definition in the parent
+  project (`..\keyboards\keychron\k15_max\ansi_encoder\rgb\keymaps\ripple\vial.json`, `..\via\*.json`): "Misson
+  Control" (a typo), "2.4G", "Bluetooth Host 1". Better titles are in `ui-text-audit.md`, T11 ("Bluetooth device 1
+  (hold to pair; on Bluetooth only)" …). Not now (the user): it needs a firmware build and flash; do it when the
+  firmware is next touched.
 - Vial's "negative mods" (a shortcut replacement's "must not be held", under More options): no more work on it
   unless the user asks.
 - Upstream candidates for Pipette (branches in `../pipette`): its web transport hands layer reports to waiting
