@@ -27,7 +27,23 @@ documents are edited and uncommitted (the user commits there).
 found, and people who find one are asked to open an issue. The licence stays GPL-3.0-or-later (the user: "since
 everything else is GPL then GPL it is").
 
-**In progress right now** (two agents side by side):
+**PAUSED by the user (2026-11-22): the test runs, builds and headless browsers lagged the computer badly. Every
+agent is stopped and their processes were killed. Start nothing (no agent, no `pnpm test`, no build, no
+screenshots) until the user says how to carry on.** Offered: one agent at a time, only the test files it touches
+and one full run before a commit; no screenshots or headless browsers unless asked; or only while the user is
+away. Whatever is chosen goes into `AGENTS.md` "How the work is organised" as a rule.
+
+Left in the working tree, uncommitted, by `ses_dfd15b6c7ffeHrjHNi3Zt3VgJE` (typecheck and lint passed; no tests
+written, README not updated, the full suite not run, the scroll measurements only done for Home and Keys at
+1280 × 800): `src/shell/Shell.tsx` (the page area clips the parked help panel: the sideways-scrollbar fix),
+`src/shell/Sidebar.tsx` (the collapse button beside the logo), `src/ui/Tip.tsx` (one label at a time),
+`src/shell/DeviceCard.tsx` (the popover in the card's colour), and the narrow-width fixes in
+`src/pages/Shortcuts.tsx`, `src/pages/help/TopicList.tsx`, `src/shell/LayerStack.tsx`, `src/pages/Test.tsx`.
+`ses_dfe21a33cffeE72FiCdiqmXdSX` changed nothing; its unconfirmed lead on the flaky test: right after the
+download the test checks the "Saved … to your downloads" text without waiting for the page to re-render (the
+other possibility: the macros not loaded yet, so `backup.macros` is null).
+
+**What was in progress when paused** (two agents side by side):
 
 - `ses_dfd15b6c7ffeHrjHNi3Zt3VgJE`: follow-ups to its collapsing sidebar (`6acf624`; icons only under 1024 px or
   by its button, the keyboard's card from one icon, usable down to 560 px). (1) **A sideways scrollbar where
