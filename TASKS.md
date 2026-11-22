@@ -27,24 +27,34 @@ documents are edited and uncommitted (the user commits there).
 found, and people who find one are asked to open an issue. The licence stays GPL-3.0-or-later (the user: "since
 everything else is GPL then GPL it is").
 
-**In progress right now:**
+**In progress right now** (two building agents side by side, files divided between them):
 
-- `ses_dfe287d45ffeph6OlbTU2Fsd01` (read-only): item 1, other keyboards, findings to
-  `%TEMP%\opencode\layerworks-audit\other-keyboards-audit.md`. It has scratch tests in `src/__audit__/` while it
-  runs (they make `pnpm lint` fail; never commit them) and must delete them: check `git status` is clean when it
-  reports. Port 5203. When it reports: read the findings, check firmware claims against `../vial_qmk`, tell the
-  user; then start item 3's fixes (below), then item 4.
+- `ses_dfe21a33cffeE72FiCdiqmXdSX`: item 3's fixes, all 19 (F1 to F19 in
+  `%TEMP%\opencode\layerworks-audit\failure-audit.md`; approved by the user), plus K4, K15 and part of K13 from
+  the other-keyboards audit. Its files: `src/device/` except `keycodes.ts`, `src/ui/prefs.ts`,
+  `src/shell/UnlockDialog.tsx`, `src/pages/device/*`. Port 5204. Two firmware claims were checked (macros play
+  unless the buffer's last byte is non-zero, `dynamic_keymap.c:250`; a single `set_keycode` of `QK_BOOT` is not
+  blocked while locked in this fork). When it reports: the three checks, the diff, screenshots, commit; its "to
+  try on the real keyboard" list goes under "Waiting on the user"; **then tell the other session the store is
+  free** (round two).
+- `ses_dfe287d45ffeph6OlbTU2Fsd01`: the other-keyboards audit's fixes (K1 to K15 in `other-keyboards-audit.md`),
+  round one, outside the store: the error boundary, Keychron layer names from a generated table (K5), live
+  typing on the stage (K7), the palette's lighting group (K11), texts (K13). Its files:
+  `src/shell/layer-names.ts`, `src/pages/keys/Stage.tsx`, `src/device/keycodes.ts`, `src/main.tsx`,
+  `src/pages/Test.tsx`, `src/pages/home/Status.tsx`. Port 5203. **Round two, when the store is free:** K1's store
+  part, layout options in full (K2: decode, picture, counts, a "Layout" card), K3, K6, K8, K9, K10, K12, K14, and
+  a developer option that loads another keyboard's definition into the demo.
 
-**Item 3 is audited** (`failure-audit.md`, 19 findings F1 to F19, by `ses_dfe21a33cffeE72FiCdiqmXdSX`; two
-firmware claims checked: macros play unless the buffer's last byte is non-zero, `dynamic_keymap.c:250`; a single
-`set_keycode` of `QK_BOOT` is not blocked while locked in this fork, only buffer writes, encoders and entries
-are). **The user approved all 19 fixes**; they go to the same session once the other-keyboards audit has finished
-(they change the store, which that audit is running against). The worst: a macro save that stops half-way leaves
-scrambled macros the keyboard still plays (write the last byte first, as VIA does); `?put-on-key=QK_BOOT` skips
-the unlock check (move it into the store's assign; screenshot URL options only on the demo); on 2.4 GHz a
-sleeping keyboard makes restore grind and the unlock dialog wait for ever; a write that times out is shown as
-not done though it often was; two tabs on one keyboard are not detected (Web Locks); `.vil` values are not
-range-checked; a damaged value under a `layerworks:` name in browser storage blanks the app.
+**Item 1 is audited** (22 set-ups through the fake keyboard, all 857 definitions in `../vial_qmk` surveyed): the
+app loads on every one, but "works on any Vial keyboard" is not yet a fair claim. The worst: a definition whose
+lighting is an object (Corne and 6 others) blanks the app on Device, with no error boundary anywhere; a backup
+from another Vial protocol restores wrong keys; knobs on firmware without an encoder map show made-up keys; the
+Mac / Windows layer names are wrong on about 75 Keychron boards; layout options are ignored (278 definitions);
+130 definitions have no name ("Unknown"); non-Vial firmware fails with a raw decompression error. Orchestrator's
+calls, for the user to flip: layer names come from a table generated from Keychron's keymaps, "Layer n" where
+unknown; a backup from another protocol is refused, not translated; layout options are built in full. Until
+round two is in, the README's claim is "tested on the K15 Max; other Vial keyboards load and can be edited".
+After item 1's fixes: item 4.
 
 **Items 2 and 5 are done** (`licence-audit.md`; built by `ses_dfe11cdf9ffe4Pd28GXZNCI06g`; README "Hosting" and
 "Licence" describe the result). Nothing blocked going public: the licences are compatible, the files hold nothing
