@@ -49,7 +49,7 @@ const topics = {
     title: 'Connecting the keyboard',
     body: [
       'Plug the keyboard in with its cable, or plug its Keychron Link receiver into the computer and set the keyboard’s switch to 2.4 GHz. Click Connect a keyboard… and pick it in the list the browser shows: the keyboard by its name, or “Keychron Link” for the receiver. Bluetooth can’t be used for this.',
-      'Only one program can talk to the keyboard at a time. Close Vial, Keychron Launcher and other keyboard apps first, browser tabs included.',
+      'Only one program can talk to the keyboard at a time. Close Vial, Keychron Launcher and other keyboard apps first, browser tabs included. A second Layerworks tab says the keyboard is open elsewhere and offers “Use it here”, which makes the other tab let go of it.',
       'It needs Chrome or Edge on a computer; other browsers can’t talk to keyboards. Once you have allowed it, this browser offers the keyboard straight away next time, as “Connect to” and its name. Through the receiver the keyboard’s card at the top left shows the battery too; on the cable the keyboard doesn’t report it. Disconnect, in that card, lets go of the keyboard so another app can use it.',
     ],
     example: 'The keyboard isn’t in the list, or won’t connect? Close the other keyboard apps and tabs, unplug it, plug it in again and try once more.',
@@ -129,6 +129,7 @@ const topics = {
       'The keyboard keeps a few powerful changes locked, so a web page can’t make them behind your back: editing macros, putting the firmware-update key on a key, reading every switch (for the key test and “Press a key”), and restarting into firmware update mode.',
       'Everyday changes such as keys, layers and lighting work while it is locked. When something needs unlocking, the app says so and shows you how: you hold the keys the keyboard names, two on most keyboards, for a few seconds.',
       'While it unlocks, the keyboard doesn’t type and the unlock can’t be cancelled; letting go of the keys only starts the count again. Unplugging the keyboard, or moving its connection switch, ends it. Once unlocked, it stays so until it restarts or changes connection mode, or until you lock it again with Lock in the keyboard’s card at the top left.',
+      'If the keyboard stops answering while it counts (asleep, switched off, out of range), or it takes too long, the dialog offers “Stop waiting”. That only stops the app: the keyboard may still be counting, not typing, until you unplug it and plug it back in or move its connection switch away and back.',
     ],
     example: 'Click Unlock… in the keyboard’s card at the top left, then hold the keys the dialog marks on the picture until the bar is full: on a Keychron K15 Max, for instance, Esc and Enter.',
     where: [
@@ -453,6 +454,7 @@ const topics = {
       'Build one from steps, or record it as you type. Save it to the keyboard, then put it on a key: “Put it on a key…” in the macro opens the Keys page, and the next key you click there runs it (pick the layer in the list first; Esc or Cancel stops without changing anything, and Undo takes the key back). Or pick it on the Keys page under Macros. They carry the firmware’s own numbers: Macro 1 is QMK’s M1, which Keychron keyboards put on the key printed M1; Macro 0 comes last.',
       'Text is typed as on a US keyboard layout. On another layout some characters come out differently (on a German one, @ gives " and y and z swap), so type those with Tap a key steps, pressing the keys your layout uses for them.',
       'All the macros share one small space in the keyboard (Device page, About this keyboard, says how much): each typed character takes one byte, each key or wait a few.',
+      'Saving rewrites that shared space, so the app first marks it as being written: if the keyboard goes away part-way, it runs no macro at all rather than a mix of old and new ones. The macro’s page then says so; save it again (or restore a backup) and they all work again.',
     ],
     example: 'A macro that types your e-mail address, on a key of an Fn layer.',
     docs: 'https://get.vial.today/manual/macros.html',
@@ -937,8 +939,9 @@ const topics = {
   restore: {
     title: 'Restore a backup',
     body: [
-      'Restoring makes the keyboard match a backup file. The app first lists what is different and only writes that; everything else stays as it is.',
-      'A file from a different model is refused; one from the same model running other firmware is allowed, with a warning that some keys and settings may not work the same. Macros, and the key that restarts the keyboard for a firmware update, can only be written while the keyboard is unlocked; the app says so first, and leaves them out if it stays locked.',
+      'Restoring makes the keyboard match a backup file. The app first lists what is different and only writes that; everything else stays as it is. “Show the changes” lists every key, knob turn, macro and shortcut it would change, and a red box names anything risky first: the firmware update key, the key that wipes the keyboard’s memory, a layer nothing would reach any more or left without letters.',
+      'A file from a different model is refused; one from the same model running other firmware is allowed, with a warning that some keys and settings may not work the same. Values a file can’t hold (a damaged file) are refused or left out, with a line saying which, before anything is written. Macros, and the key that restarts the keyboard for a firmware update, can only be written while the keyboard is unlocked; the app says so first, and leaves them out if it stays locked.',
+      'If the keyboard goes away or stops answering part-way, the restore stops and says so, also after you connect again. Restoring the same file again finishes it: only what still differs is written.',
       'The keys and knob can be put back afterwards with Undo; macros, settings and lighting can’t, so back up first if you might want them again.',
     ],
     example: 'Restore last week’s backup to undo an afternoon of experiments in one go.',
@@ -1005,12 +1008,23 @@ const topics = {
     body: [
       'The firmware has a keymap built in, the one it came with. Resetting puts it back on every layer and the knob, and clears what was set up on top: the typing settings, multi-tap keys, key chords, shortcut replacements and repeat rules. Macros stay unless you tick “Empty the macros too”; neither needs the keyboard unlocked.',
       'The lighting, the key colours and mixed zones, the Caps Lock light, the layer and macro names, and Keychron’s key bounce filter, Snap Click and wireless timers stay as they are. Undo can’t bring the old setup back, and resetting empties Undo, so save a backup first: restoring it puts everything back.',
-      'Keychron keyboards also have a factory reset of their own, on the keyboard: hold Fn, J and Z together for about three seconds. It wipes everything the keyboard holds, the key bounce filter, Snap Click, lighting and wireless timers included, and forgets its Bluetooth and 2.4 GHz pairings. Back up first.',
+      'Keychron keyboards also have a factory reset of their own, on the keyboard: hold Fn, J and Z together for about three seconds. It wipes everything the keyboard holds, the key bounce filter, Snap Click, lighting and wireless timers included, and forgets its Bluetooth and 2.4 GHz pairings. Back up first. It goes by what the keys do, so it only works while a key still switches to the Fn layer and J and Z still type J and Z; this reset works whatever the keys are.',
     ],
     example: 'Lost track of what you changed? Save a backup, reset, and start from the firmware’s own keys.',
     docs: 'https://get.vial.today/manual/',
     where: [{ label: 'Device page, Start over or update, More options', href: '#/device' }],
-    related: ['backup', 'restore', 'typing-reset'],
+    related: ['backup', 'restore', 'typing-reset', 'cant-type'],
+  },
+  'cant-type': {
+    title: 'When the keyboard won’t type',
+    body: [
+      'If a change leaves the keyboard unable to type, or a layer you can’t get out of, the app can still fix it: it talks to the keyboard whatever its keys do, and you can use it with the mouse. Before such a change the Keys page and the restore review say what it would do.',
+      'Undo, in the bar at the bottom, takes the last changes back. Device page, Start over or update, Reset to defaults puts back the keys the firmware came with. A backup puts back everything.',
+      'Without the app: Keychron’s own factory reset (hold Fn, J and Z) works only while those keys still do that. Holding Esc (on most keyboards the top-left key) while plugging the keyboard in starts firmware update mode whatever the keys are; putting firmware on it again, with a flashing tool, gives a fresh start but may erase what it holds.',
+    ],
+    example: 'Every key on the base layer set to Nothing by mistake: click Undo, or Reset to defaults on the Device page.',
+    where: [{ label: 'Device page, Start over or update, More options', href: '#/device' }],
+    related: ['undo', 'keymap-reset', 'backup', 'bootloader'],
   },
   bootloader: {
     title: 'Restart for a firmware update',

@@ -129,7 +129,10 @@ function ResetKeys({ asking: askFirst = false }: { asking?: boolean }) {
         </p>
       )}
       {result === 'failed' && (
-        <Notice tone="danger">The reset didn’t go through completely. What the pages show is what the keyboard holds now.</Notice>
+        <Notice tone="danger">
+          The reset didn’t go through completely, or the keys couldn’t be read back afterwards. Disconnect the keyboard
+          and connect it again to see what it holds now.
+        </Notice>
       )}
       <Dialog
         open={asking}

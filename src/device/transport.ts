@@ -4,7 +4,7 @@
 // overlap and unsolicited reports never get mistaken for replies.
 
 import { REPORT_LEN, type HidLink } from './link'
-import { LAYER_PUSH, type PushShape } from './pushes'
+import { FACTORY_RESET_PUSH, LAYER_PUSH, type PushShape } from './pushes'
 
 /** The 2.4 GHz receiver tunnels reports with every byte XOR-ed with this; its wireless module chokes on some values. */
 const RECEIVER_XOR = 0x28
@@ -28,6 +28,11 @@ export interface TransportOptions {
   attempts?: number
   /** After a request that needed a resend, how long to hold the queue so late replies are not handed to the next request. */
   settleMs?: number
+  /**
+   * After a request got no reply at all: the queue is held until nothing has arrived for this long (at most four
+   * times as long in all), so replies that were only late are dropped instead of being taken by the next request.
+   */
+  drainMs?: number
 }
 
 export interface TransportStats {
@@ -41,6 +46,8 @@ export interface TransportStats {
   strays: number
   /** Receiver state notices skipped. */
   notices: number
+  /** Requests in a row that got no reply; 0 once one is answered. */
+  unanswered: number
 }
 
 export interface Transport {
@@ -63,7 +70,11 @@ export interface Transport {
 
 export class TransportError extends Error {
   constructor(
-    readonly reason: 'timeout' | 'disconnected',
+    /**
+     * 'timeout': no reply. 'disconnected': the keyboard went away. 'busy': the keyboard sent the request back
+     * unchanged, which it does to everything while an unlock is counting (via.c).
+     */
+    readonly reason: 'timeout' | 'disconnected' | 'busy',
     message: string,
   ) {
     super(message)
@@ -72,18 +83,52 @@ export class TransportError extends Error {
 }
 
 const DEFAULTS: Record<HidLink['kind'], Required<TransportOptions>> = {
-  cable: { timeoutMs: 500, attempts: 2, settleMs: 50 },
+  cable: { timeoutMs: 500, attempts: 2, settleMs: 50, drainMs: 300 },
   // Replies normally take 7-30 ms over 2.4 GHz, but a packet is lost now and then. A short wait and a resend
   // costs far less than one long wait.
-  receiver: { timeoutMs: 300, attempts: 6, settleMs: 100 },
+  receiver: { timeoutMs: 300, attempts: 6, settleMs: 100, drainMs: 300 },
+}
+
+/**
+ * VIA bytes after the command byte that the firmware leaves as they were sent (via.c writes its answer after
+ * them): a reply must repeat them, so a late reply to another request with the same command isn't taken.
+ */
+const VIA_ECHOED: Record<number, number> = {
+  0x02: 1, // get keyboard value: the value id
+  0x03: 1, // set keyboard value
+  0x04: 3, // get keycode: layer, row, column
+  0x05: 5, // set keycode: layer, row, column, keycode
+  0x07: 1, // lighting set: the value id
+  0x08: 1, // lighting get
+  0x0e: 3, // macro buffer get: offset, size
+  0x0f: 3, // macro buffer set
+  0x12: 3, // keymap buffer get: offset, size
+  0x13: 3, // keymap buffer set
+  0xa7: 1, // Keychron misc: the sub-command
+  0xa8: 1, // Keychron lighting: the sub-command
 }
 
 /**
  * VIA and Keychron replies start with the request's command byte, or 0xFF when the firmware doesn't know the
- * command. Vial replies (0xFE ...) carry data from byte 0, so they can't be checked.
+ * command; for the commands in VIA_ECHOED the request's next bytes come back too. Vial replies (0xFE ...) carry
+ * data from byte 0, so they can't be checked.
  */
 export function echoesCommand(reply: Uint8Array, request: Uint8Array): boolean {
-  return request[0] === VIAL_PREFIX || reply[0] === request[0] || reply[0] === UNHANDLED
+  if (request[0] === VIAL_PREFIX || reply[0] === UNHANDLED) return true
+  if (reply[0] !== request[0]) return false
+  const echoed = VIA_ECHOED[request[0]] ?? 0
+  for (let i = 1; i <= echoed; i++) if (reply[i] !== request[i]) return false
+  return true
+}
+
+/**
+ * Vial commands whose real reply always differs from the request (a status byte in front). Sent back unchanged,
+ * they weren't carried out: the keyboard is counting an unlock some other app or page started.
+ */
+function isUnlockingEcho(reply: Uint8Array, request: Uint8Array): boolean {
+  if (request[0] !== VIAL_PREFIX) return false
+  const changes = request[1] === 0x0a || request[1] === 0x0b || (request[1] === 0x0d && request[2] >= 1 && request[2] <= 8)
+  return changes && reply.every((b, i) => b === request[i])
 }
 
 function toReport(bytes: ArrayLike<number>): Uint8Array {
@@ -107,18 +152,32 @@ interface Waiting {
 export function createTransport(link: HidLink, options: TransportOptions = {}): Transport {
   const defaults = { ...DEFAULTS[link.kind], ...options }
   const encoded = link.kind === 'receiver'
-  const stats: TransportStats = { requests: 0, resends: 0, failures: 0, pushes: 0, strays: 0, notices: 0 }
+  const stats: TransportStats = { requests: 0, resends: 0, failures: 0, pushes: 0, strays: 0, notices: 0, unanswered: 0 }
   // A shape stays known once registered, so its reports are kept away from replies even with nobody listening.
-  const listeners = new Map<PushShape, Set<(report: Uint8Array) => void>>([[LAYER_PUSH, new Set()]])
+  const listeners = new Map<PushShape, Set<(report: Uint8Array) => void>>([
+    [LAYER_PUSH, new Set()],
+    [FACTORY_RESET_PUSH, new Set()],
+  ])
 
   let waiting: Waiting | null = null
   let queue: Promise<unknown> = Promise.resolve()
   let stopped = false
+  /** When the last report of any kind arrived (for draining after a request got no reply). */
+  let lastReport = 0
+  /** The drain after a request got no reply; the next queued job waits for it. */
+  let draining: Promise<void> | null = null
 
   const code = (bytes: Uint8Array) => (encoded ? bytes.map((b) => b ^ RECEIVER_XOR) : bytes)
 
+  /**
+   * A layer push and a knob read's reply can look alike ([0xA3, n, n, 0 …] is also "left 0xA3nn, right 0x00nn"). On
+   * the cable, while a knob read waits, such a report is taken as its reply: knob reads are short and rare.
+   */
+  const knobRead = (request: Uint8Array) => request[0] === VIAL_PREFIX && request[1] === 0x03
+
   const offReport = link.onReport((received) => {
     const raw = toReport(received)
+    lastReport = Date.now()
 
     // Only the first byte identifies a notice, so an encoded reply starting with one of these values would be
     // dropped too. No reply of this firmware does; Pipette and vial-gui make the same assumption.
@@ -129,7 +188,8 @@ export function createTransport(link: HidLink, options: TransportOptions = {}): 
 
     for (const [shape, subscribers] of listeners) {
       if (!shape.matches(raw)) continue
-      const isReply = !encoded && waiting !== null && shape.replyTo === waiting.request[0]
+      const isReply =
+        !encoded && waiting !== null && (shape.replyTo === waiting.request[0] || (shape === LAYER_PUSH && knobRead(waiting.request)))
       if (isReply) break
       stats.pushes++
       for (const listener of [...subscribers]) listener(raw)
@@ -141,10 +201,26 @@ export function createTransport(link: HidLink, options: TransportOptions = {}): 
       stats.strays++
       return
     }
-    const { resolve } = waiting
+    const entry = waiting
     waiting = null
-    resolve(reply)
+    stats.unanswered = 0
+    if (isUnlockingEcho(reply, entry.request)) {
+      entry.reject(new TransportError('busy', 'The keyboard sent the request back unchanged: an unlock is counting'))
+      return
+    }
+    entry.resolve(reply)
   })
+
+  /** Holds the queue until no report has arrived for drainMs (at most 4 × drainMs), dropping whatever comes. */
+  async function drain(): Promise<void> {
+    const start = Date.now()
+    lastReport = start
+    while (!stopped && Date.now() - start < defaults.drainMs * 4) {
+      const quietFor = Date.now() - lastReport
+      if (quietFor >= defaults.drainMs) return
+      await delay(defaults.drainMs - quietFor)
+    }
+  }
 
   const disconnected = () => new TransportError('disconnected', 'The keyboard is not connected')
 
@@ -160,7 +236,11 @@ export function createTransport(link: HidLink, options: TransportOptions = {}): 
 
   /** Runs jobs one at a time, in the order they were queued; a failed job doesn't block the next. */
   function enqueue<T>(job: () => Promise<T>): Promise<T> {
-    const result = queue.then(() => {
+    const result = queue.then(async () => {
+      if (draining) {
+        await draining
+        draining = null
+      }
       if (stopped) throw disconnected()
       return job()
     })
@@ -209,9 +289,15 @@ export function createTransport(link: HidLink, options: TransportOptions = {}): 
         if (sent > 1) await delay(defaults.settleMs)
         return reply
       } catch (error) {
-        const retry = error instanceof TransportError && error.reason === 'timeout' && sent < attempts
+        const timedOut = error instanceof TransportError && error.reason === 'timeout'
+        const retry = timedOut && sent < attempts
         if (!retry || stopped) {
           if (!stopped) stats.failures++
+          if (timedOut && !stopped) {
+            stats.unanswered++
+            // Replies that were only late would otherwise be taken by whatever is sent next: the queue waits.
+            draining = drain()
+          }
           throw stopped ? disconnected() : error
         }
         stats.resends++

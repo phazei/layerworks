@@ -58,6 +58,16 @@ export interface UnlockRun {
   transport: Transport
   /** Called with the keyboard's count after every poll it answers, and when it stops answering. */
   onProgress: (progress: UnlockProgress) => void
+  /** Asked between polls: true ends the loop with UnlockStopped (the keyboard itself goes on counting). */
+  shouldStop?: () => boolean
+}
+
+/** The app stopped waiting (`shouldStop`). Nothing tells the keyboard: an unlock it started can't be cancelled. */
+export class UnlockStopped extends Error {
+  constructor() {
+    super('Stopped waiting for the unlock')
+    this.name = 'UnlockStopped'
+  }
 }
 
 /**
@@ -65,10 +75,13 @@ export interface UnlockRun {
  * until it reports unlocked. Resolves with the final status. Rejects only when nothing was started (the keyboard
  * keeps working) or when the keyboard goes away (TransportError 'disconnected').
  */
-export function runUnlock({ transport, onProgress }: UnlockRun): Promise<UnlockStatus> {
+export function runUnlock({ transport, onProgress, shouldStop = () => false }: UnlockRun): Promise<UnlockStatus> {
   const pause = UNLOCK_POLL_MS[transport.link.kind]
 
   return transport.exclusive(async (request) => {
+    const checkStop = () => {
+      if (shouldStop()) throw new UnlockStopped()
+    }
     const status = parseUnlockStatus(await request(statusRequest()))
     if (!status) throw new Error('This keyboard’s firmware has no unlock.')
     if (status.unlocked) return status
@@ -82,7 +95,9 @@ export function runUnlock({ transport, onProgress }: UnlockRun): Promise<UnlockS
     if (!status.inProgress) await start()
 
     for (;;) {
+      checkStop()
       await delay(pause)
+      checkStop()
       let reply: Uint8Array
       try {
         // One attempt: a resend is just another poll, and the loop decides when that is due.

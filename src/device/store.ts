@@ -32,10 +32,10 @@ import type {
 } from '../vendor/pipette/shared/types/protocol'
 import { buildCapabilities, type Capabilities, type LightingInfo } from './capabilities'
 import type { HidLink, LinkKind } from './link'
-import { LAYER_PUSH, parseLayerReport, type LayerState } from './pushes'
+import { FACTORY_RESET_PUSH, LAYER_PUSH, parseLayerReport, type LayerState } from './pushes'
 import { pollMatrix, type MatrixPoller } from './matrix'
 import { createTransport, TransportError, type Transport } from './transport'
-import { parseUnlockStatus, runUnlock, statusRequest, type UnlockProgress } from './unlock'
+import { parseUnlockStatus, runUnlock, statusRequest, UnlockStopped, type UnlockProgress } from './unlock'
 import {
   bootKeycode,
   countOf,
@@ -141,10 +141,22 @@ export interface DeviceState {
   keychron: KeychronState | null
   /** Changes on their way to the keyboard. 0 means everything shown is saved on it. */
   writing: number
-  /** Why the last change could not be written; cleared by the next one that succeeds. */
+  /**
+   * Lighting shown on the keyboard but not saved on it yet (saved after a short pause, `flushSaves` saves it now).
+   * Lost if the keyboard restarts before then.
+   */
+  savePending: boolean
+  /** A restore is being written. */
+  restoring: boolean
+  /** Why the last change could not be written, in plain words; cleared by the next one that succeeds. */
   writeError: string | null
   canUndo: boolean
   canRedo: boolean
+  /**
+   * Set when the keyboard went away by itself (unplugged, receiver pulled), not through `disconnect()`, until the
+   * next connect. `duringWrite`: a change was on its way at the time.
+   */
+  lost: { duringWrite: boolean } | null
 }
 
 /** One place a keycode can be assigned: a key, or one direction of a knob (0 is counter-clockwise). */
@@ -216,11 +228,17 @@ export interface RestoreProgress {
 export interface RestoreReport {
   /** Writes that reached the keyboard, per part. */
   written: Partial<Record<RestorePart, number>>
-  failed: { part: RestorePart; what: string; error: string }[]
+  /** `error` in plain words; `detail` the technical message, for a Details disclosure. */
+  failed: { part: RestorePart; what: string; error: string; detail: string }[]
   /** Writes not attempted because the keyboard is locked. */
   skipped: { part: RestorePart; what: string }[]
-  /** The keyboard went away part-way: everything after `written` was not written. */
+  /** It stopped part-way: everything after `written` was not written. */
   stopped: boolean
+  /** Why it stopped: the keyboard went away, or stopped answering (asleep, switched off, out of range). */
+  stoppedBecause: 'disconnected' | 'not-answering' | null
+  /** How many of the plan's writes were tried before it stopped, and how many there were. */
+  done: number
+  total: number
   /** The key and knob changes can be taken back with one undo. */
   undoable: boolean
 }
@@ -259,9 +277,12 @@ const DISCONNECTED: DeviceState = {
   unlocking: null,
   keychron: null,
   writing: 0,
+  savePending: false,
+  restoring: false,
   writeError: null,
   canUndo: false,
   canRedo: false,
+  lost: null,
 }
 
 /** Lighting changes reach the keyboard at once but only survive a restart once saved; save after this pause. */
@@ -269,9 +290,63 @@ const LIGHTING_SAVE_DELAY_MS = 1500
 
 const NOT_CONNECTED = 'The keyboard is not connected'
 
+/** Said when a change gets no reply: what probably happened, and what to do. */
+export const NOT_ANSWERING: Record<LinkKind, string> = {
+  receiver:
+    'The keyboard didn’t answer. It may be asleep, switched off or out of range: press a key on it to wake it, then try again.',
+  cable: 'The keyboard didn’t answer. Check that it is plugged in, then try again.',
+}
+
+/** Said when connecting gets no reply. */
+export const NOT_ANSWERING_AT_CONNECT: Record<LinkKind, string> = {
+  receiver:
+    'The keyboard didn’t answer through the receiver. Set its switch to 2.4 GHz and press a key to wake it, then connect again.',
+  cable: 'The keyboard didn’t answer. Unplug it, plug it back in, then connect again.',
+}
+
+/** Said when the keyboard sends requests back unchanged: an unlock started elsewhere is counting. */
+export const OTHER_APP_UNLOCKING =
+  'Another app or tab has started unlocking this keyboard, so it isn’t taking changes. Finish the unlock there ' +
+  '(hold the keys it names), or unplug the keyboard and plug it back in (through the receiver: move its connection ' +
+  'switch away and back).'
+
+/** Said when the unlock this app stopped waiting for may still be counting on the keyboard. */
+export const UNLOCK_LEFT_COUNTING =
+  'The keyboard may still be waiting to be unlocked, and then it neither types nor takes changes. Unplug it and plug ' +
+  'it back in (through the receiver: move its connection switch away and back), then connect again.'
+
+/** Added when a failed change couldn't be checked by reading it back. */
+const UNCHECKED = 'The app couldn’t check what the keyboard holds now; reconnect it to be sure.'
+
+/** Said when a macro save stopped part-way. */
+export const MACRO_INTERRUPTED =
+  'The macro was only partly saved, so the keyboard won’t run any macro until they are saved again. Save it again, ' +
+  'or restore a backup. The page shows what the keyboard holds now.'
+
+/** Said when the firmware-update key would go on a key or knob turn while the keyboard is locked. */
+export const KEY_BOOT_LOCKED = 'The firmware update key only goes on a key while the keyboard is unlocked.'
+
+/** Answers in a row without a reply after which a long job (a restore) stops: the keyboard has gone quiet. */
+const QUIET_AFTER = 3
+/** Restore writes in a row that got no reply after which it stops (each has also tried to read back). */
+const QUIET_STEPS = 2
+/** How long an "is the keyboard free?" check counts before it is asked again. */
+const FREE_CHECK_MS = 2000
+
 /** VIA's macro buffer write: [0x0F, offset (big-endian), size, up to 28 bytes]. */
 const VIA_MACRO_SET_BUFFER = 0x0f
 const MACRO_CHUNK = 28
+/** What the macro memory's last byte holds while it is being written (anything but 0: see sendMacroBuffer). */
+const MACRO_WRITING = 0xff
+/** VIA's single keycode read: [0x04, layer, row, col] → keycode in bytes 4-5. */
+const VIA_GET_KEYCODE = 0x04
+
+/**
+ * The macro memory was left half-written (its last byte isn't 0): vial-qmk plays no macro until it is written
+ * again in full (dynamic_keymap.c, dynamic_keymap_macro_send).
+ */
+export const macrosHalted = (buffer: readonly number[] | null): boolean =>
+  !!buffer && buffer.length > 0 && buffer[buffer.length - 1] !== 0
 /** VIA's keymap read in pieces of this many bytes, as the first read does. */
 const KEYMAP_CHUNK = 28
 /** via.h: id_dynamic_keymap_reset, id_dynamic_keymap_macro_reset, id_bootloader_jump. */
@@ -315,8 +390,15 @@ export interface DeviceStore {
    * call joins the first.
    */
   unlock(): Promise<UnlockResult>
+  /**
+   * Stops waiting for the unlock under way: the app stops polling and resolves it 'stopped'. The keyboard itself
+   * can't be told to stop: if it was counting, it goes on ignoring keys and commands until it restarts.
+   */
+  stopUnlock(): void
   /** Locks the keyboard again. */
   lock(): Promise<void>
+  /** Saves now the lighting waiting for its pause (before the page closes). */
+  flushSaves(): Promise<void>
   /**
    * Saves macro `index` as `steps`, rewriting the parts of the shared macro buffer that change; every other macro
    * stays byte for byte. Needs the keyboard unlocked: while locked it resolves 'locked' without sending anything.
@@ -391,7 +473,7 @@ export interface DeviceStore {
   readonly transport: Transport | null
 }
 
-export type UnlockResult = 'unlocked' | 'disconnected' | 'failed'
+export type UnlockResult = 'unlocked' | 'disconnected' | 'failed' | 'stopped'
 
 /** How `restartToBootloader` went. */
 export type BootloaderResult =
@@ -593,12 +675,26 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
   let redoStack: Edit[] = []
   let lightingSaveTimer: ReturnType<typeof setTimeout> | null = null
   let keyLightingSaveTimer: ReturnType<typeof setTimeout> | null = null
+  /** When the keyboard last said no unlock was counting (checkFree). */
+  let freeCheckedAt = 0
+  /** This app stopped waiting for an unlock that may still be counting on the keyboard. */
+  let unlockLeftCounting = false
+  /** The technical message of the last failed write, for a restore report's details. */
+  let lastFailureDetail = ''
+  /** The last failed write got no reply at all. */
+  let lastFailureTimedOut = false
 
   let changes: Promise<unknown> = Promise.resolve()
 
-  /** Changes run one at a time, so each starts from the result of the one before, however fast they are asked for. */
-  function inOrder<T>(change: () => Promise<T>): Promise<T> {
-    const done = changes.then(change, change)
+  /**
+   * Changes run one at a time, so each starts from the result of the one before, however fast they are asked for.
+   * A change belongs to the keyboard connected when it was asked for: if that keyboard has gone (or has been read
+   * afresh) by the time its turn comes, the change is dropped and resolves with `dropped`.
+   */
+  function inOrder<T>(change: () => Promise<T>, dropped: T): Promise<T> {
+    const asked = session
+    const run = () => (asked !== null && session === asked ? change() : Promise.resolve(dropped))
+    const done = changes.then(run, run)
     changes = done.catch(() => undefined)
     return done
   }
@@ -610,28 +706,116 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     lightingSaveTimer = null
     if (keyLightingSaveTimer) clearTimeout(keyLightingSaveTimer)
     keyLightingSaveTimer = null
+    freeCheckedAt = 0
+    unlockLeftCounting = false
+  }
+
+  /** What went wrong, in plain words for the page. The technical message goes to the console. */
+  function plainError(error: unknown, current: Session): string {
+    const raw = error instanceof Error ? error.message : String(error)
+    lastFailureDetail = raw
+    lastFailureTimedOut = error instanceof TransportError && error.reason === 'timeout'
+    if (error instanceof TransportError) {
+      if (error.reason === 'timeout') {
+        console.warn('[device] no reply:', raw)
+        return NOT_ANSWERING[current.link.kind]
+      }
+      if (error.reason === 'busy') return unlockLeftCounting ? UNLOCK_LEFT_COUNTING : OTHER_APP_UNLOCKING
+      if (error.reason === 'disconnected') return NOT_CONNECTED
+    }
+    return raw
+  }
+
+  /**
+   * Before a change: is an unlock counting on the keyboard (started by another app or tab, or one this app stopped
+   * waiting for)? Then the keyboard sends every request back unchanged, which looks like success (via.c). Asked at
+   * most every FREE_CHECK_MS; the unlock status is one of the few requests it answers while counting.
+   */
+  async function checkFree(current: Session): Promise<void> {
+    if (Date.now() - freeCheckedAt < FREE_CHECK_MS) return
+    const status = parseUnlockStatus(await current.transport.request(statusRequest()))
+    if (status?.inProgress) throw new TransportError('busy', 'An unlock is counting on the keyboard')
+    freeCheckedAt = Date.now()
+  }
+
+  /** What reading back a failed write found: whether the keyboard took it after all, and what to show. */
+  interface Check {
+    took: boolean
+    patch?: Partial<DeviceState>
+    /** Said instead of the write's own error when it didn't take. */
+    message?: string
   }
 
   /** Runs one write, keeping `writing` and `writeError` in step. Resolves with whether it reached the keyboard. */
-  async function write(send: () => Promise<void>, applied: () => Partial<DeviceState>): Promise<boolean> {
-    return (await writeOrError(send, applied)) === null
+  async function write(
+    send: () => Promise<void>,
+    applied: () => Partial<DeviceState>,
+    verify?: () => Promise<Check>,
+  ): Promise<boolean> {
+    return (await writeOrError(send, applied, verify)) === null
   }
 
-  /** `write`, resolving with why it failed, or null when it reached the keyboard. */
-  async function writeOrError(send: () => Promise<void>, applied: () => Partial<DeviceState>): Promise<string | null> {
+  /**
+   * `write`, resolving with why it failed (in plain words), or null when it reached the keyboard. A write that fails
+   * without a reply may still have been carried out (the reply was lost, or came late); `verify` then reads back what
+   * it touched, so the page shows what the keyboard holds, and a write it finds done counts as done.
+   */
+  async function writeOrError(
+    send: () => Promise<void>,
+    applied: () => Partial<DeviceState>,
+    verify?: () => Promise<Check>,
+  ): Promise<string | null> {
     const current = session
     if (!current) return NOT_CONNECTED
     set({ writing: state.writing + 1 })
     try {
+      await checkFree(current)
       await send()
       if (session !== current) return NOT_CONNECTED
       set({ ...applied(), writing: state.writing - 1, writeError: null })
       return null
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      if (session === current) set({ writing: state.writing - 1, writeError: message })
+      if (session !== current) return NOT_CONNECTED
+      let message = plainError(error, current)
+      const detail = lastFailureDetail
+      // Busy: whatever comes back is an echo, not the keyboard's state. Disconnected: nothing to ask.
+      const askable = !(error instanceof TransportError && (error.reason === 'busy' || error.reason === 'disconnected'))
+      let patch: Partial<DeviceState> = {}
+      if (verify && askable) {
+        if (current.transport.stats.unanswered >= QUIET_AFTER) message = `${message} ${UNCHECKED}`
+        else {
+          try {
+            const check = await verify()
+            if (session !== current) return NOT_CONNECTED
+            if (check.took) {
+              set({ ...applied(), ...check.patch, writing: state.writing - 1, writeError: null })
+              return null
+            }
+            patch = check.patch ?? {}
+            if (check.message) message = check.message
+          } catch (again) {
+            if (session !== current) return NOT_CONNECTED
+            console.warn('[device] could not read back a failed change:', again)
+            message = `${message} ${UNCHECKED}`
+          }
+        }
+      }
+      lastFailureDetail = detail
+      set({ ...patch, writing: state.writing - 1, writeError: message })
       return message
     }
+  }
+
+  /** What a key or knob direction holds now, read from the keyboard (VIA `0x04`, Vial's knob read). */
+  async function readSlot(slot: Slot): Promise<number> {
+    if (slot.kind === 'knob') return (await protocol.getEncoder(slot.layer, slot.knob))[slot.direction]
+    const reply = await session!.transport.request([VIA_GET_KEYCODE, slot.layer, slot.row, slot.col])
+    return (reply[4] << 8) | reply[5]
+  }
+
+  const slotCheck = (slot: Slot, keycode: number) => async (): Promise<Check> => {
+    const now = await readSlot(slot)
+    return { took: now === keycode, patch: state.keyboard ? { keyboard: withKeycode(state.keyboard, slot, now) } : {} }
   }
 
   function writeKeycode(slot: Slot, keycode: number): Promise<boolean> {
@@ -641,15 +825,27 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
           ? protocol.setKeycode(slot.layer, slot.row, slot.col, keycode)
           : protocol.setEncoder(slot.layer, slot.knob, slot.direction, keycode),
       () => (state.keyboard ? { keyboard: withKeycode(state.keyboard, slot, keycode) } : {}),
+      slotCheck(slot, keycode),
     )
   }
 
   const history = () => ({ canUndo: undoStack.length > 0, canRedo: redoStack.length > 0 })
 
+  /**
+   * QK_BOOT on a key or knob turn while locked. vial-qmk turns it into nothing in knob and entry writes, but takes it
+   * in a single key write (via.c `id_dynamic_keymap_set_keycode` has no firewall); Vial asks first, and so does the
+   * store, on every route to a key.
+   */
+  const bootLocked = (code: number) => !state.unlock?.unlocked && code === bootKeycode()
+
   async function assign(slot: Slot, keycode: number): Promise<void> {
     if (!state.keyboard) return
     const from = slotKeycode(state.keyboard, slot)
     if (from === keycode) return
+    if (bootLocked(keycode)) {
+      set({ writeError: KEY_BOOT_LOCKED })
+      return
+    }
     if (!(await writeKeycode(slot, keycode))) return
     remember({ changes: [{ slot, from, to: keycode }] })
   }
@@ -663,6 +859,10 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
   async function step(from: 'undo' | 'redo'): Promise<void> {
     const edit = (from === 'undo' ? undoStack : redoStack).at(-1)
     if (!edit) return
+    if (edit.changes.some((c) => bootLocked(from === 'undo' ? c.from : c.to))) {
+      set({ writeError: KEY_BOOT_LOCKED })
+      return
+    }
     if (edit.macros) {
       // Locked, the keyboard would ignore the write: say so and keep the step.
       if (!state.unlock?.unlocked) {
@@ -670,7 +870,8 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         return
       }
       const [before, after] = from === 'undo' ? [edit.macros.to, edit.macros.from] : [edit.macros.from, edit.macros.to]
-      if (!(await writeMacroBuffer(before, after))) return
+      // What the keyboard holds may differ from what the step remembers (a save that stopped part-way); write from that.
+      if (!(await writeMacroBuffer(state.macros ?? before, after))) return
     }
     if (edit.entry) {
       const { kind, index } = edit.entry
@@ -712,6 +913,25 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     await protocol.setVialRGBMode(mode, speed, hue, sat, val)
   }
 
+  /** Reads the effect and its values back after a lighting write failed. */
+  const lightingCheck = (next: Required<LightingChange>) => async (): Promise<Check> => {
+    const values = await protocol.getVialRGBMode()
+    const took = (['mode', 'speed', 'hue', 'sat', 'val'] as const).every((k) => values[k] === next[k])
+    return { took, patch: state.lighting ? { lighting: { ...state.lighting, ...values } } : {} }
+  }
+
+  const pendingSaves = () => lightingSaveTimer !== null || keyLightingSaveTimer !== null
+
+  function saveLightingSoon(): void {
+    if (lightingSaveTimer) clearTimeout(lightingSaveTimer)
+    lightingSaveTimer = setTimeout(() => {
+      lightingSaveTimer = null
+      set({ savePending: pendingSaves() })
+      void write(() => protocol.saveLighting(), () => ({}))
+    }, LIGHTING_SAVE_DELAY_MS)
+    set({ savePending: true })
+  }
+
   async function setLighting(change: LightingChange): Promise<void> {
     const now = state.lighting
     if (!now || now.kind !== 'vialrgb') return
@@ -719,13 +939,9 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     const sent = await write(
       () => sendLighting(now.mode, next),
       () => (state.lighting ? { lighting: { ...state.lighting, ...change } } : {}),
+      lightingCheck(next),
     )
-    if (!sent) return
-    if (lightingSaveTimer) clearTimeout(lightingSaveTimer)
-    lightingSaveTimer = setTimeout(() => {
-      lightingSaveTimer = null
-      void write(() => protocol.saveLighting(), () => ({}))
-    }, LIGHTING_SAVE_DELAY_MS)
+    if (sent) saveLightingSoon()
   }
 
   async function refreshLighting(): Promise<void> {
@@ -743,8 +959,41 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     }
   }
 
+  /** One piece of the macro memory (VIA `0x0F`). */
+  function sendMacroBytes(transport: Transport, offset: number, bytes: number[]): Promise<Uint8Array> {
+    return transport.request([VIA_MACRO_SET_BUFFER, offset >> 8, offset & 0xff, bytes.length, ...bytes])
+  }
+
   /**
-   * Writes the macro buffer, only the 28-byte pieces that differ from `before` (what the keyboard holds), then
+   * Writes the macro memory in VIA's order: its last byte is set first to a value other than 0, then the pieces that
+   * differ from `before` go out, then the last byte gets its real value. vial-qmk plays no macro while that byte isn't
+   * 0 (dynamic_keymap.c, dynamic_keymap_macro_send), so a write that stops part-way leaves macros that don't run,
+   * rather than a mixture of old and new ones that do.
+   */
+  async function sendMacroBuffer(transport: Transport, before: number[], after: number[]): Promise<void> {
+    const last = after.length - 1
+    if (last < 0) return
+    const target = [...after]
+    target[last] = MACRO_WRITING
+    const was = [...before]
+    await sendMacroBytes(transport, last, [MACRO_WRITING])
+    was[last] = MACRO_WRITING
+    for (let offset = 0; offset < target.length; offset += MACRO_CHUNK) {
+      const chunk = target.slice(offset, offset + MACRO_CHUNK)
+      if (chunk.every((b, i) => was[offset + i] === b)) continue
+      await sendMacroBytes(transport, offset, chunk)
+    }
+    await sendMacroBytes(transport, last, [after[last]])
+  }
+
+  /** Reads the macro memory back after a macro write failed. */
+  const macroCheck = (after: number[]) => async (): Promise<Check> => {
+    const now = await protocol.getMacroBuffer(after.length)
+    return { took: now.every((b, i) => b === after[i]), patch: { macros: now }, message: MACRO_INTERRUPTED }
+  }
+
+  /**
+   * Writes the macro memory, only the 28-byte pieces that differ from `before` (what the keyboard holds), then
    * shows it. Locked, the keyboard would ignore it: callers check first.
    */
   function writeMacroBuffer(before: number[], after: number[]): Promise<boolean> {
@@ -752,13 +1001,10 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       async () => {
         const transport = session?.transport
         if (!transport) throw new Error(NOT_CONNECTED)
-        for (let offset = 0; offset < after.length; offset += MACRO_CHUNK) {
-          const chunk = after.slice(offset, offset + MACRO_CHUNK)
-          if (chunk.every((b, i) => before[offset + i] === b)) continue
-          await transport.request([VIA_MACRO_SET_BUFFER, offset >> 8, offset & 0xff, chunk.length, ...chunk])
-        }
+        await sendMacroBuffer(transport, before, after)
       },
       () => ({ macros: [...after] }),
+      macroCheck(after),
     )
   }
 
@@ -769,7 +1015,8 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     if (steps.some((s) => stepProblem(s, kb.vialProtocol) !== null)) return 'invalid'
     const bytes = encodeMacro(steps, kb.vialProtocol)
     const now = rawMacros(buffer, kb.macroCount)[index]
-    if (now.length === bytes.length && now.every((b, i) => b === bytes[i])) return 'unchanged'
+    // A memory left half-written (its last byte not 0) is written again even when this macro already matches.
+    if (now.length === bytes.length && now.every((b, i) => b === bytes[i]) && !macrosHalted(buffer)) return 'unchanged'
     const next = replaceMacro(buffer, kb.macroCount, kb.macroBytes, index, bytes)
     if (!next.buffer) return 'too-big'
     if (!state.unlock?.unlocked) return 'locked'
@@ -785,6 +1032,22 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     altRepeatKey: protocol.setAltRepeatKey,
   } as Record<EntryKind, (index: number, entry: AnyEntry) => Promise<void>>
 
+  const ENTRY_GETTERS = {
+    tapDance: protocol.getTapDance,
+    combo: protocol.getCombo,
+    keyOverride: protocol.getKeyOverride,
+    altRepeatKey: protocol.getAltRepeatKey,
+  } as Record<EntryKind, (index: number) => Promise<AnyEntry>>
+
+  /** Reads an entry back after its write failed. */
+  const entryCheck = (kind: EntryKind, index: number, entry: AnyEntry) => async (): Promise<Check> => {
+    const now = await ENTRY_GETTERS[kind](index)
+    if (!state.entries) return { took: sameEntry(now, entry) }
+    const list = [...(state.entries[kind] as AnyEntry[])]
+    list[index] = now
+    return { took: sameEntry(now, entry), patch: { entries: { ...state.entries, [kind]: list } } }
+  }
+
   /** Writes one entry and shows it. */
   function writeEntry(kind: EntryKind, index: number, entry: AnyEntry): Promise<boolean> {
     return write(
@@ -795,6 +1058,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         list[index] = { ...entry }
         return { entries: { ...state.entries, [kind]: list } }
       },
+      entryCheck(kind, index, entry),
     )
   }
 
@@ -810,12 +1074,15 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
   }
 
   let unlocking: Promise<UnlockResult> | null = null
+  /** Set by stopUnlock; the unlock loop checks it between polls. */
+  let stopAsked = false
 
   async function runUnlockFlow(): Promise<UnlockResult> {
     const current = session
     if (!current) return 'disconnected'
     if (state.unlock?.unlocked) return 'unlocked'
     let started = false
+    stopAsked = false
     try {
       const status = await runUnlock({
         transport: current.transport,
@@ -823,8 +1090,11 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
           started = true
           if (session === current) set({ unlocking: progress })
         },
+        shouldStop: () => stopAsked,
       })
       if (session !== current) return 'disconnected'
+      unlockLeftCounting = false
+      freeCheckedAt = 0
       set({ unlock: status, unlocking: null })
       set({ capabilities: capabilities() })
       return 'unlocked'
@@ -832,9 +1102,15 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       if (session !== current || (error instanceof TransportError && error.reason === 'disconnected')) {
         return 'disconnected'
       }
+      set({ unlocking: null })
+      if (error instanceof UnlockStopped) {
+        // The keyboard can't be told to stop; if it was counting it still is, and ignores everything until it restarts.
+        unlockLeftCounting = started
+        freeCheckedAt = 0
+        return 'stopped'
+      }
       // Only reached before the keyboard started counting (or when it refused to start): it still works.
       console.warn(`[device] unlock ${started ? 'stopped' : 'did not start'}:`, error)
-      set({ unlocking: null })
       return 'failed'
     }
   }
@@ -846,19 +1122,36 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     return unlocking
   }
 
+  function stopUnlock(): void {
+    if (unlocking) stopAsked = true
+  }
+
   async function lock(): Promise<void> {
     if (!state.unlock?.unlocked) return
     const sent = await write(
       () => protocol.lock(),
       () => (state.unlock ? { unlock: { ...state.unlock, unlocked: false } } : {}),
+      async () => {
+        const now = await protocol.getUnlockStatus()
+        return { took: !now.unlocked, patch: { unlock: now } }
+      },
     )
     if (sent) set({ capabilities: capabilities() })
   }
 
   async function restore(plan: RestorePlan, onProgress?: (progress: RestoreProgress) => void): Promise<RestoreReport> {
-    const report: RestoreReport = { written: {}, failed: [], skipped: [], stopped: false, undoable: false }
+    const report: RestoreReport = {
+      written: {},
+      failed: [],
+      skipped: [],
+      stopped: false,
+      stoppedBecause: null,
+      done: 0,
+      total: 0,
+      undoable: false,
+    }
     const current = session
-    if (!current || !state.keyboard) return { ...report, stopped: true }
+    if (!current || !state.keyboard) return { ...report, stopped: true, stoppedBecause: 'disconnected' }
     // Locked, vial-qmk ignores macro writes and turns QK_BOOT into "nothing" in knob and entry writes (vial.c,
     // via.c). Those are skipped rather than written wrong; keys with QK_BOOT too, as Vial itself asks first.
     const unlocked = state.unlock?.unlocked === true
@@ -868,6 +1161,10 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       part: RestorePart
       what: string
       needsUnlock: boolean
+      /** Reads back what a failed write touched (writeOrError). */
+      verify?: () => Promise<Check>
+      /** Called once the write reached the keyboard. */
+      done?: () => void
     }
     const steps: Step[] = []
     const written: Edit['changes'] = []
@@ -879,6 +1176,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         slot.kind === 'key'
           ? `layer ${slot.layer}, row ${slot.row}, column ${slot.col}`
           : `layer ${slot.layer}, knob ${slot.knob} ${slot.direction === 0 ? 'left' : 'right'}`
+      let from: number | null = null
       steps.push({
         part,
         what,
@@ -886,14 +1184,18 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         send: async () => {
           const kb = state.keyboard
           if (!kb) return
-          const from = slotKeycode(kb, slot)
-          if (from === to) return
+          const now = slotKeycode(kb, slot)
+          if (now === to) return
+          from = now
           await (slot.kind === 'key'
             ? protocol.setKeycode(slot.layer, slot.row, slot.col, to)
             : protocol.setEncoder(slot.layer, slot.knob, slot.direction, to))
-          written.push({ slot, from, to })
         },
         applied: () => (state.keyboard ? { keyboard: withKeycode(state.keyboard, slot, to) } : {}),
+        verify: slotCheck(slot, to),
+        done: () => {
+          if (from !== null) written.push({ slot, from, to })
+        },
       })
     }
 
@@ -914,8 +1216,10 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         part: 'macros',
         what: 'macro memory',
         needsUnlock: true,
-        send: () => protocol.setMacroBuffer(buffer),
+        // In VIA's order (sendMacroBuffer): stopped part-way, the keyboard plays no macro rather than a mixture.
+        send: async () => sendMacroBuffer(current.transport, state.macros ?? [], buffer),
         applied: () => ({ macros: [...buffer] }),
+        verify: macroCheck(buffer),
       })
     }
 
@@ -938,11 +1242,13 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
             list[index] = entry
             return { entries: { ...state.entries, [kind]: list } }
           },
+          verify: entryCheck(kind, index, entry as AnyEntry),
         })
       }
     }
 
     for (const { qsid, value } of plan.settings) {
+      const width = settingWidth(qsid)
       steps.push({
         part: 'settings',
         what: `setting ${qsid}`,
@@ -954,6 +1260,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
           const now = state.settings[qsid] ?? []
           return { settings: { ...state.settings, [qsid]: now.map((_, i) => value[i] ?? 0) } }
         },
+        verify: width === undefined ? undefined : settingCheck(qsid, decodeSetting(value, width), width),
       })
     }
 
@@ -968,6 +1275,9 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
           await protocol.saveLighting()
         },
         applied: () => (state.lighting ? { lighting: { ...state.lighting, mode, speed, hue, sat, val } } : {}),
+        // Found done by reading back, it may have missed the save: save again after the usual pause.
+        verify: lightingCheck({ mode, speed, hue, sat, val }),
+        done: saveLightingSoon,
       })
     }
 
@@ -986,6 +1296,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
           if (!(await setKeychronDebounce(type, time))) throw new Error('The keyboard refused the key bounce filter setting.')
         },
         applied: () => (state.keychron ? { keychron: { ...state.keychron, debounceType: type, debounceTime: time } } : {}),
+        verify: keychronCheck((kc) => kc.debounceType === type && kc.debounceTime === time),
       })
     }
 
@@ -1006,10 +1317,12 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
           entries[index] = { ...entry }
           return { keychron: { ...state.keychron, snapClickEntries: entries } }
         },
+        verify: snapClickCheck(index, entry),
       })
     }
 
-    // Keychron's per-key colours and zones: written, then saved with the command that saves them all.
+    // Keychron's per-key colours and zones: written, then saved with the command that saves them all. A write found
+    // done by reading back may have missed that save, so `done` saves again after the usual pause.
     if (plan.keyColours) {
       const { colours, style } = plan.keyColours
       steps.push({
@@ -1028,6 +1341,8 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
             ...(colours ? { perKeyColors: colours.map((c) => [...c] as Hsv) } : {}),
             ...(style !== null ? { perKeyRGBType: style } : {}),
           }),
+        verify: keychronCheck((kc) => (!colours || same(kc.rgb?.perKeyColors, colours)) && (style === null || kc.rgb?.perKeyRGBType === style)),
+        done: saveKeyLightingSoon,
       })
     }
 
@@ -1049,6 +1364,12 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
           for (const z of effects) list[z.zone] = z.effects.map((e) => ({ ...e }))
           return withKeyLighting({ ...(regions ? { mixedRGBRegions: [...regions] } : {}), mixedRGBEffects: list })
         },
+        verify: keychronCheck(
+          (kc) =>
+            (!regions || same(kc.rgb?.mixedRGBRegions, regions)) &&
+            effects.every((z) => sameZoneEffects(kc.rgb?.mixedRGBEffects[z.zone], z.effects)),
+        ),
+        done: saveKeyLightingSoon,
       })
     }
 
@@ -1063,6 +1384,8 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
           const now = state.keychron?.rgb?.osIndicatorConfig
           return now ? withKeyLighting({ osIndicatorConfig: { ...now, ...lights } }) : {}
         },
+        verify: keychronCheck((kc) => sameLockLights(kc.rgb?.osIndicatorConfig, lights)),
+        done: saveKeyLightingSoon,
       })
     }
 
@@ -1071,16 +1394,35 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       report.skipped.push({ part: s.part, what: s.what })
       return false
     })
+    report.total = todo.length
     onProgress?.({ done: 0, total: todo.length })
+    set({ restoring: true })
+    let unansweredSteps = 0
     for (const [i, s] of todo.entries()) {
-      const error = await writeOrError(s.send, s.applied)
+      const error = await writeOrError(s.send, s.applied, s.verify)
       if (session !== current) {
         report.stopped = true
+        report.stoppedBecause = 'disconnected'
         break
       }
-      if (error === null) report.written[s.part] = (report.written[s.part] ?? 0) + 1
-      else report.failed.push({ part: s.part, what: s.what, error })
+      report.done = i + 1
+      if (error === null) {
+        report.written[s.part] = (report.written[s.part] ?? 0) + 1
+        s.done?.()
+        unansweredSteps = 0
+      } else {
+        report.failed.push({ part: s.part, what: s.what, error, detail: lastFailureDetail })
+        unansweredSteps = lastFailureTimedOut ? unansweredSteps + 1 : 0
+      }
       onProgress?.({ done: i + 1, total: todo.length })
+      // Writes in a row without a reply: the keyboard has gone quiet (asleep, switched off, out of range). Trying the
+      // rest would only take seconds each and fail the same way.
+      const quiet = unansweredSteps >= QUIET_STEPS || current.transport.stats.unanswered >= QUIET_AFTER
+      if (quiet && i + 1 < todo.length) {
+        report.stopped = true
+        report.stoppedBecause = 'not-answering'
+        break
+      }
     }
 
     if (session === current) {
@@ -1088,13 +1430,13 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         remember({ changes: written })
         report.undoable = true
       }
-      set({ capabilities: capabilities() })
+      set({ capabilities: capabilities(), restoring: false })
     }
     return report
   }
 
   /** The write of Keychron's wireless timers; the keyboard answers with a status and saves them itself. */
-  function wirelessWrite(timers: WirelessTimers): WriteJob {
+  function wirelessWrite(timers: WirelessTimers): WriteJob & { verify: () => Promise<Check> } {
     return {
       send: async () => {
         const problem = timersProblem(timers)
@@ -1107,13 +1449,14 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         state.keychron
           ? { keychron: { ...state.keychron, wirelessBacklitTime: timers.backlitTime, wirelessIdleTime: timers.idleTime } }
           : {},
+      verify: keychronCheck((kc) => kc.wirelessBacklitTime === timers.backlitTime && kc.wirelessIdleTime === timers.idleTime),
     }
   }
 
   async function setWirelessTimers(timers: WirelessTimers): Promise<void> {
     if (!state.keychron?.hasWireless) return
-    const { send, applied } = wirelessWrite(timers)
-    await write(send, applied)
+    const { send, applied, verify } = wirelessWrite(timers)
+    await write(send, applied, verify)
   }
 
   const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
@@ -1134,6 +1477,17 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     remember({ changes: [], value: { key, at: now, from, to, write: writeValue } })
   }
 
+  /** Reads a setting back after its write failed. */
+  function settingCheck(qsid: number, value: number, width: number): () => Promise<Check> {
+    return async () => {
+      const now = await protocol.qmkSettingsGet(qsid)
+      return {
+        took: decodeSetting(now, width) === value,
+        patch: state.settings ? { settings: { ...state.settings, [qsid]: now } } : {},
+      }
+    }
+  }
+
   function writeSetting(qsid: number, value: number): Promise<boolean> {
     const width = settingWidth(qsid) ?? 0
     return write(
@@ -1142,7 +1496,21 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         if (!state.settings) return {}
         return { settings: { ...state.settings, [qsid]: withSettingValue(state.settings[qsid] ?? [], value, width) } }
       },
+      settingCheck(qsid, value, width),
     )
+  }
+
+  /**
+   * Reads Keychron's state back after one of its writes failed; `took` says whether it holds what was written. A
+   * read that itself went unanswered is no answer: the state isn't replaced with a half-read one.
+   */
+  function keychronCheck(took: (kc: KeychronState) => boolean): () => Promise<Check> {
+    return async () => {
+      const transport = session?.transport
+      const kc = await reloadKeychron()
+      if (!kc || !transport || transport.stats.unanswered > 0) throw new Error('The keyboard didn’t answer the read-back.')
+      return { took: took(kc), patch: { keychron: kc } }
+    }
   }
 
   async function setSetting(qsid: number, value: number): Promise<boolean> {
@@ -1177,6 +1545,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         if (!(await setKeychronDebounce(type, time))) throw new Error('The keyboard refused the key bounce filter setting.')
       },
       () => (state.keychron ? { keychron: { ...state.keychron, debounceType: type, debounceTime: time } } : {}),
+      keychronCheck((kc) => kc.debounceType === type && kc.debounceTime === time),
     )
   }
 
@@ -1206,6 +1575,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         entries[index] = { ...entry }
         return { keychron: { ...state.keychron, snapClickEntries: entries } }
       },
+      snapClickCheck(index, entry),
     )
   }
 
@@ -1237,9 +1607,25 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     if (keyLightingSaveTimer) clearTimeout(keyLightingSaveTimer)
     keyLightingSaveTimer = setTimeout(() => {
       keyLightingSaveTimer = null
+      set({ savePending: pendingSaves() })
       void write(() => sendKeyLighting([savePacket()], 'The keyboard didn’t save the key lighting.'), () => ({}))
     }, LIGHTING_SAVE_DELAY_MS)
+    set({ savePending: true })
   }
+
+  const snapClickCheck = (index: number, entry: SnapClickEntry) =>
+    keychronCheck((kc) => {
+      const now = kc.snapClickEntries[index]
+      return !!now && now.type === entry.type && now.key1 === entry.key1 && now.key2 === entry.key2
+    })
+
+  const sameZoneEffects = (now: ZoneEffect[] | undefined, want: ZoneEffect[]) =>
+    !!now &&
+    now.length === want.length &&
+    now.every((e, i) => (['effect', 'hue', 'sat', 'speed', 'time'] as const).every((k) => e[k] === want[i][k]))
+
+  const sameLockLights = (now: LockLights | null | undefined, want: LockLights) =>
+    !!now && (['disableMask', 'hue', 'sat', 'val'] as const).every((k) => now[k] === want[k])
 
   /** The Keychron lighting part of the state with `patch` applied, for `applied`. */
   function withKeyLighting(patch: Partial<NonNullable<KeychronState['rgb']>>): Partial<DeviceState> {
@@ -1253,6 +1639,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     const sent = await write(
       () => sendKeyLighting(colourPackets(before, colours), 'The keyboard refused these key colours.'),
       () => withKeyLighting({ perKeyColors: colours.map((c) => [...c] as Hsv) }),
+      keychronCheck((kc) => same(kc.rgb?.perKeyColors, colours)),
     )
     if (sent) saveKeyLightingSoon()
     return sent
@@ -1276,6 +1663,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     const sent = await write(
       () => sendKeyLighting([stylePacket(style)], 'The keyboard refused this style.'),
       () => withKeyLighting({ perKeyRGBType: style }),
+      keychronCheck((kc) => kc.rgb?.perKeyRGBType === style),
     )
     if (sent) saveKeyLightingSoon()
     return sent
@@ -1296,6 +1684,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     const sent = await write(
       () => sendKeyLighting(regionPackets(before, regions), 'The keyboard refused these zones.'),
       () => withKeyLighting({ mixedRGBRegions: [...regions] }),
+      keychronCheck((kc) => same(kc.rgb?.mixedRGBRegions, regions)),
     )
     if (sent) saveKeyLightingSoon()
     return sent
@@ -1320,6 +1709,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         list[zone] = effects.map((e) => ({ ...e }))
         return withKeyLighting({ mixedRGBEffects: list })
       },
+      keychronCheck((kc) => sameZoneEffects(kc.rgb?.mixedRGBEffects[zone], effects)),
     )
     if (sent) saveKeyLightingSoon()
     return sent
@@ -1343,6 +1733,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         const now = state.keychron?.rgb?.osIndicatorConfig
         return now ? withKeyLighting({ osIndicatorConfig: { ...now, ...lights } }) : {}
       },
+      keychronCheck((kc) => sameLockLights(kc.rgb?.osIndicatorConfig, lights)),
     )
     if (sent) saveKeyLightingSoon()
     return sent
@@ -1399,17 +1790,26 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       },
       () => ({}),
     )
-    // Whatever got through, undo can't bring it back: its steps would write over the firmware's keys.
-    undoStack = []
-    redoStack = []
-    set(history())
+    // Once the reset got through, undo can't bring the old setup back: its steps would write over the firmware's
+    // keys. Without an answer it may or may not have; the keys read back tell.
+    const forgetHistory = () => {
+      undoStack = []
+      redoStack = []
+      set(history())
+    }
+    if (sent) forgetHistory()
     if (session !== current) return false
     try {
       const keys = await readKeys(kb)
       if (session !== current || !state.keyboard) return false
+      const changed = !same(keys.keymap, state.keyboard.keymap) || !same(keys.knobs, state.keyboard.knobs)
+      if (!sent && changed) forgetHistory()
       set({ keyboard: { ...state.keyboard, ...keys } })
     } catch (error) {
-      if (session === current) set({ writeError: error instanceof Error ? error.message : String(error) })
+      if (session !== current) return false
+      if (!sent) forgetHistory()
+      console.warn('[device] could not read the keys back after a reset:', error)
+      set({ writeError: `${plainError(error, current)} ${UNCHECKED}` })
       return false
     }
     // The rest it touched, read as at connect (shown as loading in the status line meanwhile).
@@ -1424,12 +1824,56 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     if (lightingSaveTimer) {
       clearTimeout(lightingSaveTimer)
       lightingSaveTimer = null
+      set({ savePending: pendingSaves() })
       await write(() => protocol.saveLighting(), () => ({}))
     }
     if (keyLightingSaveTimer) {
       clearTimeout(keyLightingSaveTimer)
       keyLightingSaveTimer = null
+      set({ savePending: pendingSaves() })
       await write(() => sendKeyLighting([savePacket()], 'The keyboard didn’t save the key lighting.'), () => ({}))
+    }
+  }
+
+  /**
+   * Reads the whole keyboard afresh on the same link, after Keychron's factory reset (everything changed behind the
+   * app's back). Changes queued for it before are dropped (a new session), and undo is forgotten.
+   */
+  async function reload(old: Session): Promise<void> {
+    if (session !== old) return
+    forget()
+    const current: Session = { transport: old.transport, link: old.link }
+    session = current
+    const { link } = current
+    set({
+      ...DISCONNECTED,
+      status: 'connecting',
+      link: { kind: link.kind, productName: link.productName, vendorId: link.vendorId, productId: link.productId },
+    })
+    await load(current)
+  }
+
+  /** Reads the keyboard on a session just opened; on failure lets go of it, saying why in plain words. */
+  async function load(current: Session): Promise<void> {
+    const { transport, link } = current
+    try {
+      const { keyboard, layer } = await readKeyboard(transport)
+      if (session !== current) return
+      // A layer push that arrived while loading is newer than the reply to our own question.
+      set({ status: 'ready', keyboard, layer: state.layer ?? layer, loading: LOAD_PARTS })
+      set({ capabilities: capabilities() })
+      void readRest(current, keyboard)
+    } catch (error) {
+      if (session !== current) return
+      session = null
+      transport.stop()
+      await link.close().catch(() => {})
+      let message = error instanceof Error ? error.message : String(error)
+      if (error instanceof TransportError && error.reason === 'timeout') {
+        console.warn('[device] no reply while connecting:', message)
+        message = NOT_ANSWERING_AT_CONNECT[link.kind]
+      }
+      set({ ...DISCONNECTED, status: 'error', error: message })
     }
   }
 
@@ -1485,65 +1929,72 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     },
 
     disconnect,
-    assign: (slot, keycode) => inOrder(() => assign(slot, keycode)),
-    undo: () => inOrder(() => step('undo')),
-    redo: () => inOrder(() => step('redo')),
-    setLighting: (change) => inOrder(() => setLighting(change)),
-    refreshLighting: () => inOrder(refreshLighting),
+    // Each change belongs to the keyboard it was asked for (inOrder); the second argument is what it resolves to
+    // when that keyboard has gone by its turn.
+    assign: (slot, keycode) => inOrder(() => assign(slot, keycode), undefined),
+    undo: () => inOrder(() => step('undo'), undefined),
+    redo: () => inOrder(() => step('redo'), undefined),
+    setLighting: (change) => inOrder(() => setLighting(change), undefined),
+    refreshLighting: () => inOrder(refreshLighting, undefined),
     unlock,
-    lock: () => inOrder(lock),
-    saveMacro: (index, steps) => inOrder(() => saveMacro(index, steps)),
-    saveEntry: (kind, index, entry) => inOrder(() => saveEntry(kind, index, entry)),
-    restore: (plan, onProgress) => inOrder(() => restore(plan, onProgress)),
-    setWirelessTimers: (timers) => inOrder(() => setWirelessTimers(timers)),
-    setSetting: (qsid, value) => inOrder(() => setSetting(qsid, value)),
-    resetSettings: () => inOrder(resetSettings),
-    setDebounce: (debounce) => inOrder(() => setDebounce(debounce)),
-    setSnapClick: (index, entry) => inOrder(() => setSnapClick(index, entry)),
-    setKeyColours: (colours, undoKey) => inOrder(() => setKeyColours(colours, undoKey)),
-    setKeyStyle: (style) => inOrder(() => setKeyStyle(style)),
-    setZones: (regions, undoKey) => inOrder(() => setZones(regions, undoKey)),
-    setZoneEffects: (zone, effects) => inOrder(() => setZoneEffects(zone, effects)),
-    setLockLights: (change) => inOrder(() => setLockLights(change)),
-    resetKeymap: (options) => inOrder(() => resetKeymap(options)),
-    restartToBootloader: () => inOrder(restartToBootloader),
+    stopUnlock,
+    lock: () => inOrder(lock, undefined),
+    flushSaves: () => inOrder(flushSaves, undefined),
+    saveMacro: (index, steps) => inOrder(() => saveMacro(index, steps), 'failed'),
+    saveEntry: (kind, index, entry) => inOrder(() => saveEntry(kind, index, entry), 'failed'),
+    restore: (plan, onProgress) =>
+      inOrder(() => restore(plan, onProgress), {
+        written: {},
+        failed: [],
+        skipped: [],
+        stopped: true,
+        stoppedBecause: 'disconnected',
+        done: 0,
+        total: 0,
+        undoable: false,
+      }),
+    setWirelessTimers: (timers) => inOrder(() => setWirelessTimers(timers), undefined),
+    setSetting: (qsid, value) => inOrder(() => setSetting(qsid, value), false),
+    resetSettings: () => inOrder(resetSettings, false),
+    setDebounce: (debounce) => inOrder(() => setDebounce(debounce), false),
+    setSnapClick: (index, entry) => inOrder(() => setSnapClick(index, entry), false),
+    setKeyColours: (colours, undoKey) => inOrder(() => setKeyColours(colours, undoKey), false),
+    setKeyStyle: (style) => inOrder(() => setKeyStyle(style), false),
+    setZones: (regions, undoKey) => inOrder(() => setZones(regions, undoKey), false),
+    setZoneEffects: (zone, effects) => inOrder(() => setZoneEffects(zone, effects), false),
+    setLockLights: (change) => inOrder(() => setLockLights(change), false),
+    resetKeymap: (options) => inOrder(() => resetKeymap(options), false),
+    restartToBootloader: () => inOrder(restartToBootloader, 'failed'),
     watchMatrix,
 
     async connect(link) {
       await disconnect()
       const transport = createTransport(link)
-      const current = (session = { transport, link })
+      const current: Session = { transport, link }
+      session = current
       // The vendored protocol code sends through one module-level transport, so one keyboard at a time.
       setTransport({ sendReceive: (data) => transport.request(data), send: (data) => transport.send(data) })
 
+      // The session object is replaced by a reload (factory reset); the link and transport stay.
+      const mine = () => session !== null && session.transport === transport
       link.onClose(() => {
-        if (session !== current) return
+        if (!mine()) return
+        const duringWrite = state.writing > 0 || state.restoring
         forget()
         session = null
         transport.stop()
-        set(DISCONNECTED)
+        set({ ...DISCONNECTED, lost: { duringWrite } })
       })
       transport.onPush(LAYER_PUSH, (report) => {
-        if (session === current) set({ layer: parseLayerReport(report) })
+        if (mine()) set({ layer: parseLayerReport(report) })
+      })
+      transport.onPush(FACTORY_RESET_PUSH, () => {
+        if (session && mine()) void reload(session)
       })
 
       const { kind, productName, vendorId, productId } = link
       set({ ...DISCONNECTED, status: 'connecting', link: { kind, productName, vendorId, productId } })
-
-      try {
-        const { keyboard, layer } = await readKeyboard(transport)
-        if (session !== current) return
-        // A layer push that arrived while loading is newer than the reply to our own question.
-        set({ status: 'ready', keyboard, layer: state.layer ?? layer, loading: LOAD_PARTS })
-        set({ capabilities: capabilities() })
-        void readRest(current, keyboard)
-      } catch (error) {
-        if (session !== current) return
-        session = null
-        transport.stop()
-        await link.close().catch(() => {})
-        set({ ...DISCONNECTED, status: 'error', error: error instanceof Error ? error.message : String(error) })
-      }
+      await load(current)
     },
   }
 }

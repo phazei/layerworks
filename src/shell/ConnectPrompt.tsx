@@ -7,7 +7,8 @@ import { Keyboard, Plug, Sparkles } from 'lucide-react'
 import { grantedDevices, isWebHidSupported, useDevice } from '../device'
 import { Button, Spinner } from '../ui/controls'
 import { HelpButton, Notice } from '../ui/layout'
-import { connectChosen, connectDemo, connectTo, useConnectError } from './session'
+import { describeRecord, useRestoreRecord } from './restore-record'
+import { connectChosen, connectDemo, connectTo, takeOver, useConnectError, useSessionNotice } from './session'
 
 /** Devices the browser has already been allowed to open; looked up again whenever the connection changes. */
 function useGrantedDevices(): HIDDevice[] {
@@ -42,7 +43,10 @@ export function ConnectPrompt() {
   const supported = isWebHidSupported()
   const granted = useGrantedDevices()
   const storeError = useDevice((s) => s.error)
+  const lost = useDevice((s) => s.lost)
   const connectError = useConnectError()
+  const notice = useSessionNotice()
+  const record = useRestoreRecord()
   const error = connectError ?? storeError
 
   return (
@@ -71,6 +75,29 @@ export function ConnectPrompt() {
           </Notice>
         )}
         {error && <Notice tone="danger">Couldn’t connect: {error}</Notice>}
+        {lost && !error && (
+          <Notice>
+            The keyboard was disconnected.
+            {lost.duringWrite && ' A change was on its way to it and may not have arrived: check it once it is back.'}
+          </Notice>
+        )}
+        {record && <Notice tone="danger">{describeRecord(record)}</Notice>}
+        {notice?.kind === 'other-tab' && (
+          <Notice>
+            <span className="flex flex-col items-start gap-2">
+              <span>
+                Layerworks is already open in another tab with this keyboard. Only one tab can use it at a time: close
+                the other tab, or use it here (the other tab lets go of it).
+              </span>
+              <Button size="sm" onClick={() => void takeOver(notice.device)}>
+                Use it here
+              </Button>
+            </span>
+          </Notice>
+        )}
+        {notice?.kind === 'taken-over' && (
+          <Notice>Layerworks was opened with this keyboard in another tab, so this tab let go of it.</Notice>
+        )}
 
         <div className="flex flex-col gap-2">
           {granted.map((device, i) => (

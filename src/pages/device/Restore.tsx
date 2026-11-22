@@ -13,7 +13,10 @@ import {
   countOf,
   describePlan,
   deviceStore,
+  parseKeycode,
+  planItems,
   planRestore,
+  planRisks,
   readKeyboardFile,
   unlockNeeded,
   useDevice,
@@ -30,10 +33,12 @@ import {
   storedMacroNames,
   useConnectedLayerNames,
 } from '../../shell/layer-names'
+import { describeRecord, setRestoreRecord, useRestoreRecord } from '../../shell/restore-record'
+import { screenshotOption } from '../../shell/session'
 import { openUnlock } from '../../shell/unlock-dialog'
 import { Button } from '../../ui/controls'
 import { FileButton, readText } from '../../ui/files'
-import { Dialog, Notice } from '../../ui/layout'
+import { Dialog, Disclosure, Notice } from '../../ui/layout'
 import { ProgressBar } from '../../ui/ProgressBar'
 
 type Step =
@@ -81,6 +86,11 @@ function Review({ step, onRestore, onCancel, onUnlocked }: ReviewProps) {
   const { plan, file, warnings } = step
   const lines = describePlan(plan, names)
   const locked = unlockNeeded(plan)
+  const layerName = (layer: number) => names[layer] ?? `Layer ${layer}`
+  const state = deviceStore.getState()
+  const items = planItems(plan, state, layerName)
+  const risks = planRisks(plan, state, layerName)
+  const itemCount = items.reduce((n, part) => n + part.items.length, 0)
 
   return (
     <section aria-label="Restore" className="flex flex-col gap-4 rounded-control border border-edge p-4">
@@ -122,6 +132,38 @@ function Review({ step, onRestore, onCancel, onUnlocked }: ReviewProps) {
           </ul>
           <p className="mt-2 text-[13px] text-muted">Everything else stays as it is.</p>
         </div>
+      )}
+      {risks.length > 0 && (
+        <Notice tone="danger">
+          <span className="flex flex-col gap-1.5">
+            <span className="font-medium">Look at this before restoring:</span>
+            <ul className="list-disc pl-5">
+              {risks.map((risk) => (
+                <li key={risk.text}>{risk.text}</li>
+              ))}
+            </ul>
+          </span>
+        </Notice>
+      )}
+      {itemCount > 0 && (
+        <Disclosure id="restore-changes" label={`Show the changes (${itemCount})`}>
+          <div className="flex flex-col gap-3 text-[13px]">
+            {items.map((part) => (
+              <div key={part.part}>
+                <h4 className="font-medium">
+                  {part.title} ({part.items.length})
+                </h4>
+                <ul aria-label={part.title} className="mt-1 flex flex-col gap-0.5 text-muted">
+                  {part.items.map((item, i) => (
+                    <li key={i} className="break-words">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </Disclosure>
       )}
       {locked > 0 && !unlocked && (
         <Notice>
@@ -183,6 +225,13 @@ function Review({ step, onRestore, onCancel, onUnlocked }: ReviewProps) {
   )
 }
 
+/** Failures with the same reason in one line: "layer 0, row 1, column 2 and 3 more: The keyboard didn’t answer …". */
+function failedLines(failed: RestoreReport['failed']): string[] {
+  const byError = new Map<string, string[]>()
+  for (const f of failed) byError.set(f.error, [...(byError.get(f.error) ?? []), f.what])
+  return [...byError].map(([error, whats]) => `${whats[0]}${whats.length > 1 ? ` and ${whats.length - 1} more` : ''}: ${error}`)
+}
+
 /** After the restore: what was written, failed and left out. Unlocking from here goes back to the review of the same file. */
 function Report({ step, onDone, onUnlocked }: { step: Extract<Step, { kind: 'done' }>; onDone: () => void; onUnlocked: () => void }) {
   const { report } = step
@@ -200,8 +249,9 @@ function Report({ step, onDone, onUnlocked }: { step: Extract<Step, { kind: 'don
       </p>
       {report.stopped && (
         <Notice tone="danger">
-          The keyboard went away part-way. Connect it again and restore the same file: only what still differs is
-          written.
+          {report.stoppedBecause === 'not-answering'
+            ? `The keyboard stopped answering after ${report.done} of ${report.total} changes, so the rest weren’t tried. It may be asleep, switched off or out of range: press a key on it to wake it, then restore the same file again. Only what still differs is written.`
+            : 'The keyboard went away part-way. Connect it again and restore the same file: only what still differs is written.'}
         </Notice>
       )}
       {report.failed.length > 0 && (
@@ -211,12 +261,19 @@ function Report({ step, onDone, onUnlocked }: { step: Extract<Step, { kind: 'don
             Restoring the file again tries them once more.
           </p>
           <ul className="mt-1 list-disc pl-5">
-            {report.failed.map((f) => (
-              <li key={`${f.part}:${f.what}`}>
-                {f.what}: {f.error}
-              </li>
+            {failedLines(report.failed).map((line) => (
+              <li key={line}>{line}</li>
             ))}
           </ul>
+          <Disclosure id="restore-failure-details" label="Details">
+            <ul className="text-[13px] text-muted">
+              {report.failed.map((f) => (
+                <li key={`${f.part}:${f.what}`}>
+                  {f.what}: {f.detail}
+                </li>
+              ))}
+            </ul>
+          </Disclosure>
         </Notice>
       )}
       {report.skipped.length > 0 && (
@@ -243,14 +300,19 @@ function Report({ step, onDone, onUnlocked }: { step: Extract<Step, { kind: 'don
 }
 
 /**
- * `?restore-sample` in the URL: a made-up backup of the connected keyboard with a few keys, a knob turn, a macro
- * and the lighting changed, opened as soon as the keyboard is read, for screenshots of the restore review.
+ * `?restore-sample` in the URL (demo keyboard only): a made-up backup of the connected keyboard with a few keys, a
+ * knob turn, a macro and the lighting changed, opened as soon as the keyboard is read, for screenshots of the restore
+ * review. `?restore-sample=risky` also puts the memory-wiping key on the first key (row 1, column 1) of layer 0.
  */
-function sampleText(): string {
+function sampleText(risky = false): string {
   const state = deviceStore.getState()
   const backup = createBackup(state, storedLayerNames(state.keyboard?.uid ?? ''))
   const flip = (code: number) => (code === 0x04 ? 0x05 : 0x04)
   backup.keymap.slice(1, 3).forEach((layer) => layer[1]?.forEach((code, c, row) => c < 4 && (row[c] = flip(code))))
+  if (risky) {
+    const wipe = parseKeycode('QK_CLEAR_EEPROM')
+    if (wipe !== null && backup.keymap[0]?.[0]) backup.keymap[0][0][0] = wipe
+  }
   if (backup.knobs[0]?.[0]) backup.knobs[0][0] = [backup.knobs[0][0][1], backup.knobs[0][0][0]]
   if (backup.macros?.length) backup.macros.splice(0, 3, 0x68, 0x69, 0)
   if (backup.lighting) backup.lighting = { ...backup.lighting, hue: (backup.lighting.hue + 85) % 256 }
@@ -261,13 +323,18 @@ function sampleText(): string {
 export function Restore() {
   const [step, setStep] = useState<Step>({ kind: 'idle' })
   const ready = useDevice((s) => s.status === 'ready' && s.loading.length === 0)
-  const busy = step.kind === 'running'
+  // A restore started before the page was left and come back to is still running in the store.
+  const restoring = useDevice((s) => s.restoring)
+  const busy = step.kind === 'running' || restoring
+  const uid = useDevice((s) => s.keyboard?.uid)
+  const record = useRestoreRecord()
   const sampled = useRef(false)
 
   useEffect(() => {
-    if (!ready || sampled.current || !new URLSearchParams(location.search).has('restore-sample')) return
+    const sample = screenshotOption('restore-sample')
+    if (!ready || sampled.current || sample === null) return
     sampled.current = true
-    void open('sample.layerworks.json', async () => sampleText())
+    void open('sample.layerworks.json', async () => sampleText(sample === 'risky'))
   }, [ready])
 
   async function open(fileName: string, read: () => Promise<string>) {
@@ -310,6 +377,11 @@ export function Restore() {
       setMacroNames(uid, plan.macroNames)
       names.macroNames = 1
     }
+    // Kept for this visit: when the keyboard went away this panel is gone, so the connect prompt and this page say it
+    // once it is back. A restore that finished forgets it.
+    if (uid && report.stopped && report.stoppedBecause) {
+      setRestoreRecord({ fileName, uid, done: report.done, total: report.total, because: report.stoppedBecause })
+    } else if (!report.stopped) setRestoreRecord(null)
     setStep({ kind: 'done', fileName, file, report, names })
   }
 
@@ -325,6 +397,16 @@ export function Restore() {
           Choose a backup file…
         </FileButton>
       </div>
+      {record && record.uid === uid && step.kind !== 'done' && step.kind !== 'running' && (
+        <Notice tone="danger">
+          <span className="flex flex-col items-start gap-2">
+            <span>{describeRecord(record)}</span>
+            <Button size="sm" variant="quiet" onClick={() => setRestoreRecord(null)}>
+              Dismiss
+            </Button>
+          </span>
+        </Notice>
+      )}
       {step.kind === 'error' && (
         <Notice tone="danger">
           <span className="font-medium break-all">{step.fileName}</span>: {step.message}

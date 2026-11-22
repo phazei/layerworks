@@ -288,7 +288,11 @@ export function parseBackup(text: string): Backup {
     macros: nullable(data.macros, (v) => ints(v, 0xff, 'the macros')),
     entries: nullable(data.entries, readEntries),
     settings,
-    lighting: nullable(data.lighting, (v) => fields(v, ['mode', 'speed', 'hue', 'sat', 'val'], U16, 'the lighting')),
+    // VialRGB's effect id is 16-bit; speed and colour are bytes (vialrgb.c).
+    lighting: nullable(data.lighting, (v) => ({
+      ...fields(v, ['mode'], U16, 'the lighting'),
+      ...fields(v, ['speed', 'hue', 'sat', 'val'], 0xff, 'the lighting'),
+    })),
     keychron,
   }
 }

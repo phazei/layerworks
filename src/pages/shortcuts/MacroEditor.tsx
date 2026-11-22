@@ -8,6 +8,7 @@ import {
   deviceStore,
   encodeMacro,
   macroKeycode,
+  macrosHalted,
   rawMacros,
   readMacros,
   replaceMacro,
@@ -18,6 +19,7 @@ import {
   type MacroStep,
 } from '../../device'
 import { defaultMacroName, renameMacro, useStoredMacroNames } from '../../shell/layer-names'
+import { screenshotOption } from '../../shell/session'
 import { openUnlock } from '../../shell/unlock-dialog'
 import { Button, cx, TextInput } from '../../ui/controls'
 import { Card, Disclosure, HelpButton, Notice } from '../../ui/layout'
@@ -83,7 +85,8 @@ function useSampleDraft(index: number): void {
   const buffer = useDevice((s) => s.macros)
   const done = useRef(false)
   useEffect(() => {
-    const sample = new URLSearchParams(location.search).get('macro-draft')
+    // Only on the demo keyboard (screenshotOption).
+    const sample = screenshotOption('macro-draft')
     if (done.current || sample === null || !kb || !buffer) return
     done.current = true
     const saved = readMacros(buffer, kb.vialProtocol, kb.macroCount)[index] ?? []
@@ -101,6 +104,8 @@ export function MacroEditor({ index }: { index: number }) {
   const macroName = useStoredMacroNames()[index]?.trim() || defaultMacroName(index)
   const [picking, setPicking] = useState<number | null>(null)
   const [result, setResult] = useState<MacroSaveResult | null>(null)
+  // Why a save failed, as the store says it (a save that stopped part-way says what to do).
+  const [failure, setFailure] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   useSampleDraft(index)
   if (!kb) return null
@@ -151,6 +156,7 @@ export function MacroEditor({ index }: { index: number }) {
     const outcome = await deviceStore.saveMacro(index, sent)
     setSaving(false)
     setResult(outcome)
+    setFailure(outcome === 'failed' ? deviceStore.getState().writeError : null)
     // Edits made while it was on its way stay a draft.
     if (outcome === 'saved' || outcome === 'unchanged') {
       const now = getDraft(kb.uid, index)
@@ -184,7 +190,9 @@ export function MacroEditor({ index }: { index: number }) {
               onRevert={() => edit(saved)}
             >
               {!fit.buffer && <Notice tone="danger">{space}</Notice>}
-              {result && SAVE_PROBLEMS[result] && <Notice tone="danger">{SAVE_PROBLEMS[result]}</Notice>}
+              {result && SAVE_PROBLEMS[result] && (
+                <Notice tone="danger">{(result === 'failed' && failure) || SAVE_PROBLEMS[result]}</Notice>
+              )}
               {!unlocked && dirty && (
                 <Notice>
                   <span className="flex items-start gap-2">
@@ -198,6 +206,19 @@ export function MacroEditor({ index }: { index: number }) {
                 </Notice>
               )}
             </SaveBar>
+          )}
+          {macrosHalted(buffer) && !dirty && result !== 'failed' && (
+            <Notice tone="danger">
+              <span className="flex flex-col items-start gap-2">
+                <span>
+                  A macro save stopped part-way, so the keyboard runs none of its macros until they are saved again in
+                  full. Check this macro’s steps and save it.
+                </span>
+                <Button size="sm" disabled={saving} onClick={() => void save()}>
+                  {unlocked ? 'Save macros again' : 'Unlock and save again…'}
+                </Button>
+              </span>
+            </Notice>
           )}
           <Uses
             code={macroKeycode(index)}

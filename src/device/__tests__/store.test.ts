@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { serialize } from '../../vendor/pipette/shared/keycodes/keycodes'
 import { keycodeLabel } from '../../vendor/pipette/shared/keycodes/keycodes-utils'
-import { createDeviceStore, LOAD_PARTS, type DeviceStore } from '../store'
+import { createDeviceStore, LOAD_PARTS, NOT_ANSWERING, NOT_ANSWERING_AT_CONNECT, type DeviceStore } from '../store'
 import { FakeLink, fakeKeyboard, fakeKeyboardConfig, plainDefinition, report, RGB_EFFECTS } from '../fake-keyboard'
 
 const FEATURE_DEFAULT_LAYER = 0x01
@@ -104,7 +104,8 @@ describe('connecting', () => {
     vi.useRealTimers()
 
     expect(store.getState()).toMatchObject({ status: 'error', keyboard: null })
-    expect(store.getState().error).toMatch(/No reply/)
+    // In plain words (the technical message goes to the console).
+    expect(store.getState().error).toBe(NOT_ANSWERING_AT_CONNECT.cable)
     expect(link.closed).toBe(true)
     expect(store.transport).toBeNull()
   })
@@ -363,13 +364,15 @@ describe('changing keys', () => {
     link.responder = (request) => (request[0] === 0x05 ? null : keyboard(request))
 
     const assigning = store.assign(key, 0x29)
-    await vi.advanceTimersByTimeAsync(1000)
+    await vi.advanceTimersByTimeAsync(3000)
     await assigning
     vi.useRealTimers()
 
+    // The key was read back: the keyboard still holds the old one, so no undo step.
     expect(store.getState().keyboard?.keymap['1,0,2']).toBe(config.keymap[1][0][2])
     expect(store.getState()).toMatchObject({ writing: 0, canUndo: false })
-    expect(store.getState().writeError).toMatch(/No reply/)
+    expect(store.getState().writeError).toBe(NOT_ANSWERING.cable)
+    expect(link.requests.filter((r) => r[0] === 0x04)).toHaveLength(1)
   })
 })
 

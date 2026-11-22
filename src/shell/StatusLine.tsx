@@ -20,7 +20,8 @@ export const PART_NAMES: Record<LoadPart, string> = {
 const list = (parts: readonly LoadPart[]) => parts.map((part) => PART_NAMES[part]).join(', ')
 
 function SaveState() {
-  const writing = useDevice((s) => s.writing)
+  // Lighting waiting for its pause before it is saved counts as on its way: it isn't kept over a restart yet.
+  const writing = useDevice((s) => s.writing + (s.savePending ? 1 : 0))
   const writeError = useDevice((s) => s.writeError)
   const uid = useDevice((s) => s.keyboard?.uid)
   const unsaved = useUnsaved()

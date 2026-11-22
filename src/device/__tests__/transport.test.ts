@@ -29,16 +29,16 @@ describe('requests and replies', () => {
   it('sends one request at a time, in order', async () => {
     const link = new FakeLink()
     const transport = createTransport(link)
-    const replies = [transport.request([0x01]), transport.request([0x02]), transport.request([0x03])]
+    const replies = [transport.request([0x01]), transport.request([0x11]), transport.request([0x0c])]
 
     await vi.advanceTimersByTimeAsync(0)
     expect(link.requests).toHaveLength(1)
     link.reply([0x01, 1])
     await vi.advanceTimersByTimeAsync(0)
     expect(link.requests).toHaveLength(2)
-    link.reply([0x02, 2])
+    link.reply([0x11, 2])
     await vi.advanceTimersByTimeAsync(0)
-    link.reply([0x03, 3])
+    link.reply([0x0c, 3])
 
     expect((await Promise.all(replies)).map((r) => r[1])).toEqual([1, 2, 3])
   })
@@ -49,13 +49,54 @@ describe('requests and replies', () => {
     const transport = createTransport(link, { attempts: 1 })
 
     const failed = transport.request([0x01])
-    const ok = transport.request([0x02])
+    const ok = transport.request([0x11])
     const failure = expect(failed).rejects.toMatchObject({ reason: 'timeout' })
     await vi.advanceTimersByTimeAsync(500)
 
     await failure
+    // The queue waits until nothing has arrived for a while (late replies are dropped), then carries on.
+    await vi.advanceTimersByTimeAsync(300)
     expect((await ok)[1]).toBe(9)
     expect(transport.stats.failures).toBe(1)
+  })
+
+  it('after a request gets no reply, drops replies that come late instead of giving them to the next one', async () => {
+    const link = new FakeLink()
+    const transport = createTransport(link, { timeoutMs: 100, attempts: 1, drainMs: 100 })
+
+    const failed = expect(transport.request([0xfe, 0x0a, 2])).rejects.toMatchObject({ reason: 'timeout' })
+    const next = transport.request([0xfe, 0x0a, 7])
+    await vi.advanceTimersByTimeAsync(100)
+    await failed
+    // The first request's answer arrives late, while the queue is held: dropped.
+    await vi.advanceTimersByTimeAsync(50)
+    link.reply([0, 22])
+    await vi.advanceTimersByTimeAsync(150)
+    expect(link.requests).toHaveLength(2)
+    link.reply([0, 77])
+    expect((await next)[1]).toBe(77)
+    expect(transport.stats.strays).toBe(1)
+  })
+
+  it('checks the bytes VIA echoes, so a late reply to the same command for another key is not taken', async () => {
+    const link = new FakeLink()
+    const transport = createTransport(link)
+    const reply = transport.request([0x04, 1, 2, 3])
+    await vi.advanceTimersByTimeAsync(0)
+
+    link.reply([0x04, 1, 2, 2, 0, 0x29]) // the answer for column 2
+    link.reply([0x04, 1, 2, 3, 0, 0x04])
+
+    expect((await reply)[5]).toBe(0x04)
+    expect(transport.stats.strays).toBe(1)
+  })
+
+  it('rejects as busy a Vial reply that is the request sent back unchanged (an unlock is counting)', async () => {
+    const link = new FakeLink()
+    link.responder = (request) => Array.from(request)
+    const transport = createTransport(link)
+
+    await expect(transport.request([0xfe, 0x0b, 7, 0, 5])).rejects.toMatchObject({ reason: 'busy' })
   })
 
   it('drops a reply to a VIA command that does not echo the command', async () => {

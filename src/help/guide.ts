@@ -118,7 +118,7 @@ export const GUIDE: GuideGroup[] = [
     id: 'device',
     title: 'Device: backups and the keyboard',
     description: 'The Device page: backups, restoring, Vial files, the sleep timers, what the keyboard says about itself, resetting and firmware updates.',
-    topics: ['backup', 'restore', 'vial-file', 'keyboard-info', 'keyboard-features', 'lights-off-timer', 'sleep-timer', 'keymap-reset', 'bootloader'],
+    topics: ['backup', 'restore', 'vial-file', 'keyboard-info', 'keyboard-features', 'lights-off-timer', 'sleep-timer', 'keymap-reset', 'cant-type', 'bootloader'],
   },
   {
     id: 'words',

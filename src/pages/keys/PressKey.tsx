@@ -10,6 +10,7 @@ import { Keyboard } from 'lucide-react'
 import { useDevice, type KeyboardData } from '../../device'
 import { useMatrix } from '../../device/useMatrix'
 import { keycodeOfEvent } from '../../shell/pressed-keys'
+import { screenshotOption } from '../../shell/session'
 import { openUnlock } from '../../shell/unlock-dialog'
 import { Button } from '../../ui/controls'
 import { useKeyCapture } from '../../ui/KeyCapture'
@@ -30,8 +31,9 @@ interface Options {
 
 /** The button for beside the palette's search, and a line to show under it while waiting (or after a refusal). */
 export function usePressKey({ keyboard, onPick }: Options): { button: ReactNode; note: ReactNode | null } {
-  // `?press-key` in the URL: waiting from the start, for screenshots of the line it shows.
-  const [waiting, setWaiting] = useState(() => typeof location !== 'undefined' && new URLSearchParams(location.search).has('press-key'))
+  // `?press-key` in the URL: waiting from the start, for screenshots of the line it shows. Only on the demo keyboard
+  // (screenshotOption): waiting, the next key pressed is written.
+  const [waiting, setWaiting] = useState(() => screenshotOption('press-key') !== null)
   const [refusal, setRefusal] = useState<string | null>(null)
   const layer = useDevice((s) => s.layer) ?? NO_LAYER
   const unlocked = useDevice((s) => s.unlock?.unlocked === true)

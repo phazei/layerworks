@@ -225,8 +225,13 @@ describe('saving a macro', () => {
     expect(after[0]).toEqual(before[0])
     expect(after[2]).toEqual(before[2])
     expect(store.getState().macros).toEqual(config.macros)
-    // Only the 28-byte pieces that changed: everything sits in the first one here.
-    expect(macroWrites()).toHaveLength(1)
+    // VIA's order: the memory's last byte marked first, then only the 28-byte pieces that changed (everything sits in
+    // the first one here), then the last byte back to 0.
+    expect(macroWrites().map((r) => [r[1], r[2], r[3], r[4]])).toEqual([
+      [0, 39, 1, 0xff],
+      [0, 0, 28, 0x6f],
+      [0, 39, 1, 0],
+    ])
     expect(store.getState()).toMatchObject({ writing: 0, writeError: null, canUndo: true })
   })
 

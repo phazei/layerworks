@@ -48,10 +48,15 @@ export {
   isEmptyPlan,
   keyboardIdentity,
   PART_NAMES,
+  planItems,
   planRestore,
+  planRisks,
   unlockNeeded,
 } from './restore'
-export type { FileIdentity, FitCheck, KeyboardContents, PlanLine, RestorePart, RestorePlan } from './restore'
+export type { FileIdentity, FitCheck, KeyboardContents, PlanItems, PlanLine, RestorePart, RestorePlan } from './restore'
+export { baseLayers, keymapRisks } from './risks'
+export type { Risk } from './risks'
+export { KEY_BOOT_LOCKED, MACRO_INTERRUPTED, macrosHalted, NOT_ANSWERING, OTHER_APP_UNLOCKING } from './store'
 export { exportVil, parseVil, VIL_EXTENSION } from './vil'
 export { readKeyboardFile } from './keyboard-file'
 export type { KeyboardFile } from './keyboard-file'

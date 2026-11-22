@@ -3,9 +3,10 @@
 // keyboard's own count as a bar while the keys are held, then done. Once the keyboard has started counting
 // there is no way back, so the dialog can't be closed until it ends, and leaving the page asks first.
 
-import { useEffect, useMemo, useRef, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import { CircleCheck, TriangleAlert, Unplug } from 'lucide-react'
 import {
+  deviceStore,
   KC_NOTHING,
   KC_SAME_AS_BELOW,
   keycodeName,
@@ -82,9 +83,24 @@ export function Counting({ progress, keys, count }: { progress: UnlockProgress |
       <p className="text-[13px]">
         The keyboard doesn’t type until this finishes, and it can’t be cancelled. {HOW_TO_END}
       </p>
+      {progress?.silent && <Warning>{NOT_ANSWERING_ADVICE}</Warning>}
     </div>
   )
 }
+
+/** While the keyboard doesn't answer the unlock's polls: what probably happened, and the way out. */
+const NOT_ANSWERING_ADVICE =
+  'It may be asleep, switched off or out of range, or set to another connection. Pressing a key won’t help while it counts. ' +
+  'Stop waiting, then unplug it and plug it back in, or move its connection switch away and back.'
+
+/** After "Stop waiting": what state the keyboard is in, and how to get it back. */
+const STOPPED_TEXT =
+  'The app has stopped waiting. If the keyboard had started counting, it still does: it doesn’t type and ignores ' +
+  'this app until it restarts. Unplug its cable and plug it back in, or move its connection switch away and back. It ' +
+  'comes back locked, as before.'
+
+/** How long the count may run before "Stop waiting" is offered even while the keyboard answers. */
+const OFFER_STOP_AFTER_MS = 15000
 
 export function UnlockDialog() {
   const request = useUnlockRequest()
@@ -110,6 +126,16 @@ export function UnlockDialog() {
     return () => window.removeEventListener('beforeunload', ask)
   }, [counting])
 
+  // "Stop waiting" is offered once the keyboard stops answering, or after a while.
+  const [late, setLate] = useState(false)
+  useEffect(() => {
+    setLate(false)
+    if (!counting) return
+    const timer = setTimeout(() => setLate(true), OFFER_STOP_AFTER_MS)
+    return () => clearTimeout(timer)
+  }, [counting])
+  const offerStop = counting && (late || unlocking?.silent === true)
+
   // While counting, keys reach this page only on the demo keyboard; don't let Enter or Space press anything.
   const swallow = (event: ReactKeyboardEvent) => {
     if (counting) event.preventDefault()
@@ -121,7 +147,9 @@ export function UnlockDialog() {
       ? 'lost'
       : request.result === 'failed'
         ? 'failed'
-        : request.result === 'unlocked' || status?.unlocked
+        : request.result === 'stopped'
+          ? 'stopped'
+          : request.result === 'unlocked' || status?.unlocked
           ? 'done'
           : 'confirm'
 
@@ -131,6 +159,7 @@ export function UnlockDialog() {
     done: 'The keyboard is unlocked',
     lost: 'The keyboard was disconnected',
     failed: 'The keyboard didn’t start unlocking',
+    stopped: 'Stopped waiting',
   }[step]
 
   const footer =
@@ -141,7 +170,11 @@ export function UnlockDialog() {
           Start unlocking
         </Button>
       </>
-    ) : step === 'counting' ? null : (
+    ) : step === 'counting' ? (
+      offerStop ? (
+        <Button onClick={() => deviceStore.stopUnlock()}>Stop waiting</Button>
+      ) : null
+    ) : (
       <Button variant="primary" onClick={closeUnlock}>
         {step === 'done' ? 'Done' : 'Close'}
       </Button>
@@ -199,6 +232,12 @@ export function UnlockDialog() {
           </p>
         )}
         {step === 'failed' && <p>Nothing has changed: the keyboard works as before, still locked. Try again in a moment.</p>}
+        {step === 'stopped' && (
+          <p className="flex gap-2.5">
+            <TriangleAlert size={18} aria-hidden className="mt-0.5 shrink-0 text-warning" />
+            <span>{STOPPED_TEXT}</span>
+          </p>
+        )}
       </Modal>
     </div>
   )

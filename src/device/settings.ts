@@ -759,6 +759,26 @@ export const fieldsOf = (qsid: number): SettingField[] => SETTING_FIELDS.filter(
 /** Whether the app knows what a setting id is. */
 export const isKnownSetting = (qsid: number): boolean => SETTING_FIELDS.some((f) => f.qsid === qsid)
 
+/** Values beyond this many times a slider's top are taken for damage, not a choice (a file from elsewhere). */
+const BEYOND_SLIDER = 4
+
+/**
+ * Why a value from a file can't go into a setting the app knows, in a sentence, or null. The firmware takes any
+ * number (qmk_settings.c checks only the width), so a damaged file could set a 65-second tapping term. Numbers may
+ * go past the slider (Vial offers wider ranges), but not by more than BEYOND_SLIDER times; a switch is 0 or 1.
+ */
+export function settingValueProblem(qsid: number, value: number): string | null {
+  for (const field of fieldsOf(qsid)) {
+    const { control } = field
+    if (control.kind === 'switch' && value > 1) return `${field.name}: ${value} isn’t on or off`
+    if (control.kind === 'number' && value > control.max * BEYOND_SLIDER) {
+      const unit = control.unit === 'ms' ? ' ms' : ''
+      return `${field.name}: ${value}${unit} is far outside what it takes (${control.min}–${control.max}${unit})`
+    }
+  }
+  return null
+}
+
 /** A number field's range, widened to take in the value the keyboard holds, so the slider can show it. */
 export function fieldRange(field: SettingField, value: number): { min: number; max: number } {
   if (field.control.kind !== 'number') return { min: 0, max: 1 }

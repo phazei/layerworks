@@ -98,9 +98,22 @@ If the script leaves a server behind (it was killed half-way):
   (`src/device/transport.ts`); an unasked report is recognised by its exact shape (`src/device/pushes.ts`).
 - While locked, vial-qmk ignores macro writes and silently turns QK_BOOT into nothing in knob directions and in
   tap dance, combo, override and repeat entries. The store refuses such writes (`'locked'`) instead of sending
-  them; keep it that way (README "Macros", "Tap dance, combos, key overrides, alt repeat").
+  them; keep it that way (README "Macros", "Tap dance, combos, key overrides, alt repeat"). A single key write
+  (`0x05`) of QK_BOOT is *not* filtered by the firmware: the store's `assign` / undo / redo refuse it while locked
+  (`KEY_BOOT_LOCKED`); every route to a key goes through them.
+- Macro memory is written in VIA's order (`sendMacroBuffer` in the store): last byte 0xFF, the pieces, last byte 0.
+  vial-qmk plays no macro while that byte isn't 0, which is the only guard against a half-written buffer. Every
+  macro write (save, undo, restore) goes through it.
+- A failed write may still have been carried out: `writeOrError` takes a `verify` that reads back what it touched.
+  New writes pass one, so the page shows what the keyboard holds and undo steps exist only for changes that happened.
+- Store methods run through `inOrder(change, dropped)`: a change asked for one keyboard is dropped if another (or a
+  reload) is current by its turn. New methods need their "not done" value.
+- URL options that would change a keyboard or show made-up content on it are read through `screenshotOption`
+  (`shell/session.ts`), which answers only on the demo keyboard.
 - Vial unlock: the keyboard ignores keys and most commands until it finishes, with no cancel. One poll loop only,
-  at least 110 ms between polls (`../docs/research/spike-results.md`).
+  at least 110 ms between polls (`../docs/research/spike-results.md`). While it counts, via.c sends every other
+  request back unchanged, which looks like success: the store checks the unlock status before changes. "Stop
+  waiting" (`stopUnlock`) only stops the app; texts about it must say the keyboard may still be counting.
 - Lighting effects have two numberings. The app uses VialRGB ids; the keyboard's own list (QMK's `RGB_MATRIX_*`
   order, what Keychron Launcher shows) is different. The K15 Max's ripple replaces Solid Splash: number 22 in
   the keyboard's list, **VialRGB id 41** in the app. Keychron's zone effects are the exception: they use the

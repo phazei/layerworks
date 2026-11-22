@@ -5,6 +5,7 @@
 
 import { useSyncExternalStore } from 'react'
 import { deviceStore, type UnlockResult } from '../device'
+import { demoKeyboard } from './session'
 
 export interface UnlockRequest {
   open: boolean
@@ -46,8 +47,16 @@ export function openUnlock(reason?: string): Promise<boolean> {
   return answer
 }
 
-/** Starts unlocking (the dialog shows the progress). Called by the dialog's Start button. */
+/**
+ * Starts unlocking (the dialog shows the progress). Called by the dialog's Start button, and by `?unlock=start` in
+ * the address (screenshots). Started from anywhere but the open dialog, it only goes ahead on the demo keyboard: a
+ * link mustn't make a real keyboard stop typing. Elsewhere it opens the dialog at its first step instead.
+ */
 export function startUnlock(): Promise<UnlockResult> {
+  if (!request.open && !demoKeyboard()) {
+    void openUnlock()
+    return Promise.resolve('failed')
+  }
   set({ open: true, running: true, result: null })
   return deviceStore.unlock().then((result) => {
     set({ running: false, result })

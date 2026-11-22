@@ -19,7 +19,13 @@ Click **Connect a keyboard…** and pick the keyboard (cable) or the Keychron Li
 program can hold the keyboard at a time, so close Vial, Pipette or Launcher tabs first. **Try the demo keyboard**
 works without one.
 
-Options in the URL, before the `#`:
+Options in the URL, before the `#`. Those that would change a keyboard, arm a click, or show made-up content on it
+(`?put-on-key=`, `?press-key`, `?macro-draft`, `?device-more`, `?restore-sample`, `?unlock=start`) are honoured
+only while the demo keyboard is connected (`screenshotOption` in `shell/session.ts`; `?unlock=start` on a real
+keyboard opens the dialog at its first step instead), and `?layout=` only together with `?demo`. The ones that only
+navigate or open views (`?help=`, `?theme=`, `?select=`, `?layer=`, `?choice=`, `?open=`, `?open-picker=`,
+`?key-search=`, `?tour=`, plain `?unlock`) work everywhere: they show the person's own keyboard and change nothing.
+The `?demo-…` options act on the demo keyboard only by nature.
 
 | | |
 |---|---|
@@ -40,7 +46,7 @@ Options in the URL, before the `#`:
 | `?demo-wireless` | The demo keyboard is reached through the 2.4 GHz receiver, reports a battery level (76 %) and has the K15 Max's wireless timers and debounce, for screenshots of the wireless parts |
 | `?macro-draft`, `?macro-draft=problem` | The macro opened first (`#/shortcuts/macro/1`) gets an unsaved change: a text step and Enter (with `problem`, text a macro can't type), for screenshots of the unsaved state |
 | `?device-more`, `?device-more=reset`, `?device-more=bootloader` | The Device page opens its More options, and with a value the reset or firmware update confirmation too, for screenshots |
-| `?restore-sample` | The Device page opens a made-up backup of the connected keyboard (a few keys, a knob turn, a macro and the colour changed) once it is read, for screenshots of the restore review |
+| `?restore-sample`, `?restore-sample=risky` | The Device page opens a made-up backup of the connected keyboard (a few keys, a knob turn, a macro and the colour changed; with `risky` also the memory-wiping key on layer 0's first key) once it is read, for screenshots of the restore review |
 | `?demo-press=2,2;2,3;0,1+3,14` | The demo presses keys (row,col) by itself from a second after connecting: each step in turn, keys joined by `+` together, the last step stays held |
 | `?demo-turn=1;0` | Turns the demo's knob by itself from a second after connecting (1 clockwise, 0 counter-clockwise): the page gets what the knob sends on the base layer as a browser event, as a real turn would |
 | `?unlock`, `?unlock=start` | Opens the unlock dialog once the lock state is read; `start` starts unlocking straight away (with `?demo-press=0,1+3,14` the demo holds Esc and Enter) |
@@ -649,8 +655,14 @@ restarts or changes connection mode.
   120 ms after each reply on the cable and 150 ms through the receiver (the firmware needs more than 100 ms
   between steps and starts the count again otherwise). A poll without a reply is not resent; the loop just
   polls again and marks the progress `silent`. `DeviceState.unlocking` holds `{ remaining, total, silent }`.
-  It resolves `'unlocked'`, `'disconnected'` (the keyboard went away mid-way) or `'failed'` (it never started
-  counting, so it still works). A second call joins the first.
+  It resolves `'unlocked'`, `'disconnected'` (the keyboard went away mid-way), `'failed'` (it never started
+  counting, so it still works) or `'stopped'` (`deviceStore.stopUnlock()`: the app stopped waiting; the keyboard,
+  if it was counting, still is). A second call joins the first.
+- **Another app's unlock.** While an unlock counts, via.c sends every request back unchanged, which looks like
+  success. Before a change the store asks the unlock status (one of the few requests still answered), at most every
+  2 s; counting, the change fails with `OTHER_APP_UNLOCKING` (or `UNLOCK_LEFT_COUNTING` after "Stop waiting"), and
+  the transport rejects as `busy` a Vial reply that is its request sent back (settings and entry commands, whose real
+  replies always differ).
 - `deviceStore.lock()` locks again. `capabilities.check('keyMatrix')` returns `needsUnlock: true` with its reason
   while locked: the sign for a page to offer unlocking.
 - A keyboard found counting at connect (an app closed mid-unlock) isn't read: the store reports `STILL_UNLOCKING`,
@@ -658,8 +670,10 @@ restarts or changes connection mode.
 - **On screen** (`shell/UnlockDialog.tsx`, opened by `openUnlock(reason)` from `shell/unlock-dialog.ts`; mounted
   once in the shell): first what unlocking is for, the keys to hold marked on a small picture, and that the
   keyboard won't type and nothing can stop it once started; then the count as a bar ("Keep holding…", "The count
-  started again…"), with no buttons, Esc ignored and the browser asking before the page is left; then done, or
-  "disconnected" / "didn't start". The device card shows Locked with "Unlock…", Unlocking…, or Unlocked with
+  started again…"), Esc ignored and the browser asking before the page is left; then done, or "disconnected" /
+  "didn't start" / "stopped waiting". Its only button, "Stop waiting", appears once the keyboard stops answering or
+  after 15 s, with what to do when it doesn't answer; afterwards the dialog says the keyboard may still be counting
+  and how to restart it. The device card shows Locked with "Unlock…", Unlocking…, or Unlocked with
   "Lock". `openUnlock` returns a promise for whoever asked: true as soon as the unlock completes (while the dialog
   still says so), false when the dialog is closed without it; already unlocked, true at once with no dialog. The
   macro and entry save bars await it and save by themselves; the restore review works its plan out again.
@@ -745,7 +759,26 @@ one shot (theme, "More options" open) shows in another. `EDGE=<path>` points it 
 
 - `deviceStore.assign(slot, keycode)` writes one key or knob direction, then updates the store. `undo()` and
   `redo()` write the previous or next value back. `DeviceState.writing` counts changes on their way;
-  `writeError` holds the last failure.
+  `writeError` holds the last failure, in plain words (the technical message goes to the console).
+- **QK_BOOT while locked** is refused by the store on every route to a key or knob direction (`assign`, undo, redo:
+  `KEY_BOOT_LOCKED`), not only by the inspector's unlock prompt: vial-qmk filters it in knob, entry and buffer writes
+  but not in the single key write (`0x05`, via.c), so a link or plugin could otherwise put it on a key.
+- **A change belongs to the keyboard it was asked for.** Changes run one at a time (`inOrder`); one whose keyboard
+  has gone (or was read afresh after Keychron's factory reset) by its turn is dropped and resolves its "not done"
+  value, so nothing queued for one keyboard lands on the next.
+- **A write without a reply is read back.** A timeout doesn't mean the keyboard didn't do it (the reply can be lost
+  or late). `writeOrError` then reads what the write touched (the key through VIA `0x04`, the knob, the entry, the
+  setting, the macro memory, the lighting, Keychron's state) and shows that: found done, it counts as done (with its
+  undo step); not done, it keeps no undo step. With three requests in a row unanswered it doesn't try, and the
+  message adds that the app couldn't check. Messages: `NOT_ANSWERING` (through the receiver: asleep, switched off or
+  out of range, press a key; on the cable: check it is plugged in).
+- **Keychron's factory reset** (Fn + J + Z) sends `[0xA7, 0x11, 0 …]` (`state_notify.c`); the store then reads the
+  whole keyboard again on the same link and forgets undo (`FACTORY_RESET_PUSH`).
+- **Losing the keyboard** (unplugged, receiver pulled, not `disconnect()`) leaves `DeviceState.lost` set until the next
+  connect, with `duringWrite` when a change was on its way; the connect prompt says so.
+- Lighting waiting for its 1.5 s save (main and Keychron's) sets `DeviceState.savePending`, which the status line
+  counts as "Saving…"; `deviceStore.flushSaves()` saves at once, and the shell calls it on `beforeunload` and
+  `pagehide`. The browser asks before the page is left while `writing > 0` or a restore runs.
 - `deviceStore.setLighting(change)` sends the effect and its values at once and saves them to the keyboard 1.5 s
   after the last change. vial-qmk reloads speed and colour from what was last saved on the first frame of a
   different effect (`rgb_matrix.c`), over what was just sent, so a change of effect (on and off included) is sent,
@@ -779,7 +812,8 @@ one shot (theme, "More options" open) shows in another. `EDGE=<path>` points it 
   options are untouched; Keychron's key bounce filter, Snap Click and wireless timers have no reset command at all
   (only the keyboard's factory reset, `factory_test.c`). Each request waits up to 5 s (the keyboard rewrites the
   keymap before it answers) and is sent again once if lost; doing it twice is harmless. Afterwards the store reads
-  the keymap and knob, then macros, entries and settings (shown as loading), and clears undo and redo.
+  the keymap and knob, then macros, entries and settings (shown as loading). Undo and redo are cleared once the reset
+  got through; without an answer, only if the keys read back changed (or couldn't be read).
 - `deviceStore.restartToBootloader()` sends Vial's bootloader jump (`0x0B`, via.c, only in builds without
   `VIAL_INSECURE`; ignored until unlocked; the keyboard answers, waits 100 ms and jumps). Resolves `'cable-only'`
   through the receiver and `'locked'` while locked without sending, `'unsupported'` when the keyboard answers
@@ -918,6 +952,12 @@ type MacroStep =
 - `DeviceStore.saveMacro(index, steps)` resolves `'saved'`, `'unchanged'`, `'locked'` (nothing sent: via.c ignores
   macro writes until unlocked), `'too-big'`, `'invalid'` or `'failed'`. It writes only the 28-byte pieces of the
   buffer that change, through the store's change queue, and is one undo step.
+- **Write order** (`sendMacroBuffer`, used by saves, undo and restore alike): the buffer's last byte is set to 0xFF
+  first, then the changed pieces go out, then the last byte gets its real value (0). vial-qmk plays no macro while
+  that byte isn't 0 (`dynamic_keymap_macro_send`), so a write that stops part-way leaves macros that don't run, not
+  a mixture where old macros play on the wrong M-keys. After a failed save the store reads the buffer back, shows
+  it, and says `MACRO_INTERRUPTED`; `macrosHalted(buffer)` tells a half-written buffer, the macro page then offers
+  to save again, and `saveMacro` writes even an unchanged macro while the buffer is halted.
 - `macroUses(keyboard, index)` lists the keys and knob turns whose keycode is that macro (`macroKeycode`: QMK's M0 …).
 - The names users give macros live in the browser per keyboard, by QMK index (`shell/layer-names.ts`:
   `useStoredMacroNames`, `renameMacro`, `setMacroNames`), and travel in the backup file. On screen a macro is
@@ -972,7 +1012,8 @@ come from the keyboard's definition, else from the cable link (a receiver has it
 everything else the Keychron commands returned; restore takes Snap Click, the key colours, the lighting zones and the lock lights
 (`rgb.osIndicatorConfig`) from it (`backupContents`; a damaged part is left out, not the whole file). `parseBackup` checks
 every part and throws a `BackupError` that says what is wrong ("The backup file is damaged: layer 1, row 0 of the
-keymap."); a higher `version` is refused with "made by a newer version of Layerworks".
+keymap."); a higher `version` is refused with "made by a newer version of Layerworks". Every value is range-checked
+there, before anything is written (keycodes 16-bit, lighting speed and colour bytes).
 
 **Restore** (`device/restore.ts`, `DeviceStore.restore`):
 
@@ -984,11 +1025,25 @@ keymap."); a higher `version` is refused with "made by a newer version of Layerw
   options, the macro buffer (whole, padded to the keyboard's size), entries by index, QMK settings by value
   (whatever their width in the file), lighting, wireless timers, debounce, Snap Click slots, key colours and style,
   lighting zones and their effects, lock lights, layer and macro names. What the keyboard can't
-  take (more layers, more entries, unknown settings, an effect it lacks) is listed in `plan.ignored`.
-  `describePlan` puts the plan in words, one line per part.
+  take (more layers, more entries, unknown settings, an effect it lacks) is listed in `plan.ignored`, and so is what
+  it shouldn't: a QMK setting far outside its range (`settingValueProblem`: more than four times the slider's top,
+  or a switch that isn't 0 or 1; the firmware takes any number), a key bounce filter the keyboard has no type for,
+  and macro memory in which a macro runs another macro, a multi-tap key or a repeat key (`macroRunningShortcut`: a
+  macro running itself recurses in vial-qmk until the keyboard locks up). Brightness above the keyboard's maximum is
+  lowered to it. `describePlan` puts the plan in words, one line per part.
+- **The review** (`pages/device/Restore.tsx`) shows `describePlan`'s lines, then a red box with what the plan would
+  newly cause (`planRisks` → `device/risks.ts`, `keymapRisks`: the firmware update key, the memory-wiping key
+  `QK_CLEAR_EEPROM`, a base layer left with fewer than 10 letters, a layer that no key on a base layer reaches any
+  more, a layer turned on and left on with no key to leave it), and "Show the changes (n)", a `Disclosure` listing
+  every key, knob turn, macro (its steps in a line) and entry that changes (`planItems`). The Keys inspector asks
+  with the same `keymapRisks` before a single change that would cause one of them.
 - `DeviceStore.restore` writes the plan through the store's change queue, part by part. Every write is tried; one
-  that fails is reported and the rest go on (each write stands alone, and restoring again retries only what still
-  differs). If the keyboard goes away it stops and says so. While the keyboard is locked, writes vial-qmk would
+  that fails is reported (in plain words, the technical message under "Details") and the rest go on (each write
+  stands alone, and restoring again retries only what still differs). If the keyboard goes away it stops and says
+  so; if two writes in a row get no reply (asleep, switched off, out of range) it stops too, `stoppedBecause:
+  'not-answering'`. The report says how far it got (`done`, `total`), and the page records a restore that stopped
+  (`shell/restore-record.ts`, for this visit): the connect prompt and the Device page say "Restoring *file* stopped
+  after n of m changes … restore it again", since the restore panel itself is gone once the keyboard is. While the keyboard is locked, writes vial-qmk would
   ignore or alter are skipped and reported, not attempted: the macro buffer (via.c ignores it), and QK_BOOT in a
   knob direction or entry (vial.c turns it into nothing). QK_BOOT on a key is skipped too, as Vial asks first.
   Lighting is saved at once. All key and knob writes become one undo step; macros, entries, settings, lighting and
@@ -998,7 +1053,12 @@ keymap."); a higher `version` is refused with "made by a newer version of Layerw
 **Vial files** (`device/vil.ts`): `exportVil` writes vial-gui's format (keys and knob by QMK name, macros as
 action lists, settings as numbers, the uid as a bare number) through Pipette's vendored `vil-compat.ts`;
 `parseVil` reads one back, macros encoded for the connected keyboard's Vial protocol. A Vial file has no lighting,
-Keychron settings or layer names, so restoring one leaves those alone.
+Keychron settings or layer names, so restoring one leaves those alone. The vendored converter passes numbers through
+and turns unknown key names into 0, so `parseVil` checks the file first (`vilProblems`): a value the keyboard's
+commands can't hold (a keycode outside 0–0xFFFF or not a whole number, a tapping term past 16 bits, mods or options
+past a byte, layout options or settings that aren't numbers) refuses the file with a line saying where; a key name
+this keyboard doesn't know (another firmware's own keys, `USER13` …) leaves that place alone and says so
+(`contents.notes`, shown with `plan.ignored`).
 
 ## Demo keyboard
 
@@ -1054,14 +1114,29 @@ pages / plugins → device store → vendored protocol code → transport (reque
   20 ms pause after each reply on the cable (about 45 reads a second), 60 ms through the receiver. Each read is
   a snapshot, so a very quick tap can fall between two.
 - **Replies are checked.** VIA and Keychron replies start with the request's command byte (or `0xFF` for an
-  unknown command); anything else is dropped as stray. Vial replies (`0xFE …`) carry data from the first byte and
-  can't be checked.
+  unknown command), and for the commands whose next bytes the firmware leaves as sent (`VIA_ECHOED`: keycode get /
+  set echo layer, row and column, buffer reads offset and size, lighting and Keychron their sub-command) those must
+  match too; anything else is dropped as stray. Vial replies (`0xFE …`) carry data from the first byte and can't be
+  checked, except that a settings or entry reply equal to its request is rejected as `busy` (an unlock is counting).
+- **After a request gets no reply** the queue is held until nothing has arrived for 300 ms (at most 1.2 s), so a reply
+  that was only late is dropped instead of being taken by the next request. `stats.unanswered` counts requests in a
+  row without a reply.
 - **Pushes are recognised by shape.** The keyboard reports every layer change as `[0xA3, base, held, 0 × 29]`
   without being asked. That exact shape goes to listeners, never to a waiting request, unless the request is
-  `0xA3` itself on the cable. Further shapes can be listened for through `deviceStore.transport.onPush`;
+  `0xA3` itself on the cable, or a Vial knob read (whose reply can look the same). Keychron's factory-reset notice
+  (`FACTORY_RESET_PUSH`) is known too. Further shapes can be listened for through `deviceStore.transport.onPush`;
   `PluginDef.pushes` is declared but not yet handed to the transport (spec section 9).
 - **2.4 GHz.** Requests and replies are XOR-ed with `0x28`; pushes and the receiver's own notices (`0xBC`,
   `0xE2`) are not. Timeouts are short (300 ms) with up to 6 sends, because packets get lost now and then.
+- **One Layerworks tab per keyboard** (`shell/session.ts`). WebHID lets every tab open the keyboard and gives every
+  tab every reply, so each would take the other's for its own. Connecting claims a Web Lock named after the
+  keyboard's vendor and product ID (WebHID has no serial number); a second tab gets "Layerworks is already open in
+  another tab with this keyboard" and "Use it here", which steals the lock, and the first tab lets go and says so.
+  Without `navigator.locks` nothing is claimed. Other programs (Vial, Launcher) can't be seen; an unlock they start is
+  (see "Unlocking").
+- **Browser storage** (`ui/prefs.ts`): a stored value is used only when it has its name's shape (`SHAPES`: layer and
+  macro names are lists of strings, key colours hue and saturation bytes) or, for other names, the fallback's kind;
+  anything else counts as absent. Every `phazei.github.io` project shares this storage.
 - **Loading is staged.** Definition, keymap and knob come first, so the picture appears quickly; macros, entries,
   settings, lighting, lock state and Keychron state follow in the background (`DeviceState.loading`). A part that
   fails is listed in `DeviceState.failed` and the rest still loads.
@@ -1120,7 +1195,12 @@ spacing and that nothing else is sent while unlocking. The restore tests (`devic
 up the fake keyboard, change it behind the store's back, restore and compare the fake's memory with the original,
 counting the writes sent; `start-over.test.ts` covers the lock lights, the keymap reset (locked, with and without the
 macros) and the restart for a firmware update (locked, through the receiver, unsupported, and ending disconnected);
-`vil.test.ts` also reads a real Vial save (Pipette's `bento-max.vil` fixture).
+`vil.test.ts` also reads a real Vial save (Pipette's `bento-max.vil` fixture). `failures.test.ts` injects failures
+through a wrapping link (the keyboard goes away, a request never arrives, a reply is lost or late, another app's
+unlock): macro saves cut off, writes read back, restores stopped and run again, "Stop waiting", queued changes
+dropped for the next keyboard, the factory-reset notice. `file-checks.test.ts` covers damaged and foreign files and
+the restore review's risks; `shell/__tests__/tab-lock.test.ts` two tabs on one keyboard; `ui/__tests__/prefs.test.ts`
+damaged storage.
 
 ## Hosting
 

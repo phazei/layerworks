@@ -58,7 +58,9 @@ export function layoutFromUrl(search: string): Map<string, string> | null {
 }
 
 async function read(): Promise<void> {
-  const fromUrl = typeof location === 'undefined' ? null : layoutFromUrl(location.search)
+  // Only together with `?demo` (screenshots): a link mustn't relabel the keys of someone's own keyboard.
+  const demo = typeof location !== 'undefined' && new URLSearchParams(location.search).has('demo')
+  const fromUrl = demo ? layoutFromUrl(location.search) : null
   if (fromUrl) return set({ supported: true, map: fromUrl })
   const keyboard = (typeof navigator === 'undefined' ? undefined : (navigator as { keyboard?: LayoutKeyboard }).keyboard)
   if (!keyboard?.getLayoutMap) return set({ supported: false, map: null })

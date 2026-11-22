@@ -11,12 +11,14 @@ import {
   isNkroKey,
   KC_SAME_AS_BELOW,
   keycodeId,
+  keymapRisks,
   keyPalette,
   lightingKeysFor,
   paletteFeatures,
   slotKeycode,
   useDevice,
   type KeyboardData,
+  type Risk,
   type Slot,
 } from '../../device'
 import type { HelpTopicId } from '../../help/topics'
@@ -24,7 +26,7 @@ import { openUnlock } from '../../shell/unlock-dialog'
 import { ChoiceGrid } from '../../ui/ChoiceGrid'
 import { cx } from '../../ui/controls'
 import { KeyCap } from '../../ui/KeyTile'
-import { Card, Disclosure, HelpButton } from '../../ui/layout'
+import { Card, Dialog, Disclosure, HelpButton } from '../../ui/layout'
 import { PageLink } from '../../ui/PageLink'
 import { capLabel, choiceFor, describeKeycode, fallThrough, hasOwnOption, layerName, type Choice } from './describe'
 import { KeyPalette } from './KeyPalette'
@@ -134,9 +136,18 @@ export function Inspector({ keyboard, slot, names, base, justPut }: Props) {
 
   // The firmware update key goes on only while unlocked, as Vial asks: the firmware turns it into nothing in a knob
   // turn written while locked (vial.c), and the restore leaves it out then too.
+  // A change that would leave the keyboard hard to use (no letters left on a base layer, a layer nothing reaches any
+  // more, the key that wipes its memory) is said first, with a way back.
+  const [risky, setRisky] = useState<{ code: number; risks: Risk[] } | null>(null)
   const assign = (code: number) =>
     void (async () => {
       if (code === bootKeycode() && !(await openUnlock(BOOT_UNLOCK_REASON))) return
+      const after = slot.kind === 'key' ? { ...keyboard.keymap, [`${slot.layer},${slot.row},${slot.col}`]: code } : keyboard.keymap
+      const risks = keymapRisks(keyboard, keyboard.keymap, after, [code], (layer) => layerName(names, layer)).filter((r) => r.kind !== 'boot')
+      if (risks.length > 0) {
+        setRisky({ code, risks })
+        return
+      }
       await deviceStore.assign(slot, code)
     })()
   // "Press a key": the next key pressed, through the same assign as a tile.
@@ -241,6 +252,28 @@ export function Inspector({ keyboard, slot, names, base, justPut }: Props) {
           )}
         </div>
       </div>
+      <Dialog
+        open={risky !== null}
+        title="Change this key anyway?"
+        confirmLabel="Change it"
+        danger
+        onCancel={() => setRisky(null)}
+        onConfirm={() => {
+          const code = risky?.code
+          setRisky(null)
+          if (code !== undefined) void deviceStore.assign(slot, code)
+        }}
+      >
+        <ul className="list-disc pl-5">
+          {risky?.risks.map((risk) => (
+            <li key={risk.text}>{risk.text}</li>
+          ))}
+        </ul>
+        <p className="mt-3">
+          Undo, at the bottom, takes it back. If the keyboard can’t type at all, this app can still change it with the
+          mouse, or put the firmware’s own keys back (Device page, Start over). <HelpButton topic="cant-type" />
+        </p>
+      </Dialog>
     </Card>
   )
 }

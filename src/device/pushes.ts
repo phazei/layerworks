@@ -32,6 +32,19 @@ export const LAYER_PUSH: PushShape = {
   },
 }
 
+/**
+ * Keychron's notice after its own factory reset (Fn + J + Z held): [0xA7, 0x11, 0 x 30]
+ * (keychron/common/state_notify.c, factory_reset_nofity). Everything the keyboard holds has changed.
+ */
+export const FACTORY_RESET_PUSH: PushShape = {
+  name: 'factory-reset',
+  matches(raw) {
+    if (raw[0] !== 0xa7 || raw[1] !== 0x11) return false
+    for (let i = 2; i < REPORT_LEN; i++) if (raw[i] !== 0) return false
+    return true
+  },
+}
+
 export interface LayerState {
   /** The default layer, chosen by the Mac/Windows switch. */
   base: number

@@ -7,6 +7,7 @@ import { Keyboard, MousePointerClick, Pointer } from 'lucide-react'
 import { deviceStore, keycodeTitle, parseKeycode, slotKeycode, useDevice } from '../device'
 import type { PageDef } from '../plugins/api'
 import { useConnectedLayerNames } from '../shell/layer-names'
+import { screenshotOption } from '../shell/session'
 import { shownLayer, toSlot, useStage, type Selection } from '../shell/stage-store'
 import { Button } from '../ui/controls'
 import { Card } from '../ui/layout'
@@ -79,11 +80,12 @@ function KeysPage() {
     void deviceStore.assign(slot, now.code)
   }, [selection, layer, keyboard])
 
-  // `?put-on-key=TD(1)` in the URL: armed with that keycode once the keyboard is in, for screenshots.
+  // `?put-on-key=TD(1)` in the URL: armed with that keycode once the keyboard is in, for screenshots. Only on the
+  // demo keyboard (screenshotOption): a link mustn't arm a real keyboard's next click.
   const shortcutKey = useShortcutKeys()
   const urlArmed = useRef(false)
   useEffect(() => {
-    const asked = new URLSearchParams(location.search).get('put-on-key')
+    const asked = screenshotOption('put-on-key')
     const code = asked && keyboard ? parseKeycode(asked) : null
     if (urlArmed.current || code === null) return
     urlArmed.current = true

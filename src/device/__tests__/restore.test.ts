@@ -274,7 +274,9 @@ describe('restoring', () => {
 
     const report = await store.restore(planRestore(backupContents(backup), store.getState(), []))
 
-    expect(report.failed).toEqual([{ part: 'settings', what: 'setting 7', error: 'Failed to set QMK setting 7' }])
+    expect(report.failed).toEqual([
+      { part: 'settings', what: 'setting 7', error: 'Failed to set QMK setting 7', detail: 'Failed to set QMK setting 7' },
+    ])
     expect(report.written).toMatchObject({ lighting: 1, wireless: 1, debounce: 1 })
     expect(store.getState().writeError).toBeNull()
   })

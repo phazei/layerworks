@@ -5,13 +5,17 @@
 
 import { Microchip } from 'lucide-react'
 import type { PageDef } from '../plugins/api'
+import { screenshotOption } from '../shell/session'
 import { Backup } from './device/Backup'
 import { KeyboardInfo } from './device/KeyboardInfo'
 import { StartOver } from './device/StartOver'
 import { Wireless } from './device/Wireless'
 
-/** `?device-more` opens More options, `?device-more=reset` or `=bootloader` that confirmation too: for screenshots. */
-const moreParam = () => (typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('device-more'))
+/**
+ * `?device-more` opens More options, `?device-more=reset` or `=bootloader` that confirmation too: for screenshots,
+ * so only on the demo keyboard (screenshotOption).
+ */
+const moreParam = () => screenshotOption('device-more')
 
 function DevicePage() {
   return (

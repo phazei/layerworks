@@ -10,10 +10,13 @@ import type {
   KeyOverrideEntry,
   TapDanceEntry,
 } from '../vendor/pipette/shared/types/protocol'
-import { parseKeycode } from './keycodes'
 import type { DeviceState, Entries, Slot } from './store'
 import { formatDuration, timersProblem, type WirelessTimers } from './wireless'
-import { snapClickProblem, type SnapClickEntry } from './keychron-typing'
+import { debounceMax, debounceType, snapClickProblem, type SnapClickEntry } from './keychron-typing'
+import { keycodeName, macroTitle, parseKeycode, readMacroKey, readTapDanceKey } from './keycodes'
+import { readMacros } from './macros'
+import { keymapRisks, type Risk } from './risks'
+import { settingValueProblem } from './settings'
 import { normaliseLockLights, PER_KEY_STYLE_COUNT, type Hsv, type LockLights, type ZoneEffect } from './keychron-rgb'
 
 export interface LightingValues {
@@ -56,6 +59,8 @@ export interface KeyboardContents {
   layerNames?: string[]
   /** As stored in the browser: an empty name means the default. */
   macroNames?: string[]
+  /** What reading the file left out, one sentence each, shown with the plan's `ignored`. */
+  notes?: string[]
 }
 
 /** Who a file says it is for. Parts the file doesn't say are null. */
@@ -272,6 +277,7 @@ export function planRestore(
     ignored: [],
   }
   if (!kb) return plan
+  plan.ignored.push(...(contents.notes ?? []))
 
   // Keys and knob directions.
   const extraLayers = new Set<number>()
@@ -311,7 +317,12 @@ export function planRestore(
       plan.ignored.push('Macros that don’t fit in this keyboard’s macro memory.')
     }
     while (wanted.length < kb.macroBytes) wanted.push(0)
-    if (wanted.some((b, i) => b !== state.macros?.[i])) plan.macros = wanted
+    const runner = macroRunningShortcut(wanted, kb.vialProtocol, kb.macroCount)
+    if (runner !== null) {
+      plan.ignored.push(
+        `Macros: ${macroTitle(runner)} runs another macro or a shortcut key, which can freeze the keyboard, so the file’s macros aren’t restored.`,
+      )
+    } else if (wanted.some((b, i) => b !== state.macros?.[i])) plan.macros = wanted
   }
 
   // Tap dance, combos, key overrides, alt repeat.
@@ -327,11 +338,12 @@ export function planRestore(
       const now = state.entries[kind] as object[]
       const changes = plan[kind] as EntryChange<object>[]
       wanted.forEach((entry, index) => {
-        if (index >= counts[kind]) return
+        // A hole: the file's entry named keys this keyboard doesn't know (./vil), so it is left alone.
+        if (index >= counts[kind] || !entry) return
         if (!now[index] || !sameEntry(now[index], entry)) changes.push({ index, entry })
       })
       if (wanted.length > counts[kind]) {
-        const beyond = wanted.slice(counts[kind]).filter((e) => !isEmptyEntry(kind, e)).length
+        const beyond = wanted.slice(counts[kind]).filter((e) => e && !isEmptyEntry(kind, e)).length
         if (beyond > 0) plan.ignored.push(`${countOf(kind, beyond)} beyond the ${counts[kind]} this keyboard has.`)
       }
     }
@@ -347,7 +359,10 @@ export function planRestore(
         unknown++
         continue
       }
-      if (settingValue(qsid, bytes) !== settingValue(qsid, now)) {
+      const value = settingValue(qsid, bytes)
+      const problem = settingValueProblem(qsid, value)
+      if (problem) plan.ignored.push(`Typing setting ${problem}.`)
+      else if (value !== settingValue(qsid, now)) {
         plan.settings.push({ qsid, value: normalizeQmkSettingData(qsid, bytes) })
       }
     }
@@ -360,8 +375,11 @@ export function planRestore(
   if (light && nowLight) {
     if (nowLight.kind !== 'vialrgb') plan.ignored.push('Lighting: this keyboard’s lights can’t be set by the app.')
     else if (!nowLight.effects.has(light.mode)) plan.ignored.push('Lighting: this keyboard doesn’t have the saved effect.')
-    else if ((['mode', 'speed', 'hue', 'sat', 'val'] as const).some((k) => light[k] !== nowLight[k])) {
-      plan.lighting = { mode: light.mode, speed: light.speed, hue: light.hue, sat: light.sat, val: light.val }
+    else {
+      // Brightness above the keyboard's maximum is what the firmware would make of it anyway.
+      const val = nowLight.maxBrightness > 0 ? Math.min(light.val, nowLight.maxBrightness) : light.val
+      const wanted = { mode: light.mode, speed: light.speed, hue: light.hue, sat: light.sat, val }
+      if ((['mode', 'speed', 'hue', 'sat', 'val'] as const).some((k) => wanted[k] !== nowLight[k])) plan.lighting = wanted
     }
   }
 
@@ -376,7 +394,9 @@ export function planRestore(
   if (contents.debounce) {
     const d = contents.debounce
     if (!kc?.hasDebounce) plan.ignored.push('Key bounce filter: this keyboard doesn’t let the app set it.')
-    else if (d.type !== kc.debounceType || d.time !== kc.debounceTime) plan.debounce = { ...d }
+    else if (!debounceType(d.type) || d.time > debounceMax(d.type)) {
+      plan.ignored.push(`Key bounce filter: type ${d.type} with ${d.time} ms isn’t one the keyboard takes.`)
+    } else if (d.type !== kc.debounceType || d.time !== kc.debounceTime) plan.debounce = { ...d }
   }
 
   // Keychron: Snap Click.
@@ -462,6 +482,102 @@ export function planRestore(
   }
 
   return plan
+}
+
+/**
+ * The first macro (QMK number) in a macro memory that taps, holds or lets go of another macro, a multi-tap key or a
+ * repeat key, or null. vial-qmk runs such a step through the whole key handling (vial.c vial_keycode_tap →
+ * process_record_via → dynamic_keymap_macro_send), so a macro running itself recurses until the keyboard locks up.
+ * The app's own editor never offers these keys in a step; a file may hold them.
+ */
+export function macroRunningShortcut(buffer: number[], vialProtocol: number, count: number): number | null {
+  const repeat = [parseKeycode('QK_REPEAT_KEY'), parseKeycode('QK_ALT_REPEAT_KEY')]
+  const runs = (key: number) => readMacroKey(key) !== null || readTapDanceKey(key) !== null || repeat.includes(key)
+  const macros = readMacros(buffer, vialProtocol, count)
+  const index = macros.findIndex((steps) => steps.some((s) => s.kind !== 'text' && s.kind !== 'wait' && runs(s.key)))
+  return index < 0 ? null : index
+}
+
+/** What a plan would newly cause that needs saying first (./risks): its key and knob changes applied to the keymap. */
+export function planRisks(plan: RestorePlan, state: DeviceState, layerName: (layer: number) => string): Risk[] {
+  const kb = state.keyboard
+  if (!kb) return []
+  const after = { ...kb.keymap }
+  for (const { slot, to } of plan.keys) if (slot.kind === 'key') after[`${slot.layer},${slot.row},${slot.col}`] = to
+  return keymapRisks(kb, kb.keymap, after, plan.keys.map((k) => k.to), layerName)
+}
+
+/** One part of a plan, item by item, for the review's "Show the changes" list. */
+export interface PlanItems {
+  part: RestorePart
+  /** "Keys", "Macros" … */
+  title: string
+  items: string[]
+}
+
+/** A macro's steps in a line: “Hello”, Ctrl + C, wait 200 ms. */
+function macroLine(steps: ReturnType<typeof readMacros>[number]): string {
+  if (steps.length === 0) return 'empty'
+  return steps
+    .map((s) =>
+      s.kind === 'text'
+        ? `“${s.text}”`
+        : s.kind === 'wait'
+          ? `wait ${s.ms} ms`
+          : s.kind === 'tap'
+            ? keycodeName(s.key)
+            : `${s.kind === 'down' ? 'hold' : 'let go of'} ${keycodeName(s.key)}`,
+    )
+    .join(', ')
+}
+
+/** Every key, knob turn, macro and entry a plan changes, in words (layers named by `layerName`). */
+export function planItems(plan: RestorePlan, state: DeviceState, layerName: (layer: number) => string): PlanItems[] {
+  const kb = state.keyboard
+  if (!kb) return []
+  const out: PlanItems[] = []
+  const change = (from: number, to: number) => `${keycodeName(from)} → ${keycodeName(to)}`
+  const keys = plan.keys.filter((k) => k.slot.kind === 'key')
+  if (keys.length) {
+    out.push({
+      part: 'keys',
+      title: 'Keys',
+      items: keys.map(({ slot, from, to }) =>
+        slot.kind === 'key' ? `${layerName(slot.layer)}, row ${slot.row + 1}, column ${slot.col + 1}: ${change(from, to)}` : '',
+      ),
+    })
+  }
+  const knob = plan.keys.filter((k) => k.slot.kind === 'knob')
+  if (knob.length) {
+    out.push({
+      part: 'knob',
+      title: kb.knobCount === 1 ? 'Knob' : 'Knobs',
+      items: knob.map(({ slot, from, to }) =>
+        slot.kind === 'knob'
+          ? `${layerName(slot.layer)}, ${kb.knobCount === 1 ? 'knob' : `knob ${slot.knob + 1}`} turned ${slot.direction === 0 ? 'left' : 'right'}: ${change(from, to)}`
+          : '',
+      ),
+    })
+  }
+  if (plan.macros && state.macros) {
+    const before = readMacros(state.macros, kb.vialProtocol, kb.macroCount)
+    const after = readMacros(plan.macros, kb.vialProtocol, kb.macroCount)
+    const items = after.flatMap((steps, i) =>
+      macroLine(steps) === macroLine(before[i] ?? []) ? [] : [`${macroTitle(i)}: ${macroLine(steps)}`],
+    )
+    out.push({ part: 'macros', title: 'Macros', items: items.length ? items : ['The macro memory’s unused bytes'] })
+  }
+  for (const kind of ENTRY_KINDS) {
+    const changes = plan[kind] as EntryChange<object>[]
+    if (changes.length === 0) continue
+    const name = PART_NAMES[kind]
+    out.push({
+      part: kind,
+      title: name.many.charAt(0).toUpperCase() + name.many.slice(1),
+      items: changes.map(({ index, entry }) => `${name.one.charAt(0).toUpperCase() + name.one.slice(1)} ${index}${isEmptyEntry(kind, entry) ? ': emptied' : ''}`),
+    })
+  }
+  return out
 }
 
 /** An entry that does nothing: all keycodes 0. Unused slots beyond a keyboard's count aren't worth mentioning. */

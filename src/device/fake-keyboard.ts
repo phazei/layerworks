@@ -600,6 +600,11 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
       case 0x03:
         if (request[1] === 0x02) config.layoutOptions = readBe32(request, 2)
         return Array.from(request)
+      case 0x04: {
+        // via.c id_dynamic_keymap_get_keycode: the keycode in bytes 4-5 after the layer, row and column.
+        const code = config.keymap[request[1]]?.[request[2]]?.[request[3]] ?? 0
+        return [0x04, request[1], request[2], request[3], ...be16(code)]
+      }
       case 0x05:
         config.keymap[request[1]][request[2]][request[3]] = (request[4] << 8) | request[5]
         return Array.from(request)
