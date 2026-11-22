@@ -140,6 +140,7 @@ describe('parseBackup', () => {
       uid: '0x0807060504030201',
       rows: 2,
       cols: 3,
+      vialProtocol: 6,
     })
   })
 

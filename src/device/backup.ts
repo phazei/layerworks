@@ -299,8 +299,8 @@ export function parseBackup(text: string): Backup {
 
 /** Who the backup is for, to check against the connected keyboard. */
 export function backupIdentity(backup: Backup): FileIdentity {
-  const { name, vendorId, productId, uid, rows, cols } = backup.keyboard
-  return { name, vendorId, productId, uid, rows, cols }
+  const { name, vendorId, productId, uid, rows, cols, vialProtocol } = backup.keyboard
+  return { name, vendorId, productId, uid, rows, cols, vialProtocol }
 }
 
 /** What the backup can put back on a keyboard. */

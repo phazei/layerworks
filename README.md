@@ -1186,6 +1186,12 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   lighting". Decided by the `lighting` capability (`device/capabilities.ts`), read in `pages/home/Status.tsx`. Test:
   `pages/__tests__/Home.test.tsx` ("Home on a keyboard whose lighting the app can't change").
 
+- **Backups made on firmware that numbers keys differently.** A backup keeps raw keycode numbers; vial-qmk renumbered
+  them with Vial protocol 6 (2023), and protocol 1 stores macros differently, so such a backup is refused with a
+  pointer to a Vial file from that time (which names keys). Decided in `sameKeyNumbering`, used by `checkFit`
+  (`device/restore.ts`). Test: `device/__tests__/file-checks.test.ts` ("a backup from firmware that numbers keys
+  differently").
+
 ## Tests
 
 Unit tests sit in `__tests__/` beside the code. `src/device/fake-keyboard.ts` provides a `HidLink` with no

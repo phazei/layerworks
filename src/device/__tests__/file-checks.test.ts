@@ -8,7 +8,7 @@ import { FakeLink, fakeKeyboard, fakeKeyboardConfig, plainDefinition, type FakeK
 import { readKeyboardFile } from '../keyboard-file'
 import { parseKeycode } from '../keycodes'
 import { encodeMacro } from '../macros'
-import { checkFit, planItems, planRestore, planRisks, type KeyboardContents } from '../restore'
+import { checkFit, planItems, planRestore, planRisks, sameKeyNumbering, type KeyboardContents } from '../restore'
 import { createDeviceStore, type DeviceStore } from '../store'
 import { exportVil } from '../vil'
 
@@ -38,6 +38,31 @@ const vilWith = (change: (v: Record<string, unknown> & { layout: unknown[][][] }
   change(v)
   return JSON.stringify(v).replace(/"uid":\s*[\d.e+]+/, text.match(/"uid":\s*\d+/)![0])
 }
+
+describe('a backup from firmware that numbers keys differently', () => {
+  it('Vial protocol 5 and 6 number keys differently: refused, pointing to the Vial file', () => {
+    const backup = createBackup(store.getState(), [], new Date())
+    backup.keyboard.vialProtocol = 5
+    const file = readKeyboardFile(backupText(backup), 6)
+
+    const fit = checkFit(file.identity, store.getState())
+
+    expect(fit.fits).toBe(false)
+    expect(fit.fits === false && fit.reason).toMatch(/Vial file \(\.vil\)/)
+  })
+
+  it('protocols that number keys alike still fit', () => {
+    expect(sameKeyNumbering(6, 7)).toBe(true)
+    expect(sameKeyNumbering(5, 6)).toBe(false)
+    expect(sameKeyNumbering(1, 2)).toBe(false)
+    expect(sameKeyNumbering(3, 5)).toBe(true)
+  })
+
+  it('a Vial file names keys, so it is not refused for its protocol', () => {
+    const file = readKeyboardFile(vilWith((v) => (v.vial_protocol = 5)), 6)
+    expect(checkFit(file.identity, store.getState()).fits).toBe(true)
+  })
+})
 
 describe('Vial file values', () => {
   it.each([

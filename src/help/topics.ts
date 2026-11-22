@@ -954,6 +954,7 @@ const topics = {
     body: [
       'Vial, the app this firmware was made for, saves layouts in its own kind of file. Layerworks can save one for Vial to load, and restore from one Vial saved.',
       'A Vial file holds the keys, knob, macros, multi-tap keys, key chords, shortcut replacements, repeat rules and typing settings, but not the lighting (key colours included), the key bounce filter, Snap Click, wireless timers, or layer and macro names. For a complete backup, use the Layerworks file.',
+      'A Vial file names its keys, so it still fits after a firmware update. A Layerworks backup keeps their numbers, and Vial firmware from before 2023 numbers keys differently: a backup made on such firmware is refused on newer firmware (and the other way round). Restore a Vial file from that time instead.',
     ],
     example: 'Save a Vial file to share your layout with someone who uses Vial.',
     docs: 'https://get.vial.today/manual/',

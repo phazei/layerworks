@@ -72,6 +72,19 @@ export interface FileIdentity {
   uid: string | null
   rows: number | null
   cols: number | null
+  /** The Vial protocol of the firmware the file was made on; null when it holds keys by name (a Vial file). */
+  vialProtocol?: number | null
+}
+
+/**
+ * Whether raw keycode numbers (and macro bytes) mean the same on two Vial protocols. Compatibility: vial-qmk
+ * renumbered most keycodes beyond the basic ones with protocol 6 (2023; modifiers, layer keys, QK_BOOT all moved:
+ * the vendored tables `shared/keycodes/keycodes-v5.ts` and `keycodes-v6.ts`, vial-qmk `quantum/vial.h`
+ * VIAL_PROTOCOL_VERSION), and protocol 1 stores macros without the action prefix that 2 and later use
+ * (`VIAL_PROTOCOL_ADVANCED_MACROS`). A backup keeps raw numbers, so it only fits firmware that numbers keys alike.
+ */
+export function sameKeyNumbering(a: number, b: number): boolean {
+  return a >= 6 === b >= 6 && a >= 2 === b >= 2
 }
 
 export type FitCheck = { fits: false; reason: string } | { fits: true; warnings: string[] }
@@ -99,6 +112,7 @@ export function keyboardIdentity(state: DeviceState): FileIdentity | null {
     uid: kb.uid,
     rows: kb.rows,
     cols: kb.cols,
+    vialProtocol: kb.vialProtocol,
   }
 }
 
@@ -128,6 +142,14 @@ export function checkFit(file: FileIdentity, state: DeviceState): FitCheck {
     return {
       fits: false,
       reason: `This file was made for ${fileName}, whose keys are wired differently (${file.rows} × ${file.cols} instead of ${here.rows} × ${here.cols}), so its keys wouldn’t land in the right places.`,
+    }
+  }
+  if (file.vialProtocol != null && here.vialProtocol != null && !sameKeyNumbering(file.vialProtocol, here.vialProtocol)) {
+    return {
+      fits: false,
+      reason:
+        'This backup was made when the keyboard ran other Vial firmware, which numbers keys differently, so its keys ' +
+        'would come back wrong. If you have a Vial file (.vil) from that time, restore that instead: it names the keys.',
     }
   }
   const warnings: string[] = []
