@@ -30,6 +30,7 @@ import type {
   TapDanceEntry,
   UnlockStatus,
 } from '../vendor/pipette/shared/types/protocol'
+import { keyboardName } from './keyboard-name'
 import { lightingKind } from './lighting-kind'
 import { buildCapabilities, type Capabilities, type LightingInfo } from './capabilities'
 import type { HidLink, LinkKind } from './link'
@@ -581,7 +582,8 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     return {
       keyboard: {
         uid: probe.uid,
-        name: probe.name,
+        // The definition's name, else the browser's (./keyboard-name.ts): many definitions have none.
+        name: keyboardName(probe.definition.name, transport.link),
         viaProtocol,
         vialProtocol: probe.vialProtocol,
         definition: probe.definition,

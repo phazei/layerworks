@@ -1210,6 +1210,12 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   palette's lighting keys use too. Tests: `device/__tests__/lighting-kind.test.ts`,
   `pages/device/__tests__/lighting-object.test.tsx` (on the demo Corne).
 
+- **A definition without a name** (130 of vial-qmk's 857, e.g. kiserdesigns/splinter). The keyboard is called by the
+  product name the browser reports (the firmware's USB descriptor; not through a 2.4 GHz receiver, whose name is its
+  own), else "Keyboard", in the device card, Home, Device and the backup's name and file name. Decided in
+  `keyboardName` (`device/keyboard-name.ts`), used by the store's load. Test: `device/__tests__/keyboard-name.test.ts`
+  (on the demo Splinter too).
+
 - **No knob, or several.** The Test page says "the knob" or "each knob", "it" or "them". Decided in `severalKnobs`
   (`pages/test/knob.ts`). Test: `pages/test/__tests__/knob.test.ts`.
 
