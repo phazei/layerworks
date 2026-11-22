@@ -27,25 +27,24 @@ documents are edited and uncommitted (the user commits there).
 found, and people who find one are asked to open an issue. The licence stays GPL-3.0-or-later (the user: "since
 everything else is GPL then GPL it is").
 
-**In progress right now** (two building agents side by side, files divided between them):
+**In progress right now** (two agents side by side):
 
-- `ses_dfd4e15edffeI6UpU02bmDT4JA`: the accessibility fixes the user chose (findings in
-  `%TEMP%\opencode\layerworks-audit\accessibility-audit.md`): keys in the keyboard picture reachable without a
-  mouse; the Test page no longer swallows Tab, Enter and Esc; seen keys marked clearly and a "Not seen yet" line;
-  a dash pattern per zone; the help panel takes focus; a few colour values; the page title follows the page. Its
-  files: `src/ui/KeyboardPicture.tsx`, `src/pages/Test.tsx`, `src/pages/test/`, zone drawing in
-  `src/pages/lighting/`, the help panel, values in `src/ui/tokens.css`. Port 5206. Its report ends with a table
-  so that each fix is its own `fix(a11y): …` commit. The rest of the audit's polish is under "Later".
-- **The collapsing sidebar is in** (`6acf624`, by `ses_dfd15b6c7ffeHrjHNi3Zt3VgJE`; README "The screen"): icons
-  only under 1024 px or by its button, the keyboard's card from one icon, usable down to 560 px wide, sideways
-  scrolling below. The spec's three sentences about it are corrected (parent repo, uncommitted). **Left at narrow
-  widths, a follow-up for that session once the accessibility fixes are committed:** Shortcuts under about 785 px
-  stacks the editor below the whole list, so clicking a macro shows no visible change, and its list sets the
-  560 px floor; Help opens scrolled down to its list when list and overview stack; with many layers (vipad, 18)
-  the layer chips take several rows and the picture shrinks to its minimum; the Test page's lock notice becomes
-  a narrow column beside Unlock (the accessibility agent's file). For the user to look at: 1024 px as the
-  collapsing point; the icon's corner marks and orange for unlocked; the popover's grey in the light theme;
-  hovering one icon while another has keyboard focus shows both names.
+- `ses_dfd15b6c7ffeHrjHNi3Zt3VgJE`: follow-ups to its collapsing sidebar (`6acf624`; icons only under 1024 px or
+  by its button, the keyboard's card from one icon, usable down to 560 px). (1) **A sideways scrollbar where
+  there should be none**: the accessibility agent's DevTools screenshots (`%TEMP%\opencode\layerworks-audit\a11y\
+  r2-*.png`) show the page area scrolling sideways at about 1250 px and the expanded sidebar scrolling at 705 px
+  high; `pnpm shots` hides scrollbars. To be found, fixed and proved by measuring. (2) Pages at narrow widths:
+  Shortcuts when list and editor stack, Help's scroll position, many layers (vipad, 18), the Test page's lock
+  notice. (3) Its own small notes: two icon names at once, the popover's grey in the light theme, the "Collapse
+  sidebar" row's place. Its report ends with a table so each part is its own commit. Port 5207. For the user to
+  look at afterwards: 1024 px as the collapsing point; the icon's corner marks and orange for unlocked.
+- `ses_dfe21a33cffeE72FiCdiqmXdSX`: hunting the flaky `Device.test.tsx` "saves a backup of everything to a file"
+  (failed three times in full runs, fast, passes alone). Its files: that test, and `src/device/` if the cause is
+  there.
+- **The accessibility fixes are in** (seven commits, `6b5a423` to `ade89e1`, by
+  `ses_dfd4e15edffeI6UpU02bmDT4JA`; README and the Help topic "Using the app without a mouse" describe them).
+  Not checkable by an agent, for the user or a later tester: a real screen reader on the picture's key names;
+  Firefox (the zone colours use `light-dark()`); a real keyboard on the Test page.
 - When each reports: the three checks (once; the user's computer is slowed by test runs, `pnpm test` uses half
   the cores), the diff, screenshots, commit. Then item 6, the documents round, with the user.
 - Committing one item out of a file with several items' edits: `node %TEMP%\opencode\stage-hunks.mjs [--not]
@@ -144,6 +143,10 @@ Left open:
 - The user is testing page by page and reports bugs as found; the dev server (`pnpm dev`) is open while agents
   edit, so the user sees work in progress.
 - **To try on the real keyboard** (take a backup first):
+  - Without a mouse (works on the demo too): on Keys, Tab to the picture, arrows (onto the knob too), Enter, Esc;
+    the same in a key chord and in Lighting's "Key by key" and "Mixed zones". On Test, Tab through the page, then
+    press keys until three quarters are seen ("Not seen yet" appears). Record a macro and press Esc to stop. Open
+    a "?" with Enter and close it with Esc.
   - From the mid-write fixes: save a macro and check the M keys still play; unplug during a long macro save and
     reconnect (the macro page says it was interrupted; saving again fixes it). Through the receiver: let the
     keyboard fall asleep, then change a key (a plain "didn't answer, press a key" message, no hex codes); start a
