@@ -11,6 +11,8 @@ export const COPYRIGHT_LINE = `Copyright © ${COPYRIGHT_YEARS} ${COPYRIGHT_HOLDE
 export const SOURCE_URL = 'https://github.com/phazei/layerworks'
 /** Where people who find a bug are asked to report it. */
 export const ISSUES_URL = `${SOURCE_URL}/issues`
+/** Where people who want to say thanks can leave a tip. One plain link in About; nothing is loaded from it. */
+export const TIP_URL = 'https://ko-fi.com/phazei'
 
 /** Files the build puts beside the page (relative, so they work under any path the page is served from). */
 export const LICENCES_FILE = 'licences.txt'

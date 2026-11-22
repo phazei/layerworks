@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { BUILD_COMMIT } from '../../../build-info'
-import { COPYRIGHT_HOLDER, ISSUES_URL, SOURCE_URL, commitUrl } from '../../../project'
+import { COPYRIGHT_HOLDER, ISSUES_URL, SOURCE_URL, TIP_URL, commitUrl } from '../../../project'
 import { About } from '../About'
 
 describe('About', () => {
@@ -22,6 +22,11 @@ describe('About', () => {
   it('asks people to report problems on GitHub', () => {
     render(<About />)
     expect(screen.getByRole('link', { name: /^Report a problem/ })).toHaveAttribute('href', ISSUES_URL)
+  })
+
+  it('has one plain link for saying thanks', () => {
+    render(<About />)
+    expect(screen.getByRole('link', { name: /^buy me a coffee/ })).toHaveAttribute('href', TIP_URL)
   })
 
   it('names the copyright holder, says there is no warranty, and links the licences beside the page', () => {

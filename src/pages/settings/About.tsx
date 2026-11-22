@@ -6,7 +6,7 @@ import type { ReactNode } from 'react'
 import { version } from '../../../package.json'
 import { source as pipette } from '../../../vendor.json'
 import { BUILD_COMMIT } from '../../build-info'
-import { COPYRIGHT_LINE, ISSUES_URL, LICENCES_FILE, LICENSE_FILE, SOURCE_URL, commitUrl } from '../../project'
+import { COPYRIGHT_LINE, ISSUES_URL, LICENCES_FILE, LICENSE_FILE, SOURCE_URL, TIP_URL, commitUrl } from '../../project'
 import { ExternalLink } from '../../ui/display'
 import { Card } from '../../ui/layout'
 
@@ -43,6 +43,10 @@ export function About() {
         <Row label="Found a bug?">
           <ExternalLink href={ISSUES_URL}>Report a problem</ExternalLink>
           <Note>On GitHub: say what you did, what happened, and which keyboard you have.</Note>
+        </Row>
+        <Row label="Say thanks">
+          Layerworks is free. If it saved you some time, you can{' '}
+          <ExternalLink href={TIP_URL}>buy me a coffee</ExternalLink>.
         </Row>
         <Row label="Licence">
           <span className="flex flex-col gap-2">
