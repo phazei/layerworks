@@ -546,7 +546,9 @@ title is the one before the app starts.
     flags, macro memory, QMK setting IDs, lighting, and the transport's request counters, refreshed every second.
 - **Shortcuts & macros** (`Shortcuts.tsx`, `shortcuts/`): full height, no stage (the editors need the room, and
   the keys a shortcut is on are listed and linked instead). A list on the left and the one picked on the right, two
-  columns from 42rem; no tabs. The page's own addresses (`shortcuts/route.ts`): `#/shortcuts/macro/1` opens Macro 1,
+  columns from 42rem; no tabs. Narrower, they take turns as on the Help page: the list alone, then the picked one in
+  its place with "All shortcuts" above it (and Back) to return; the focus goes into the editor when it replaces the
+  list, and back to its row when the list returns. The page's own addresses (`shortcuts/route.ts`): `#/shortcuts/macro/1` opens Macro 1,
   likewise `multi-tap/N`, `chord/N`, `replacement/N` and `repeat/N`, with the number shown on screen. Without a
   number (`#/shortcuts/multi-tap`, `shortcutKindHref`) it opens the first slot of that kind with nothing saved and
   no draft, in Add's order (`shortcuts/first-free.ts`; number 0 last), replacing the address so Back skips it

@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Shortcuts & macros: the list on the left (macros, then multi-tap keys, key chords, shortcut replacements and
 // repeat rules, each in its own section, those not in use under "More options"), the one picked on the right, edited
-// in place. "#/shortcuts/macro/1" opens Macro 1 (QMK's M1), "#/shortcuts/chord/1" Key chord 1 (shortcuts/route.ts). No
-// keyboard picture: the editors need the room, and the keys a shortcut is on are listed (and linked) in them.
+// in place; narrow, the two take turns. "#/shortcuts/macro/1" opens Macro 1 (QMK's M1), "#/shortcuts/chord/1" Key
+// chord 1 (shortcuts/route.ts). No keyboard picture: the editors need the room, and the keys a shortcut is on are
+// listed (and linked) in them.
 
-import { useEffect } from 'react'
-import { Command } from 'lucide-react'
+import { useEffect, useRef } from 'react'
+import { ArrowLeft, Command } from 'lucide-react'
 import { useDevice, type Capabilities } from '../device'
 import type { PageDef } from '../plugins/api'
 import { replacePath, usePath } from '../shell/router'
+import { cx } from '../ui/controls'
 import { Card } from '../ui/layout'
 import { PageLink } from '../ui/PageLink'
 import { ChordEditor } from './shortcuts/ChordEditor'
@@ -17,7 +19,7 @@ import { OverrideEditor } from './shortcuts/OverrideEditor'
 import { RepeatEditor } from './shortcuts/RepeatEditor'
 import { useDrafts } from './shortcuts/drafts'
 import { firstFree } from './shortcuts/first-free'
-import { kindFromPath, macroHref, openedFromPath, shortcutPath, type Opened } from './shortcuts/route'
+import { kindFromPath, macroHref, openedFromPath, shortcutHref, shortcutPath, type Opened } from './shortcuts/route'
 import { ShortcutList } from './shortcuts/ShortcutList'
 import { TapDanceEditor } from './shortcuts/TapDanceEditor'
 
@@ -121,19 +123,56 @@ function ShortcutsPage() {
     if (kind && free !== undefined && free !== null) replacePath(shortcutPath(kind, free))
   }, [kind, free])
 
+  // Narrow (one column), the list and the open shortcut take turns, as on the Help page: picking one shows its
+  // editor in the list's place, with "All shortcuts" above it to go back (so does the browser's Back). The focus
+  // follows: into the editor when it replaces the list, back onto the shortcut's row when the list returns.
+  const listBox = useRef<HTMLDivElement>(null)
+  const editorBox = useRef<HTMLDivElement>(null)
+  const lastOpened = useRef<{ href: string; stacked: boolean } | null>(null)
+  const selectedKey = selected ? `${selected.kind}:${selected.index}` : ''
+  useEffect(() => {
+    const list = listBox.current
+    const now = document.activeElement
+    const lost = !now || now === document.body || (list?.contains(now) ?? false)
+    if (selected) {
+      const stacked = list !== null && getComputedStyle(list).display === 'none'
+      lastOpened.current = { href: shortcutHref(selected.kind, selected.index), stacked }
+      if (stacked && lost) editorBox.current?.focus()
+      return
+    }
+    const last = lastOpened.current
+    lastOpened.current = null
+    if (last?.stacked && (lost || editorBox.current === null)) list?.querySelector<HTMLElement>(`a[href="${last.href}"]`)?.focus()
+    // Only when what is open changes.
+  }, [selectedKey])
+
+  const nothingAtAll = macroCount === 0 && !hasEntrySlots(caps)
+
   return (
     <div className="@container">
-      <div className="grid items-start gap-4 @2xl:grid-cols-[17rem_minmax(0,1fr)] @5xl:grid-cols-[22rem_minmax(0,1fr)]">
-        <ShortcutList selected={selected} focus={kind && free === null ? kind : null} />
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 @2xl:grid-cols-[17rem_minmax(0,1fr)] @5xl:grid-cols-[22rem_minmax(0,1fr)]">
+        <div ref={listBox} className={cx('min-w-0', selected && 'hidden @2xl:block')}>
+          <ShortcutList selected={selected} focus={kind && free === null ? kind : null} />
+        </div>
         {/* Keyed by keyboard too: what an editor holds (a save's outcome, an open picker) belongs to one keyboard. */}
         {selected === null ? (
-          <Nothing macros={macroCount > 0} others={hasEntrySlots(caps)} />
-        ) : <Editor key={`${uid}:${selected.kind}:${selected.index}`} opened={selected} />}
+          // Narrow, the list is enough: this card points "on the left", and the list is all there is.
+          <div className={cx('min-w-0', !nothingAtAll && 'hidden @2xl:block')}>
+            <Nothing macros={macroCount > 0} others={hasEntrySlots(caps)} />
+          </div>
+        ) : (
+          <div ref={editorBox} tabIndex={-1} aria-label="The shortcut being changed" role="region" className="min-w-0 outline-none">
+            <a href="#/shortcuts" className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-accent hover:underline @2xl:hidden">
+              <ArrowLeft size={14} aria-hidden />
+              All shortcuts
+            </a>
+            <Editor key={`${uid}:${selected.kind}:${selected.index}`} opened={selected} />
+          </div>
+        )}
       </div>
     </div>
   )
 }
-
 export const shortcutsPage: PageDef = {
   path: 'shortcuts',
   title: 'Shortcuts & macros',
