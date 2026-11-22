@@ -75,7 +75,10 @@ interface DisclosureProps {
 /** "More options": advanced controls, one click away, never a separate mode. */
 export function Disclosure({ id, label = 'More options', forceOpen = false, children }: DisclosureProps) {
   const [remembered, setRemembered] = usePref(`open:${id}`, false)
-  const [forced, setForced] = useState(forceOpen)
+  // `?open=typing-magic` (ids separated by commas) opens it from the URL, for screenshots.
+  const [forced, setForced] = useState(
+    () => forceOpen || (typeof location !== 'undefined' && (new URLSearchParams(location.search).get('open') ?? '').split(',').includes(id)),
+  )
   const open = forced || remembered
   const toggle = () => {
     // Closing one that was opened for the user is a choice too: it stays closed, and is remembered so.

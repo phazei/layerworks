@@ -8,7 +8,7 @@ export { LAYER_PUSH, parseLayerReport } from './pushes'
 export type { LayerState, PushShape } from './pushes'
 export { TransportError } from './transport'
 export type { RequestOptions, Transport, TransportStats } from './transport'
-export type { Availability, Capabilities, Feature, LightingInfo } from './capabilities'
+export type { Availability, Capabilities, Feature, LightingInfo, NkroMode } from './capabilities'
 export { LOAD_PARTS, slotKeycode } from './store'
 export type {
   DeviceState,

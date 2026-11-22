@@ -8,6 +8,7 @@ import {
   bootKeycode,
   canTakeModifiers,
   deviceStore,
+  isNkroKey,
   KC_SAME_AS_BELOW,
   keycodeId,
   keyPalette,
@@ -103,12 +104,13 @@ export function Inspector({ keyboard, slot, names, base, justPut }: Props) {
   // The tables behind the palette describe the connected keyboard; rebuild them when it changes. The extra groups
   // leave out switches for features the keyboard reports no room for.
   const settings = useDevice((s) => s.settings)
-  const features = paletteFeatures(keyboard, settings)
+  const nkro = useDevice((s) => s.capabilities?.nkro ?? 'pending')
+  const features = paletteFeatures(keyboard, settings, nkro)
   // The names follow the computer's layout (device/layout.ts).
   const legends = useLegendRevision()
   const palette = useMemo(
-    () => keyPalette({ combos: features.combos, keyOverrides: features.keyOverrides, autoShift: features.autoShift }),
-    [keyboard.uid, features.combos, features.keyOverrides, features.autoShift, legends],
+    () => keyPalette({ combos: features.combos, keyOverrides: features.keyOverrides, autoShift: features.autoShift, nkro: features.nkro }),
+    [keyboard.uid, features.combos, features.keyOverrides, features.autoShift, features.nkro, legends],
   )
   const paletteCodes = useMemo(() => new Set(palette.flatMap((group) => group.keys.map((key) => key.code))), [palette])
   const shortcutKeys = useMemo(
@@ -189,6 +191,9 @@ export function Inspector({ keyboard, slot, names, base, justPut }: Props) {
                 <span className="flex min-w-0 flex-col leading-tight">
                   <span className="font-medium">{describeKeycode(current, names, taps)}</span>
                   <span className="font-mono text-xs break-all text-muted">{keycodeId(current)}</span>
+                  {nkro === 'automatic' && isNkroKey(current) && (
+                    <span className="text-xs text-muted">Changes nothing here: this keyboard does it by itself.</span>
+                  )}
                 </span>
               )}
             </div>

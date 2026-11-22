@@ -313,7 +313,7 @@ export const GLOSSARY: GlossaryEntry[] = [
     term: 'N-key rollover',
     aka: 'NKRO, 6KRO, adaptive NKRO',
     friendly: 'Any number of keys at once',
-    meaning: 'The computer sees every key held, not just six. Keychron keyboards switch to it by themselves (adaptive).',
+    meaning: 'The computer sees every key held, not just six. Keychron keyboards switch to it by themselves (adaptive), so the app shows no switch for it there.',
     topic: 'typing-magic',
   },
   {

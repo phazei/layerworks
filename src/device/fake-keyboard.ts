@@ -159,6 +159,12 @@ export interface FakeKeychron {
   snapClickSaved?: { type: number; key1: number; key2: number }[]
   /** Keychron's own lighting (`0xA8`, feature bit 0x80): per-key colours and mixed zones. */
   rgb?: FakeKeychronRgb
+  /**
+   * N-key rollover (`0xA7 0x12` / `0x13`, with feature bit 0x0200 or misc bit 0x80): the reply's state byte, as
+   * keychron/common/nkro.c builds it: bit 0 on, bit 1 switchable, bit 2 adaptive. Setting it fails unless
+   * switchable, as on firmware with adaptive N-key rollover (the K15 Max).
+   */
+  nkro?: number
 }
 
 export interface FakeKeychronRgb {
@@ -449,6 +455,12 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
       case 0x0a:
         if (!kc.snapClick) return fail
         kc.snapClickSaved = structuredClone(kc.snapClick)
+        return ok()
+      case 0x12:
+        return kc.nkro === undefined ? fail : ok(kc.nkro)
+      case 0x13:
+        if (kc.nkro === undefined || !(kc.nkro & 0x02) || request[2] > 1) return fail
+        kc.nkro = (kc.nkro & ~0x01) | request[2]
         return ok()
       case 0x0b:
         return kc.lpm ? ok(...le16(kc.lpm.backlitTime), ...le16(kc.lpm.idleTime)) : fail

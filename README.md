@@ -29,6 +29,7 @@ Options in the URL, before the `#`:
 | `?select=3,2`, `?select=knob,0,1` | Selects a key (row, column) or a knob direction once a keyboard is in, for screenshots of the Keys inspector |
 | `?layer=<n>` | Shows layer n on the stage instead of following the keyboard |
 | `?choice=tapHold` | The Keys inspector opens on that choice (`key`, `shortcut`, `layer`, `tapHold`) rather than the one the key's assignment belongs to, for screenshots; with `?select=` |
+| `?open=typing-magic` | Opens the "More options" folds with those ids (comma-separated; a `Disclosure`'s `id`), for screenshots, without remembering it |
 | `?open-picker=Sends` | On Shortcuts & macros, the key field with that label ("Sends", "To send instead" …) opens its picker, for screenshots |
 | `?layout=KeyY:z,KeyZ:y,Semicolon:ö` | Key legends as on a layout typing those characters (`KeyboardEvent.code:character`, URL-encoded), in place of the browser's own reading; for screenshots, as headless Edge is US |
 | `?put-on-key=TD(1)` | The Keys page starts armed with that keycode (QMK name), as "Put it on a key…" leaves it, for screenshots |
@@ -218,7 +219,8 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
   battery (on 2.4 GHz, when known), the active layer by name, firmware version and lock state (with Unlock… while
   locked; the facts' "?" sit beside their labels); four shortcut
   tiles (keys, lighting, backup, test); and what the keyboard can do, from `capabilities`
-  (`home/features.ts` gives each feature its friendly and QMK name), with the missing ones and their reasons
+  (`home/features.ts` gives each feature its friendly and QMK name; N-key rollover reads "the keyboard does it by
+  itself" where the keyboard reports adaptive N-key rollover), with the missing ones and their reasons
   behind a `Disclosure`. With no keyboard it shows the connect prompt and three lines on what the app is for.
 - **Keys** (`Keys.tsx`, `keys/`): click a key or one side of the knob on the stage; with nothing selected the
   page says so. Armed from a shortcut's "Put it on a key…" (see Shortcuts & macros, the macro editor), it says
@@ -264,7 +266,8 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     place, see "What each picker offers" under Shortcuts & macros) adds, each with its own "?" and, where it helps, a short note under its title:
     *Typing helpers* (Caps Word, the Esc and ` key, the seven Space Cadet keys, Layer Lock), *Swapped and disabled
     keys* (QMK's Magic keycodes, worded like the Typing feel switches they change, with a link there; NKRO on / off
-    included, the split-keyboard ones left out) and *International keys* (ISO, Japanese and the language keys); then,
+    included where they do something (not on a keyboard that does N-key rollover by itself; see "Typing settings"),
+    the split-keyboard ones left out) and *International keys* (ISO, Japanese and the language keys); then,
     under a closed "More keys" fold (remembered; open by itself when the edited key is one of them; a search looks
     everywhere), *Features on and off* (Capitals by holding, key chords, shortcut replacements, one-tap modifiers)
     and *Restart and firmware update*. Their tiles and words come from `FRIENDLY` in `device/keycodes.ts` (every
@@ -816,12 +819,19 @@ Vial's "QMK Settings" are numbered (`qsid`) and the keyboard lists the ones its 
   table): 20 slots on the K15 Max, each a rule (`SNAP_CLICK_RULES`: 1 last pressed wins once, 2 last pressed wins, 3
   first key wins, 4 second key wins, 5 cancel out; 0 an empty slot) and two plain keys (8-bit keycodes).
   `snapClickProblem` refuses a pair the firmware would (a rule without both keys) and one with the same key twice.
-- Keychron's N-key rollover command isn't used: on the K15 Max it reports adaptive N-key rollover and refuses to be
-  set (`keychron/common/nkro.c`). The app's switch is Magic's bit 7 (QMK setting 21, and the `NK_*` keys), which
-  sets `keymap_config.nkro`; firmware built with Keychron's adaptive N-key rollover (`APDAPTIVE_NKRO_ENABLE`, in
+- N-key rollover: the app's switch is Magic's bit 7 (QMK setting 21, and the `NK_*` keys), which sets
+  `keymap_config.nkro`. Firmware built with Keychron's adaptive N-key rollover (`APDAPTIVE_NKRO_ENABLE`, in
   `keychron_common.mk`, so the K15 Max) never reads that bit when it builds reports (`tmk_core/protocol/report.c`,
-  `quantum/action_util.c`): it switches to N-key rollover by itself once six keys are down, and the switch changes
-  nothing there. Its report rate isn't offered either: the K15 Max doesn't have it.
+  `quantum/action_util.c`): it switches to N-key rollover by itself once six keys are down. Such a keyboard says so:
+  Keychron's `0xA7 0x12` reply (`keychron/common/nkro.c`: bit 0 on, bit 1 switchable, bit 2 adaptive; setting it
+  is refused there), read at load into `keychron.nkroAdaptive`. `capabilities.nkro` (`device/capabilities.ts`,
+  `nkroMode`) is `'automatic'` there, `'pending'` while the Keychron part is still being read, and `'setting'`
+  otherwise (firmware without Keychron's commands keeps the switch, where it lists the setting). Only with
+  `'setting'` does Typing feel show "Any number of keys at once" (and its search find it) and the palette offer the
+  `NK_*` keys, so nothing appears and then goes while loading. A key that already holds one still reads by its
+  name, and its "Now" line adds "Changes nothing here: this keyboard does it by itself."; typing the code under More
+  options still works. The help topics keep explaining it, with why it isn't shown. Reset all typing settings is
+  unaffected. Keychron's own NKRO_SET isn't used. Its report rate isn't offered either: the K15 Max doesn't have it.
 
 ## Key names and the computer's layout
 
@@ -975,7 +985,8 @@ needs no unlock. Restarting for a firmware update, once unlocked, drops the conn
 real keyboard leaves USB. It reports the K15 Max's 26 QMK
 settings with the values the real keyboard has (its firmware defaults, `K15_SETTINGS`), which the reset puts back.
 On the cable its Keychron commands report the default layer, the key bounce filter (react at once, 50 ms, as read
-from the real keyboard) and Snap Click (20 slots, one example pair: A and D, the last one pressed wins);
+from the real keyboard), adaptive N-key rollover as the K15 Max answers `0xA7 0x12` (refusing to be set, so Typing
+feel shows no switch for it), and Snap Click (20 slots, one example pair: A and D, the last one pressed wins);
 `?demo-wireless` connects it through the receiver with those and the K15 Max's wireless features, timers (10 min,
 2 h), a battery of 76 % and the real firmware string (`v1.1.2 1970-01-01-00:00:00`).
 

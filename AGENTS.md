@@ -102,8 +102,8 @@ If the script leaves a server behind (it was killed half-way):
   saves all of it. The store saves after a pause, like the main lighting.
 - "Reset all typing settings" (Vial's `qmk_settings_reset`) also clears Magic's bits (swapped and disabled keys,
   N-key rollover), and can't be undone.
-- On the K15 Max (adaptive N-key rollover), Magic's N-key rollover bit changes nothing; see README "Typing
-  settings".
+- On the K15 Max (adaptive N-key rollover), Magic's N-key rollover bit changes nothing; the app hides the switch
+  and keys there (`capabilities.nkro`); see README "Typing settings".
 - Writing Keychron's wireless timers while connected wirelessly nudges the mouse pointer once (firmware).
 - The vendored keycode tests fail when run in shuffled order (upstream's; leave them).
 - On the first frame of a different lighting effect, this firmware reloads speed and colour from what was last

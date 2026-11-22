@@ -28,6 +28,15 @@ describe('searching the help', () => {
     }
   })
 
+  // Hidden on keyboards that do it by themselves, N-key rollover stays findable in the help, with why.
+  it('finds N-key rollover by every name, with the note that it is hidden where the keyboard does it', () => {
+    for (const query of ['nkro', 'n-key rollover', 'rollover', '6kro']) {
+      const ids = searchHelp(query).slice(0, 3).map((hit) => hit.id)
+      expect(ids, query).toContain('typing-magic')
+    }
+    expect(HELP_TOPICS['typing-magic'].body.join(' ')).toMatch(/doesn’t show the switch/)
+  })
+
   it('finds the new key groups by the names other apps use', () => {
     expect(first('space cadet')).toBe('helper-keys')
     expect(first('programmable button')).toBe('left-out-keys')

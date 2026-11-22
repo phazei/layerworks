@@ -380,7 +380,7 @@ const topics = {
     title: 'Keys that swap or switch off keys',
     qmkName: 'Magic keycodes, CL_SWAP, GU_TOGG, NK_TOGG …',
     body: [
-      'A press changes one of the keyboard’s switches for swapped and disabled keys: swap Caps Lock and Ctrl, swap Esc and Caps Lock, swap Alt and Win for a Mac, switch the Windows keys off for a game, or let the computer see any number of keys at once (N-key rollover; Keychron keyboards do that by themselves, so those keys change nothing there). The keyboard remembers the switch until it is changed again.',
+      'A press changes one of the keyboard’s switches for swapped and disabled keys: swap Caps Lock and Ctrl, swap Esc and Caps Lock, swap Alt and Win for a Mac, switch the Windows keys off for a game, or let the computer see any number of keys at once (N-key rollover; Keychron keyboards do that by themselves, adaptive N-key rollover, so on them the app doesn’t offer those keys). The keyboard remembers the switch until it is changed again.',
       'Most of the same switches are on the Typing feel page, under Swapped and disabled keys; swapping Esc and Caps Lock is only here, as keys. A key for them is handy for switching often without opening the app. “Toggle” keys flip the switch each press; the others set it one way.',
     ],
     example: 'Put “Windows keys off, or on again” on a key of an Fn layer: one press before a game, one after.',
@@ -833,7 +833,7 @@ const topics = {
     body: [
       'Switches that change what modifier keys do on every layer at once, without editing each key: swap Caps Lock and Ctrl, swap Alt and Win for a Mac, or switch the Windows keys off for games. Swapping Esc and Caps Lock has no switch here; it is a key on the Keys page.',
       'The keys still show their own names on the Keys page; the swap happens in the keyboard after that. Turn the switch off to undo it.',
-      'Here too, under More options: “Any number of keys at once” (N-key rollover), which lets the computer see every key held together rather than six; the switch turns it on and off. A few BIOS screens and old computers don’t understand it; turn it off if keys stop working there. Keychron keyboards do it by themselves (adaptive N-key rollover): they send keys the ordinary way and switch over once more than six are held, so on them the switch changes nothing.',
+      'Here too, under More options: “Any number of keys at once” (N-key rollover), which lets the computer see every key held together rather than six; the switch turns it on and off. A few BIOS screens and old computers don’t understand it; turn it off if keys stop working there. Keychron keyboards do it by themselves (adaptive N-key rollover): they send keys the ordinary way and switch over once more than six are held. The keyboard tells the app so, and on such a keyboard the app doesn’t show the switch or the keys for it.',
     ],
     example: 'Turn on “Windows keys do nothing” before a game, and off again afterwards.',
     docs: QMK + 'keycodes_magic',

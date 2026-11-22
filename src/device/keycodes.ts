@@ -435,7 +435,17 @@ export interface PaletteFeatures {
   keyOverrides: boolean
   /** The keyboard reports Auto Shift's settings (Vial's QMK settings, id 3). */
   autoShift: boolean
+  /**
+   * Offer the N-key rollover keys (NK_ON, NK_OFF, NK_TOGG). False where the keyboard does N-key rollover by itself
+   * (capabilities' `nkro`, 'automatic') or that is still being read: there they change nothing. Default true.
+   */
+  nkro?: boolean
 }
+
+const NKRO_KEYS = ['NK_ON', 'NK_OFF', 'NK_TOGG']
+
+/** True for the N-key rollover keys (QMK's NK_ON, NK_OFF, NK_TOGG). */
+export const isNkroKey = (code: number): boolean => NKRO_KEYS.includes(extraByCode(code)?.id ?? '')
 
 /**
  * The groups the Keys page adds after the everyday ones (PALETTE_EXTRA_GROUPS): typing helpers, swapped and disabled
@@ -467,7 +477,7 @@ function extraGroups(features: PaletteFeatures): PaletteGroup[] {
       title: 'Swapped and disabled keys',
       note: 'Each press changes a switch the keyboard remembers; most of the same switches are on the Typing feel page (swapping Esc and Caps Lock is only here).',
       link: { label: 'Typing feel', href: '#/typing/magic' },
-      keys: ordered(tables.KEYCODES_BEHAVIOR_MAGIC, MAGIC_ORDER),
+      keys: ordered(tables.KEYCODES_BEHAVIOR_MAGIC, features.nkro === false ? MAGIC_ORDER.filter((id) => !NKRO_KEYS.includes(id)) : MAGIC_ORDER),
     },
     {
       id: 'international',

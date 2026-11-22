@@ -293,6 +293,26 @@ describe('the keys beyond the everyday ones', () => {
     expect(within(palette()).getByRole('region', { name: 'Restart and firmware update' })).toBeInTheDocument()
   })
 
+  it('leaves out the N-key rollover keys on a keyboard that does it by itself, still naming one a key holds', async () => {
+    // The demo is a K15 Max: adaptive N-key rollover (Keychron's 0xA7 0x12 says so).
+    await waitFor(() => expect(deviceStore.getState().capabilities?.nkro).toBe('automatic'))
+    await openKeys(A_KEY)
+    search('nkro')
+    expect(tiles()).toEqual([])
+    expect(screen.getByText(/No key matches/)).toBeInTheDocument()
+
+    await act(() => deviceStore.assign({ kind: 'key', layer: 2, row: 3, col: 2 }, keycode('NK_TOGG')))
+    act(() => stage.select(null))
+    act(() => stage.select(A_KEY))
+    const now = screen.getByRole('group', { name: 'What it does now' })
+    expect(now).toHaveTextContent('Any number of keys at once: on or off')
+    expect(now).toHaveTextContent('NK_TOGG')
+    expect(now).toHaveTextContent('Changes nothing here: this keyboard does it by itself.')
+    // Still reachable by its QMK code.
+    openMoreOptions()
+    expect(screen.getByRole('textbox', { name: /Key code/ })).toHaveValue('NK_TOGG')
+  })
+
   it('finds them by friendly name, QMK name and what they do, folded ones included', async () => {
     await openKeys(A_KEY)
     search('magic')
@@ -300,8 +320,6 @@ describe('the keys beyond the everyday ones', () => {
     expect(tiles()).not.toContain('A')
     search('windows key')
     expect(tiles()).toContain('Windows keys do nothing')
-    search('nkro')
-    expect(tiles()).toEqual(expect.arrayContaining(['Any number of keys at once: on or off']))
     search('swap')
     expect(tiles()).toContain('Swap Esc and Caps Lock')
     search('gui')

@@ -19,6 +19,7 @@
 // Groups left out where the firmware would run them anyway are about sense, not ability: a shortcut that sends a
 // multi-tap or repeat key, or a macro step that runs another macro.
 
+import type { NkroMode } from './capabilities'
 import { keyPalette, type PaletteFeatures, type PaletteGroup, type PaletteKey } from './keycodes'
 
 /** The places a shortcut holds a key, as the pickers ask for them. */
@@ -68,15 +69,20 @@ export const KEY_USES: Record<KeyUse, UseRule> = {
 /** Vial's QMK setting id for Auto Shift on or off: reported only by firmware with Auto Shift. */
 const AUTO_SHIFT_QSID = 3
 
-/** What the connected keyboard is known to have, for the palette's feature switches. */
+/**
+ * What the connected keyboard is known to have, for the palette's feature switches. `nkro` is the capabilities'
+ * mode: the N-key rollover keys are offered only where they do something ('setting'); without it, as QMK has them.
+ */
 export function paletteFeatures(
   keyboard: { counts: { combo: number; keyOverride: number } } | null,
   settings: Readonly<Record<number, unknown>> | null,
+  nkro: NkroMode = 'setting',
 ): PaletteFeatures {
   return {
     combos: (keyboard?.counts.combo ?? 0) > 0,
     keyOverrides: (keyboard?.counts.keyOverride ?? 0) > 0,
     autoShift: settings?.[AUTO_SHIFT_QSID] !== undefined,
+    nkro: nkro === 'setting',
   }
 }
 

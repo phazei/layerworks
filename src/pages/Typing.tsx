@@ -90,8 +90,12 @@ function TypingPage() {
 
   let sections: Section[] = []
   const reported = (qsid: number) => settings !== null && settings[qsid] !== undefined
+  // N-key rollover's switch only where it does something: not where the keyboard does it by itself, nor while
+  // that is still being read (so it doesn't show and then go). The help still explains it.
+  const nkroHidden = (capabilities?.nkro ?? 'pending') !== 'setting'
+  const shown = (f: (typeof SETTING_FIELDS)[number]) => reported(f.qsid) && !(f.key === 'nkro' && nkroHidden)
   for (const group of SETTING_GROUPS) {
-    const fields = SETTING_FIELDS.filter((f) => f.group === group && reported(f.qsid) && (!searching || fieldMatches(query, f)))
+    const fields = SETTING_FIELDS.filter((f) => f.group === group && shown(f) && (!searching || fieldMatches(query, f)))
     if (fields.length === 0) continue
     sections.push({
       id: group,

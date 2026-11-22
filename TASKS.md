@@ -17,34 +17,20 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
 
 ## Where the conversation stands
 
-The user's plan was: list what is left from the spec, build what was picked, audit the project against the spec
-and the documents, audit the Help section, update the files. The spec audit and the document rewrite are done
-(`../docs/spec/layerworks.md` is current; the parent repo's documents are edited and uncommitted, the user commits
-there). The findings files are in `%TEMP%\opencode\layerworks-audit\` (`spec-audit.md`, `help-audit.md`).
+The audits are done and applied: the spec (`../docs/spec/layerworks.md`) and the documents are current, the Help
+section was checked against the app and the firmware and corrected, and N-key rollover is hidden where the
+keyboard does it by itself. The parent repo's documents are edited and uncommitted (the user commits there). The
+findings files are in `%TEMP%\opencode\layerworks-audit\` (`spec-audit.md`, `help-audit.md`). Nothing is running
+in the background, and nothing is waiting for an answer from the user.
 
-**In progress right now:**
-
-- `ses_e1debfc70ffey83TnPHv8IaaIG` (built the Keys palette): N-key rollover hidden where the keyboard handles it
-  itself (the package described below). All files are its own; port 5201. When it reports: the three checks, the
-  diff, screenshots, commit, then delete the package below and the N-key rollover line under "Small things".
-
-**The package:** decided by the user, hide N-key rollover where the keyboard handles it itself. The keyboard says
-so: Keychron's `0xA7 0x12` reply has bit 2 set for adaptive N-key rollover
-(`../vial_qmk/keyboards/keychron/common/nkro.c`), read into the Keychron state as `nkroAdaptive`. There, Typing
-feel's N-key rollover switch and the palette's `NK_*` keys are not offered (a key already holding one still reads
-by its name), Home's "what the keyboard can do" says the keyboard does it by itself, and the help keeps the
-topic, saying the switch is hidden on such keyboards (the user: "if someone happens to know about it, and looks
-for it, they can find the note"). Fake keyboard and demo report it as the K15 Max does.
-
-Nothing is waiting for an answer from the user. The audit's calls made by the orchestrator, for the user to flip
-if wanted: the firmware key push and matrix read stay optional and deferred; creating a macro from the Keys
-inspector is dropped; the main lighting and the sleep timers stay outside Undo; Keychron's factory reset
-(Fn + J + Z) is described in the help. The backup files in `..\backups\` are left alone (the user).
-Sessions to reuse: `ses_e1debfc70ffey83TnPHv8IaaIG` built the Keys inspector, palette, "Press a key", the
-Shortcuts pickers and list, and the key names by layout; `ses_dffa4d191ffeMwlEbSjDhltGcs` built the Caps Lock
-light, Lighting's picture for every effect, and Device's reset and firmware-update restart;
-`ses_dff3fa2b0ffe6kjHrCoP9ijYcU` audited the spec and rewrote the documents.
-
+- The audit's calls made by the orchestrator, for the user to flip if wanted: the firmware key push and matrix
+  read stay optional and deferred; creating a macro from the Keys inspector is dropped; the main lighting and the
+  sleep timers stay outside Undo; Keychron's factory reset (Fn + J + Z) is described in the help.
+- Sessions to reuse: `ses_e1debfc70ffey83TnPHv8IaaIG` built the Keys inspector, palette, "Press a key", the
+  Shortcuts pickers and list, the key names by layout and the N-key rollover capability;
+  `ses_dffa4d191ffeMwlEbSjDhltGcs` built the Caps Lock light, Lighting's picture for every effect, and Device's
+  reset and firmware-update restart; `ses_e1dbde8fdffe6vAbqPoj1rjpio` built the Help guide and tour and applied
+  the Help audit; `ses_dff3fa2b0ffe6kjHrCoP9ijYcU` audited the spec and rewrote the documents.
 ## Waiting on the user
 
 - **Proposed, waiting for the user's go: plain VIA keyboards, without lighting.** Keys, layers, knob, macros and
@@ -111,14 +97,13 @@ extensions (under "Later"):
 - Shortcuts: no test for "edits made while a save is running are kept". Editor headers show QMK's plural
   ("Combos") beside a single item. Summaries use the key tables' names ("Escape", "` and ~"). The chord picture is
   small at 1000×700.
-- Help: no "?" yet on Typing feel's Other settings card and the stage's resize handle.
+- Help: no "?" on the stage's resize handle.
 - `src/ui/KeyboardPicture.tsx` imports the layer names from `src/shell/layer-names.ts`, the one place `ui`
   reaches into the shell; move the names store down (`src/device` or `src/ui`) when it is next touched.
 - The picture: "Hold" over a long layer name ("Windows Fn") takes three lines on a 1u key; tight but legible.
 - Typing feel: clicking a group in the side list scrolls to it but doesn't move keyboard focus there.
-- Typing feel and the palette offer N-key rollover on / off (Magic's bit, the `NK_*` keys), which changes nothing
-  on firmware with Keychron's adaptive N-key rollover, the K15 Max included (README "Typing settings"); the help
-  topics said it works. Decided: hidden there (see "Where the conversation stands", next package).
+- Shortcuts & macros: the "Pick a shortcut" card's example (a macro that types your e-mail address) doesn't say
+  that macro text is typed as on a US layout; the macros help topic does.
 - Lighting: a zone slot's play time can't be set while it is the zone's only effect (harmless). The picture in
   the key colours editor is small at 1000×700. Read back while the lights are off, the keyboard can report the
   saved colour rather than the last one sent; turning the lights on sends the values the page shows.

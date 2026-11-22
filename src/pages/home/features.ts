@@ -47,7 +47,8 @@ const FEATURES: [Feature, FeatureText][] = [
   ['liveLayer', { name: 'Shows which layer is on' }],
   ['battery', { name: 'Wireless and battery' }],
   ['debounce', { name: 'Key bounce filter', qmkName: 'Debounce' }],
-  ['nkro', { name: 'Any number of keys at once', qmkName: 'NKRO' }],
+  // Where the keyboard does it by itself (Keychron's adaptive N-key rollover) there is nothing to set: it says so.
+  ['nkro', { name: 'Any number of keys at once', qmkName: 'NKRO', detail: (c) => (c.nkro === 'automatic' ? 'the keyboard does it by itself' : undefined) }],
   ['snapClick', { name: 'Snap Click', qmkName: 'SOCD' }],
 ]
 

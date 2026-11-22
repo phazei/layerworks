@@ -203,6 +203,41 @@ describe('the Typing feel page', () => {
     expect(config.settingValues?.[2]).toEqual([50, 0])
   })
 
+  describe('N-key rollover', () => {
+    const switchShown = () => {
+      const magic = card(/Swapped and disabled keys/)
+      const more = within(magic).queryByRole('button', { name: 'More options' })
+      if (more && more.getAttribute('aria-expanded') !== 'true') act(() => more.click())
+      return within(magic).queryByRole('switch', { name: /Any number of keys at once/ }) !== null
+    }
+    const search = (text: string) => fireEvent.change(screen.getByRole('searchbox', { name: 'Search the typing settings' }), { target: { value: text } })
+
+    it('shows the switch on a keyboard without Keychron’s commands, as QMK has it', async () => {
+      await open()
+      await waitFor(() => expect(deviceStore.getState().loading).toEqual([]))
+      expect(deviceStore.getState().capabilities?.nkro).toBe('setting')
+      expect(switchShown()).toBe(true)
+    })
+
+    it('shows it where Keychron’s firmware says it can be switched', async () => {
+      await open({ keychron: { ...structuredClone(KEYCHRON), features: KEYCHRON.features | 0x0200, nkro: 0x02 } })
+      await waitFor(() => expect(deviceStore.getState().loading).toEqual([]))
+      expect(deviceStore.getState().capabilities?.nkro).toBe('setting')
+      expect(switchShown()).toBe(true)
+    })
+
+    it('hides it, also from the search, where the keyboard does it by itself', async () => {
+      await open({ keychron: { ...structuredClone(KEYCHRON), features: KEYCHRON.features | 0x0200, nkro: 0x04 } })
+      await waitFor(() => expect(deviceStore.getState().loading).toEqual([]))
+      expect(deviceStore.getState().capabilities?.nkro).toBe('automatic')
+      expect(switchShown()).toBe(false)
+      // The rest of the card stays.
+      expect(within(card(/Swapped and disabled keys/)).getByRole('switch', { name: /Windows keys do nothing/ })).toBeInTheDocument()
+      search('nkro')
+      expect(screen.queryByRole('switch', { name: /Any number of keys at once/ })).toBeNull()
+    })
+  })
+
   it('shows plugin panels for this section', async () => {
     definePlugin({
       id: 'test-typing',

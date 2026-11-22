@@ -464,6 +464,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       qmkSettings: state.settings ? new Set(Object.keys(state.settings).map(Number)) : null,
       lighting: state.lighting,
       keychron: state.keychron,
+      keychronPending: state.loading.includes('keychron'),
       unlocked: state.unlock ? state.unlock.unlocked : null,
     })
   }

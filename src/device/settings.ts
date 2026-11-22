@@ -704,7 +704,7 @@ export const SETTING_FIELDS: readonly SettingField[] = [
     qsid: 21,
     name: 'Any number of keys at once',
     qmkName: 'N-key rollover (NKRO)',
-    hint: 'The keyboard tells the computer about every key held, not just six at a time. A few BIOS screens and old computers don’t understand this; turn it off if keys stop working there. Keychron keyboards do this by themselves (adaptive N-key rollover), so there the switch changes nothing.',
+    hint: 'The keyboard tells the computer about every key held, not just six at a time. A few BIOS screens and old computers don’t understand this; turn it off if keys stop working there. Keychron keyboards do this by themselves (adaptive N-key rollover); on them the switch isn’t shown.',
     group: 'magic',
     advanced: true,
     control: flag(7),

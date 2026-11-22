@@ -142,6 +142,12 @@ const k15Rgb = () => ({
   mixedEffect: 25,
 })
 
+/**
+ * The K15 Max's N-key rollover, as its firmware answers `0xA7 0x12`: adaptive (bit 2), not switchable, off in Magic's
+ * bit (keychron/common/nkro.c with APDAPTIVE_NKRO_ENABLE; feature bit 0x0200 and misc bit 0x80 announce it).
+ */
+const K15_NKRO = 0x04
+
 /** The K15 Max's key bounce filter as read from the real keyboard: react at once, 50 ms (its info.json default). */
 const K15_DEBOUNCE = { type: 4, time: 50 }
 
@@ -152,9 +158,10 @@ const K15_DEBOUNCE = { type: 4, time: 50 }
  */
 const DEMO_KEYCHRON = {
   protocol: 2,
-  features: 0x01 | 0x20 | 0x40 | 0x80,
+  features: 0x01 | 0x20 | 0x40 | 0x80 | 0x0200,
   firmware: 'demo',
-  misc: 0x04 | 0x08,
+  misc: 0x04 | 0x08 | 0x80,
+  nkro: K15_NKRO,
   debounce: K15_DEBOUNCE,
   snapClick: demoSnapClick(),
   rgb: k15Rgb(),
@@ -169,9 +176,10 @@ const DEMO_KEYCHRON = {
  */
 const K15_KEYCHRON = {
   protocol: 2,
-  features: 0x01 | 0x02 | 0x04 | 0x10 | 0x20 | 0x40 | 0x80,
+  features: 0x01 | 0x02 | 0x04 | 0x10 | 0x20 | 0x40 | 0x80 | 0x0200,
   firmware: 'v1.1.2 1970-01-01-00:00:00',
-  misc: 0x04 | 0x08 | 0x10,
+  misc: 0x04 | 0x08 | 0x10 | 0x80,
+  nkro: K15_NKRO,
   lpm: { backlitTime: 600, idleTime: 7200 },
   debounce: K15_DEBOUNCE,
   snapClick: demoSnapClick(),

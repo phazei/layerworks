@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import '..'
 import { deviceStore } from '../../device'
 import { connectDemo, demoKeyboard, disconnect } from '../../shell/session'
@@ -109,5 +109,13 @@ describe('describeCapabilities', () => {
     expect(lines.find((l) => l.id === 'macros')).toMatchObject({ available: true, qmkName: 'Macros', detail: '16' })
     expect(lines.find((l) => l.id === 'battery')).toMatchObject({ available: false, reason: expect.any(String) })
     expect(new Set(lines.map((l) => l.id)).size).toBe(lines.length)
+  })
+
+  it('says the keyboard does N-key rollover by itself where it reports adaptive N-key rollover', async () => {
+    // The demo is a K15 Max: once its Keychron part is in, adaptive.
+    await connectDemo()
+    await waitFor(() => expect(deviceStore.getState().capabilities?.nkro).toBe('automatic'))
+    const lines = describeCapabilities(deviceStore.getState().capabilities!)
+    expect(lines.find((l) => l.id === 'nkro')).toMatchObject({ available: true, detail: 'the keyboard does it by itself' })
   })
 })

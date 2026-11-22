@@ -23,14 +23,15 @@ interface Props {
 export function KeyPicker({ current, use, shortcuts, onPick, onClose }: Props) {
   const keyboard = useDevice((s) => s.keyboard)
   const settings = useDevice((s) => s.settings)
-  const features = paletteFeatures(keyboard, settings)
+  const nkroMode = useDevice((s) => s.capabilities?.nkro ?? 'pending')
+  const features = paletteFeatures(keyboard, settings, nkroMode)
   // Built once the keyboard's tables are in.
-  const { combos, keyOverrides, autoShift } = features
+  const { combos, keyOverrides, autoShift, nkro } = features
   // The names follow the computer's layout (device/layout.ts).
   const legends = useLegendRevision()
   const groups = useMemo(
-    () => (keyboard ? groupsFor(use, { combos, keyOverrides, autoShift }) : []),
-    [keyboard, use, combos, keyOverrides, autoShift, legends],
+    () => (keyboard ? groupsFor(use, { combos, keyOverrides, autoShift, nkro }) : []),
+    [keyboard, use, combos, keyOverrides, autoShift, nkro, legends],
   )
   const now = readShortcut(current)
   const [mods, setMods] = useState(shortcuts ? (now?.mods ?? 0) : 0)

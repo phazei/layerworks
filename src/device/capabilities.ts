@@ -29,6 +29,8 @@ export interface CapabilitySources {
   commands?: ReadonlySet<string>
   /** Whether the keyboard is unlocked (Vial unlock); null or left out while not read yet. */
   unlocked?: boolean | null
+  /** The Keychron part is still being read (`keychron` is null meanwhile, as for firmware without it). */
+  keychronPending?: boolean
 }
 
 export type Feature =
@@ -56,6 +58,15 @@ export type Feature =
   /** Reading every key straight from the keyboard (the Test page). Needs unlocking. */
   | 'keyMatrix'
 
+/**
+ * How N-key rollover (every key held reaching the computer, not just six) works here:
+ * - 'setting': as QMK has it, Magic's switch (QMK setting 21, the NK_* keys), where the keyboard lists it;
+ * - 'automatic': the keyboard does it by itself (Keychron's adaptive N-key rollover, `0xA7 0x12` bit 2): the
+ *   firmware never reads Magic's bit, so the switch and the keys would change nothing, and the app leaves them out;
+ * - 'pending': not known yet, the Keychron part is still being read (left out meanwhile, so they don't flicker).
+ */
+export type NkroMode = 'setting' | 'automatic' | 'pending'
+
 /** `needsUnlock`: unlocking the keyboard makes it available; offer to unlock beside the reason. */
 export type Availability = { available: true } | { available: false; reason: string; needsUnlock?: boolean }
 
@@ -74,6 +85,7 @@ export interface Capabilities {
   /** Supported QMK setting IDs; null until they have been read. */
   readonly qmkSettings: ReadonlySet<number> | null
   readonly lighting: LightingInfo | null
+  readonly nkro: NkroMode
   check(feature: Feature): Availability
   has(feature: Feature): boolean
   hasCommand(name: string): boolean
@@ -87,6 +99,12 @@ const yes: Availability = { available: true }
 const no = (reason: string): Availability => ({ available: false, reason })
 const NOT_IN_FIRMWARE = 'This keyboard’s firmware doesn’t include it.'
 const STILL_LOADING = 'Still reading this from the keyboard.'
+
+/** See NkroMode. The keyboard says so itself (keychron/common/nkro.c: bit 0 on, bit 1 switchable, bit 2 adaptive). */
+export function nkroMode({ keychron, keychronPending }: CapabilitySources): NkroMode {
+  if (!keychron) return keychronPending ? 'pending' : 'setting'
+  return keychron.hasNkro && keychron.nkroAdaptive ? 'automatic' : 'setting'
+}
 
 export function buildCapabilities(sources: CapabilitySources): Capabilities {
   const { counts, keychron, lighting, qmkSettings } = sources
@@ -170,6 +188,7 @@ export function buildCapabilities(sources: CapabilitySources): Capabilities {
     altRepeatKeys: counts.altRepeatKey,
     qmkSettings,
     lighting,
+    nkro: nkroMode(sources),
     check,
     has: (feature) => check(feature).available,
     hasCommand: (name) => commands.has(name),
