@@ -71,6 +71,11 @@ If the script leaves a server behind (it was killed half-way):
 - Everyday options are visible; advanced ones sit behind a `Disclosure` ("More options"). No global
   simple/advanced switch, and no tabs inside pages.
 - Pages and plugins import from `src/device` and `src/ui`, never from `src/vendor`.
+- **Compatibility items** (anything that exists because a keyboard differs from the K15 Max) are recognisable as
+  such: decided in one named place (a `capabilities` field or a small named function, never scattered
+  `vendorId` tests), with a comment "Compatibility: <which keyboards, what the firmware does>, <where in the
+  firmware source>", a test named by the difference it covers, and a bullet in README "Other keyboards", which is
+  the index of them. Each one is its own commit (`fix(compat): …` / `feat(compat): …`).
 - Everything that talks to the keyboard goes through the transport's queue. Never call `sendReport` or add an
   `inputreport` listener anywhere but `src/device/webhid.ts`.
 - Ask before writing anything to the keyboard, and back up first. The user backs up with the app (Device page, a
