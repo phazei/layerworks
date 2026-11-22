@@ -34,8 +34,8 @@ const topics = {
   welcome: {
     title: 'What Layerworks does',
     body: [
-      'Layerworks changes what your keyboard does: what each key types, what the knob turns, the lighting, and how the keyboard reacts to your typing. The changes go into the keyboard itself, not into this computer, so they work on any computer you plug it into, without this app running.',
-      'It runs in Chrome or Edge, on the cable or through the 2.4 GHz receiver. Nothing to install, and the computer’s own keyboard settings are left alone.',
+      'Layerworks changes what your keyboard does: what each key types, what a knob turns, the lighting, and how the keyboard reacts to your typing. The changes go into the keyboard itself, not into this computer, so they work on any computer you plug it into, without this app running.',
+      'It runs in Chrome or Edge, on the cable, or through the 2.4 GHz receiver of a Keychron wireless keyboard. Nothing to install, and the computer’s own keyboard settings are left alone.',
       'Start on the Keys page: click a key in the picture and choose what it should do. Key changes can be undone with Undo, and a backup on the Device page keeps a copy of the whole keyboard.',
     ],
     example: 'Make Caps Lock a second Esc, try it, and take it back with Undo if you miss Caps Lock. A minute’s work.',
@@ -519,7 +519,7 @@ const topics = {
       'A macro can type anything, including commands, so the keyboard only takes macro changes while it is unlocked: a web page can’t plant one behind your back.',
       'You can edit a macro while the keyboard is locked; the changes wait in the app. “Unlock to save…” opens the unlock, and the macro is saved by itself as soon as the keyboard is unlocked. Undoing a saved macro needs the keyboard unlocked too.',
     ],
-    example: 'Click “Unlock to save…” and hold Esc and Enter until the bar is full: the macro goes to the keyboard straight after.',
+    example: 'Click “Unlock to save…” and hold the keys the dialog names (Esc and Enter on a Keychron K15 Max) until the bar is full: the macro goes to the keyboard straight after.',
     where: [{ label: 'Shortcuts & macros, in a macro', href: '#/shortcuts/macro' }],
     related: ['unlock', 'macros'],
   },

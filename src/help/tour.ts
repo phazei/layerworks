@@ -104,7 +104,7 @@ export const CONNECT_STEP: TourStep = {
   target: 'connect',
   title: 'First, a keyboard',
   body: [
-    'Plug in the keyboard, with its cable or its 2.4 GHz receiver, and connect it here. Or try the demo keyboard, a pretend one inside this page.',
+    'Plug in the keyboard with its cable (or, for a Keychron wireless keyboard, its 2.4 GHz receiver), and connect it here. Or try the demo keyboard, a pretend one inside this page.',
     'The tour carries on once one is in.',
   ],
 }
