@@ -4,6 +4,7 @@
 
 import * as protocol from '../vendor/pipette/tauri-shim/protocol'
 import {
+  getKeychronLedMatrix,
   reloadKeychron,
   saveKeychronSnapClick,
   setKeychronDebounce,
@@ -59,6 +60,7 @@ import {
   accepted,
   colourPackets,
   effectPackets,
+  ledRowsMissed,
   lockLightsPacket,
   normaliseLockLights,
   PER_KEY_STYLE_COUNT,
@@ -626,6 +628,18 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     }
   }
 
+  /**
+   * Everything Keychron's commands report, as the vendored reload reads it, with the LED map read for every row where
+   * it stops short (./keychron-rgb.ts, ledRowsMissed). null for firmware without Keychron's commands.
+   */
+  async function readKeychron(kb: KeyboardData): Promise<KeychronState | null> {
+    const keychron = await reloadKeychron()
+    if (keychron?.rgb && keychron.rgb.ledCount > 0 && ledRowsMissed(kb.rows)) {
+      keychron.rgb.ledMatrix = await getKeychronLedMatrix(keychron.rgb.ledCount, kb.rows, kb.cols)
+    }
+    return keychron
+  }
+
   const readers: Record<LoadPart, (kb: KeyboardData) => Promise<Partial<DeviceState>>> = {
     async macros(kb) {
       return { macros: kb.macroBytes > 0 ? await protocol.getMacroBuffer(kb.macroBytes) : [] }
@@ -676,8 +690,8 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       return { unlock: await protocol.getUnlockStatus() }
     },
 
-    async keychron() {
-      return { keychron: await reloadKeychron() }
+    async keychron(kb) {
+      return { keychron: await readKeychron(kb) }
     },
   }
 
@@ -1535,7 +1549,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
   function keychronCheck(took: (kc: KeychronState) => boolean): () => Promise<Check> {
     return async () => {
       const transport = session?.transport
-      const kc = await reloadKeychron()
+      const kc = state.keyboard ? await readKeychron(state.keyboard) : null
       if (!kc || !transport || transport.stats.unanswered > 0) throw new Error('The keyboard didn’t answer the read-back.')
       return { took: took(kc), patch: { keychron: kc } }
     }

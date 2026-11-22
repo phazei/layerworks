@@ -41,7 +41,7 @@ The `?demo-…` options act on the demo keyboard only by nature.
 | `?put-on-key=TD(1)` | The Keys page starts armed with that keycode (QMK name), as "Put it on a key…" leaves it, for screenshots |
 | `?press-key` | The Keys palette's "Press a key" starts out waiting, for screenshots of what it says; with `?select=` |
 | `?key-search=magic` | The key palette opens with that search typed, for screenshots; with `?select=` |
-| `?demo-keyboard=<name>` | A developer option: the demo keyboard stands in for another keyboard instead of the K15 Max, to see the app on keyboards that differ from it: `corne`, `gh80`, `splinter`, `cloud`, `q2`, `q0`, `vipad`, `klein`, `macropad` (README "Demo keyboard", "Other keyboards in the demo") |
+| `?demo-keyboard=<name>` | A developer option: the demo keyboard stands in for another keyboard instead of the K15 Max, to see the app on keyboards that differ from it: `corne`, `gh80`, `splinter`, `cloud`, `q2`, `q0`, `c100`, `vipad`, `klein`, `macropad` (README "Demo keyboard", "Other keyboards in the demo") |
 | `?demo-effect=<id>` | Starts the demo keyboard on another lighting effect (VialRGB id, e.g. `25`), for screenshots |
 | `?demo-unlocked` | Starts the demo keyboard unlocked (the Test page reads every key) |
 | `?demo-wireless` | The demo keyboard is reached through the 2.4 GHz receiver, reports a battery level (76 %) and has the K15 Max's wireless timers and debounce, for screenshots of the wireless parts |
@@ -828,7 +828,8 @@ one shot (theme, "More options" open) shows in another. `EDGE=<path>` points it 
 Keychron's own lighting (`0xA8`, `device/keychron-rgb.ts`; the firmware is `../vial_qmk/keyboards/keychron/
 common/rgb/`), shown on keyboards whose Keychron features include it (`0xA2` bit 0x80). The store reads it with the
 other Keychron data into `DeviceState.keychron.rgb`: the LED count, the LED under each key (`keyLeds` keeps the rows
-and columns the keyboard has; the read asks for 8 rows whatever the matrix), the colour of every LED, the per-key
+and columns the keyboard has; the vendored read asks for 8 rows, and the store reads every row again where the matrix
+has more, see "Other keyboards"), the colour of every LED, the per-key
 style, the zone of every LED and each zone's effect slots.
 
 - **Writing**: every command changes the running copy, shown on the next frame; `0xA8 0x02` saves all of it at
@@ -1116,6 +1117,7 @@ keyboards that differ from the K15 Max (`demo/other-keyboards.ts`):
 | `cloud` | lazydesigners/cloud | a knob its firmware lets no app change (built without an encoder map), underglow, layout options |
 | `q2` | keychron/q2/ansi_encoder | a Keychron board whose layers go Mac, Windows, Fn, Fn 2, Fn 3, with Keychron's lighting |
 | `q0` | keychron/q0/base | a Keychron number pad: no Mac / Windows switch, no knob |
+| `c100` | keychron/c100_8k | a Keychron board with more than 8 matrix rows (10), with Keychron's per-key lighting |
 | `vipad` | vipad | firmware that never locks (`VIAL_INSECURE`), eighteen layers, two knobs, an RGB matrix the definition writes as an object |
 | `klein` | era/sirind/klein_hs | a switch matrix too big for the switch-matrix read (10 rows of 16), rotated keys, a backlight |
 | `macropad` | ymdk/ymd09 | a 3 × 3 macropad: no knob, no entry slots, no typing settings |
@@ -1253,6 +1255,12 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   neither names any lighting, Lighting says "no lighting the app can change" (its own lighting keys may still work).
   Decided in `firmwareHasVialRgb` and `lightingKind` (`device/lighting-kind.ts`; `KeyboardData.firmwareVialRgb`).
   Test: `pages/__tests__/firmware-vialrgb.test.tsx` (on the demo Vipad).
+
+- **Keychron per-key lighting on a board with more than 8 matrix rows** (keychron/c100_8k, 10 rows). The vendored
+  Keychron reload reads the LED map for rows 0 – 7 only, so keys below had no LED: they couldn't be painted in Key by
+  key or put in a zone. Where the matrix has more rows, the store reads the LED map again for every row (at load and
+  in the read-back after a failed Keychron write). Decided in `ledRowsMissed` (`device/keychron-rgb.ts`), used by the
+  store's `readKeychron`. Test: `device/__tests__/keychron-led-rows.test.ts` (on the demo C100 8K).
 
 - **No knob, or several.** The Test page says "the knob" or "each knob", "it" or "them". Decided in `severalKnobs`
   (`pages/test/knob.ts`). Test: `pages/test/__tests__/knob.test.ts`.

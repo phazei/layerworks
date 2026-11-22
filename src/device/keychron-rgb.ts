@@ -38,6 +38,19 @@ export type Hsv = [number, number, number]
 /** The per-key styles (keychron_rgb_type.h, PER_KEY_RGB_*), in the firmware's numbering. */
 export const PER_KEY_STYLE_COUNT = 5
 
+/** The rows the vendored Keychron reload asks the LED map for (keychron-protocol.ts, getKeychronLedMatrix). */
+const VENDORED_LED_ROWS = 8
+
+/**
+ * Compatibility: Keychron boards with more than 8 matrix rows (keyboards/keychron/c100_8k, 10 rows, with Keychron's
+ * per-key lighting) have LEDs under keys in rows the vendored reload never asks about, while the firmware answers
+ * for any row of its matrix (keyboards/keychron/common/rgb/keychron_rgb.c, `row > MATRIX_ROWS` refused). Where this
+ * is true the store reads the LED map again for every row, so every key can be painted.
+ */
+export function ledRowsMissed(rows: number): boolean {
+  return rows > VENDORED_LED_ROWS
+}
+
 /** One effect slot of a zone (effect_config_t). `effect` is in the keyboard's own numbering; 0 is empty. */
 export interface ZoneEffect {
   effect: number

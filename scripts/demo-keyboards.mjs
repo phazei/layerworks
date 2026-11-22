@@ -49,6 +49,10 @@ const BOARDS = {
     path: 'keychron/q0/base',
     shows: 'a Keychron number pad: no Mac / Windows switch, no knob',
   },
+  c100: {
+    path: 'keychron/c100_8k',
+    shows: 'a Keychron board with more than 8 matrix rows (10), with Keychron’s per-key lighting',
+  },
   vipad: {
     path: 'vipad',
     shows: 'firmware that never locks (VIAL_INSECURE), eighteen layers, two knobs, an RGB matrix the definition writes as an object',
