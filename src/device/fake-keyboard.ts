@@ -128,6 +128,8 @@ export interface FakeKeyboardConfig {
    * starts), and no bootloader jump (`0x0B` is an unknown command).
    */
   insecure?: boolean
+  /** Firmware built with VIALRGB_ENABLE: says so in byte 12 of the keyboard ID reply. Default false. */
+  vialRgbFlag?: boolean
   /** Called when the keyboard takes the bootloader jump: it is about to leave USB (the demo drops the link). */
   onBootloaderJump?: () => void
   counts: { tapDance: number; combo: number; keyOverride: number; altRepeatKey: number; featureFlags: number }
@@ -357,7 +359,8 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
   const vial = (request: Uint8Array): number[] => {
     switch (request[1]) {
       case 0x00:
-        return [config.vialProtocol, 0, 0, 0, ...config.uid]
+        // vial.c: protocol, the keyboard's ID, then byte 12 set in firmware built with VIALRGB_ENABLE.
+        return [config.vialProtocol, 0, 0, 0, ...config.uid, config.vialRgbFlag ? 1 : 0]
       case 0x01:
         return [definition.length & 0xff, definition.length >> 8, 0, 0]
       case 0x02: {

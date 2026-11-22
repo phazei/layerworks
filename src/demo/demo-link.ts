@@ -285,6 +285,8 @@ export function createDemoLink(other: DemoKeyboardFile | null = null): DemoLink 
     rgb: { ...K15_RGB, mode: startEffect() ?? K15_RGB.mode },
     rgbEffects: K15_RGB_EFFECTS,
     rgbMaxBrightness: 255,
+    // The K15 Max's Vial build has VIALRGB_ENABLE, and says so in its keyboard ID reply.
+    vialRgbFlag: true,
     unlockKeys: K15_UNLOCK_KEYS,
   }
   const config = fakeKeyboardConfig({

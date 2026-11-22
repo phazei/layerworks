@@ -277,11 +277,12 @@ const LIGHTING_KEYS: Record<LightingKind, LightingKeys | undefined> = {
  * which also drives an RGB matrix with the shared RGB_ keys); the definition names what it has (VIA's "lighting").
  *
  * The lighting keys for a keyboard, from its definition's `lighting` (the store's `keyboard.definition.lighting`),
- * read as a kind by `lightingKind` (./lighting-kind.ts: objects and lists count as the name they hold). undefined
+ * with the firmware's VialRGB flag (`KeyboardData.firmwareVialRgb`), read as a kind by `lightingKind` (./lighting-kind.ts:
+ * objects and lists count as the name they hold; the flag counts as VialRGB). undefined
  * for a name the app doesn't know: then the palette offers the shared keys, as before it knew.
  */
-export function lightingKeysFor(lighting: unknown): LightingKeys | undefined {
-  return LIGHTING_KEYS[lightingKind(lighting)]
+export function lightingKeysFor(lighting: unknown, firmwareVialRgb = false): LightingKeys | undefined {
+  return LIGHTING_KEYS[lightingKind(lighting, firmwareVialRgb)]
 }
 
 /** The palette's lighting keys for what the keyboard has; without knowing, the shared RGB keys. */

@@ -33,7 +33,7 @@ import type {
 import { answersVial, NOT_VIAL } from './vial-firmware'
 import { firmwareKeepsKnobs } from './knob-map'
 import { keyboardName } from './keyboard-name'
-import { lightingKind } from './lighting-kind'
+import { firmwareHasVialRgb, lightingKind } from './lighting-kind'
 import { buildCapabilities, type Capabilities, type LightingInfo } from './capabilities'
 import type { HidLink, LinkKind } from './link'
 import { FACTORY_RESET_PUSH, LAYER_PUSH, parseLayerReport, type LayerState } from './pushes'
@@ -100,6 +100,8 @@ export interface KeyboardData {
    * ./knob-map.ts). They are in the picture, but not in `knobs`, `knobCount`, tests, undo or backups.
    */
   fixedKnobs: number
+  /** The firmware says it has VialRGB (the keyboard ID reply's flag), whatever the definition's lighting names. */
+  firmwareVialRgb: boolean
   layoutOptions: number
   counts: DynamicEntryCounts
   macroCount: number
@@ -569,7 +571,8 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     // A keyboard in the middle of an unlock answers almost nothing truthfully; reading it would give nonsense.
     if (parseUnlockStatus(await transport.request(statusRequest()))?.inProgress) throw new Error(STILL_UNLOCKING)
     // Firmware without Vial (VIA, Keychron's own) is said plainly (./vial-firmware.ts), not as a failed definition.
-    if (!answersVial(await transport.request([0xfe, 0x00]))) throw new Error(NOT_VIAL)
+    const idReply = await transport.request([0xfe, 0x00])
+    if (!answersVial(idReply)) throw new Error(NOT_VIAL)
     const probe = await runProbeSequence(async (data) => Array.from(await transport.request(data)), decompress)
     const viaProtocol = await protocol.getProtocolVersion()
     const counts = probe.vialProtocol >= VIAL_PROTOCOL_DYNAMIC ? await protocol.getDynamicEntryCount() : NO_ENTRIES
@@ -612,6 +615,8 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         knobs: knobsKept ? {} : probe.encoderLayout,
         knobCount: knobsKept ? 0 : probe.encoderCount,
         fixedKnobs: knobsKept ? probe.encoderCount : 0,
+        // The keyboard ID reply's VialRGB flag (./lighting-kind.ts, firmwareHasVialRgb).
+        firmwareVialRgb: firmwareHasVialRgb(idReply),
         layoutOptions: probe.layoutOptions,
         counts,
         macroCount,
@@ -657,7 +662,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
 
     async lighting(kb) {
       // Read as a known kind (./lighting-kind.ts): some definitions write it as an object or a list.
-      const kind = lightingKind(kb.definition.lighting)
+      const kind = lightingKind(kb.definition.lighting, kb.firmwareVialRgb)
       const none: Lighting = { kind, effects: new Set(), maxBrightness: 0, mode: 0, speed: 0, hue: 0, sat: 0, val: 0 }
       if (kind !== 'vialrgb') return { lighting: none }
       const info = await protocol.getVialRGBInfo()

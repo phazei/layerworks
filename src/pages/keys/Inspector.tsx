@@ -110,7 +110,7 @@ export function Inspector({ keyboard, slot, names, base, justPut }: Props) {
   const nkro = useDevice((s) => s.capabilities?.nkro ?? 'pending')
   const features = paletteFeatures(keyboard, settings, nkro)
   // The lighting keys follow what the keyboard's definition says it has (one object per kind, so stable).
-  const lighting = lightingKeysFor(keyboard.definition.lighting)
+  const lighting = lightingKeysFor(keyboard.definition.lighting, keyboard.firmwareVialRgb)
   // The names follow the computer's layout (device/layout.ts).
   const legends = useLegendRevision()
   const palette = useMemo(

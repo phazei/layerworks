@@ -167,7 +167,9 @@ export function buildCapabilities(sources: CapabilitySources): Capabilities {
         return qmkSettings.size > 0 ? yes : no(NOT_IN_FIRMWARE)
       case 'lighting':
         if (!lighting) return no(STILL_LOADING)
-        if (lighting.kind === 'none') return no('This keyboard has no lighting the app can control.')
+        if (lighting.kind === 'none') {
+          return no('This keyboard has no lighting the app can change: neither its description nor its firmware names any. If it does light up, its own lighting keys change it.')
+        }
         if (lighting.kind !== 'vialrgb') {
           return no('This keyboard’s lights work in an older way (not VialRGB) that the app can’t change yet.')
         }

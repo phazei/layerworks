@@ -29,7 +29,7 @@ export function KeyPicker({ current, use, shortcuts, label = 'Key for this step'
   const features = paletteFeatures(keyboard, settings, nkroMode)
   // Built once the keyboard's tables are in.
   const { combos, keyOverrides, autoShift, nkro } = features
-  const lighting = keyboard ? lightingKeysFor(keyboard.definition.lighting) : undefined
+  const lighting = keyboard ? lightingKeysFor(keyboard.definition.lighting, keyboard.firmwareVialRgb) : undefined
   // The names follow the computer's layout (device/layout.ts).
   const legends = useLegendRevision()
   const groups = useMemo(

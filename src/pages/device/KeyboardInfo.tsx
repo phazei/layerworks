@@ -79,10 +79,13 @@ function TechnicalDetails() {
       {lighting && (
         <Row label="Lighting">
           {lighting.kind}
-          {/* The definition may write it otherwise (an object, a list): shown as written, as text. */}
-          {kb.definition.lighting === undefined
-            ? ' (not given in the definition)'
-            : typeof kb.definition.lighting !== 'string' && ` (written as ${lightingAsWritten(kb.definition.lighting)})`}
+          {/* The firmware's VialRGB flag can beat the definition (device/lighting-kind.ts): say whose word it is. */}
+          {kb.firmwareVialRgb && kb.definition.lighting !== 'vialrgb'
+            ? ` (the firmware reports VialRGB; the definition says ${lightingAsWritten(kb.definition.lighting)})`
+            : /* The definition may write it otherwise (an object, a list): shown as written, as text. */
+              kb.definition.lighting === undefined
+              ? ' (not given in the definition)'
+              : typeof kb.definition.lighting !== 'string' && ` (written as ${lightingAsWritten(kb.definition.lighting)})`}
           {lighting.kind === 'vialrgb' && `, ${state.capabilities?.effectCount ?? offeredEffectCount(lighting.effects)} effects, brightness up to ${lighting.maxBrightness}`}
         </Row>
       )}

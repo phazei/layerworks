@@ -1246,6 +1246,14 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   `matrixReadable` (`device/matrix.ts`), used by the capability, the store's poll and `useMatrix`. Test:
   `pages/__tests__/matrix-too-big.test.tsx` (on the demo Klein).
 
+- **VialRGB the firmware reports but the definition doesn't name** (keyboards/vipad writes `{ "extends":
+  "qmk_rgb_matrix" }`, rgbkb/mun2 "none", both built with `VIALRGB_ENABLE`). Firmware with VialRGB says so in byte 12
+  of its keyboard ID reply; there the lighting is read and changed as VialRGB whatever the definition names, the
+  palette offers its lighting keys, and Technical details says the firmware's word beat the definition's. Where
+  neither names any lighting, Lighting says "no lighting the app can change" (its own lighting keys may still work).
+  Decided in `firmwareHasVialRgb` and `lightingKind` (`device/lighting-kind.ts`; `KeyboardData.firmwareVialRgb`).
+  Test: `pages/__tests__/firmware-vialrgb.test.tsx` (on the demo Vipad).
+
 - **No knob, or several.** The Test page says "the knob" or "each knob", "it" or "them". Decided in `severalKnobs`
   (`pages/test/knob.ts`). Test: `pages/test/__tests__/knob.test.ts`.
 

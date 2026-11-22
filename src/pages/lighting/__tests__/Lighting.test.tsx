@@ -174,7 +174,7 @@ describe('the Lighting page', () => {
 
   it('says why when the keyboard’s lighting can’t be controlled', async () => {
     await open({ definition: { name: 'Plain', matrix: { rows: 2, cols: 3 }, layouts: { keymap: fakeKeyboardConfig().kle } } })
-    expect(await screen.findByText('This keyboard has no lighting the app can control.')).toBeInTheDocument()
+    expect(await screen.findByText(/^This keyboard has no lighting the app can change/)).toBeInTheDocument()
     expect(screen.queryByRole('switch', { name: /Lights on/ })).toBeNull()
   })
 

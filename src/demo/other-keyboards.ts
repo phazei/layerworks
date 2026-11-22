@@ -124,6 +124,7 @@ export function demoKeyboardConfig(file: DemoKeyboardFile, settings: Record<numb
     knobs,
     knobMap: fw.knobMap,
     insecure: fw.insecure,
+    vialRgbFlag: fw.vialrgb,
     counts: { ...fw.entries, featureFlags: (fw.capsWord ? 0x01 : 0) | (fw.layerLock ? 0x02 : 0) },
     macroCount: 16,
     macros: new Array<number>(512).fill(0),
