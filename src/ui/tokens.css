@@ -16,6 +16,8 @@
   --raised-hover: #e6e8ec;
   --edge: #dfe2e7; /* borders and dividers */
   --edge-strong: #c3c8d0;
+  /* The outline of a text box, select box, checkbox or switch track: 3:1 against --card and --raised. */
+  --control-edge: #888b91;
   --band: #e9ebef; /* a heading band inside a card: apart from --raised (controls, hover) and --accent-soft */
 
   --content: #171a1f;
@@ -29,8 +31,8 @@
   --on-accent: #ffffff;
 
   --success: #18773f; /* readable on white and on --accent-soft ("Active" in the layer stack) */
-  --warning: #a8660a;
-  --danger: #c93434;
+  --warning: #9d6009; /* 4.5:1 on --raised (the "Not saved" badge) */
+  --danger: #c73333; /* 4.5:1 on --danger-soft */
   --danger-soft: #fbe9e9;
 
   --key-bg: #ffffff;
@@ -46,8 +48,9 @@
   /* A key held down. The widget keeps the default (dark) label on it in this theme, so it must be light. */
   --key-bg-pressed: #6fcf97;
   --key-label-pressed: #171a1f; /* a label on it, where the app draws one (knob directions) */
-  /* Labels on keys painted in a lighting colour (the colour is data, so the same in both themes). */
-  --key-label-on-light: #14161a;
+  /* Labels on keys painted in a lighting colour (the colour is data, so the same in both themes). Black, so the
+     dark label reaches 4.5:1 on every colour ui/colour.ts isLightColour calls light. */
+  --key-label-on-light: #000000;
   --key-label-on-dark: #ffffff;
   --wire-row: #2f6fe4;
   --wire-col: #c0379a;
@@ -81,6 +84,7 @@
   --raised-hover: #2a2e34;
   --edge: #2a2d33;
   --edge-strong: #3d424a;
+  --control-edge: #696d73;
   --band: #0d0e10;
 
   --content: #e9ebee;
@@ -130,6 +134,7 @@
   --color-raised-hover: var(--raised-hover);
   --color-edge: var(--edge);
   --color-edge-strong: var(--edge-strong);
+  --color-control-edge: var(--control-edge);
   --color-band: var(--band);
   --color-content: var(--content);
   --color-muted: var(--content-secondary);

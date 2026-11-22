@@ -100,7 +100,7 @@ export function Toggle({ checked, onChange, label, hint, disabled, help }: Toggl
         onClick={() => onChange(!checked)}
         className={cx(
           'relative mt-0.5 h-5.5 w-10 shrink-0 cursor-pointer rounded-pill transition-colors duration-(--motion) disabled:cursor-default',
-          checked ? 'bg-accent' : 'bg-edge-strong',
+          checked ? 'bg-accent' : 'bg-control-edge',
         )}
       >
         <span
@@ -224,7 +224,7 @@ export function TextInput({ className, ...rest }: InputHTMLAttributes<HTMLInputE
     <input
       type="text"
       className={cx(
-        'h-8 min-w-0 rounded-control border border-edge-strong bg-raised px-2.5 text-content placeholder:text-muted',
+        'h-8 min-w-0 rounded-control border border-control-edge bg-raised px-2.5 text-content placeholder:text-muted',
         'focus:border-accent focus:outline-none',
         className,
       )}
@@ -270,7 +270,7 @@ export function Checkbox({ checked, onChange, label, disabled }: CheckboxProps) 
         className={cx(
           'flex size-4.5 shrink-0 items-center justify-center rounded-[calc(var(--radius-control)/2)] border transition-colors duration-(--motion-fast)',
           'peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent',
-          checked ? 'border-accent bg-accent text-on-accent' : 'border-edge-strong bg-raised',
+          checked ? 'border-accent bg-accent text-on-accent' : 'border-control-edge bg-raised',
         )}
       >
         {checked && <Check size={13} strokeWidth={3} />}
@@ -300,7 +300,7 @@ export function SearchField({ value, onChange, className, ...rest }: SearchField
           else e.currentTarget.blur()
         }}
         className={cx(
-          'h-8 w-full min-w-0 rounded-pill border border-edge-strong bg-raised pr-3 pl-8 text-content placeholder:text-muted',
+          'h-8 w-full min-w-0 rounded-pill border border-control-edge bg-raised pr-3 pl-8 text-content placeholder:text-muted',
           'focus:border-accent focus:outline-none [&::-webkit-search-cancel-button]:hidden',
         )}
         {...rest}

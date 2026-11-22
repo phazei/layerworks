@@ -23,7 +23,7 @@ export function Select<T extends string | number>({ value, options, onChange, cl
           if (picked) onChange(picked.value)
         }}
         className={cx(
-          'h-8 w-full min-w-0 cursor-pointer appearance-none rounded-control border border-edge-strong bg-raised pr-8 pl-2.5 text-content',
+          'h-8 w-full min-w-0 cursor-pointer appearance-none rounded-control border border-control-edge bg-raised pr-8 pl-2.5 text-content',
           'focus:border-accent focus:outline-none disabled:cursor-default disabled:opacity-50',
         )}
         {...rest}
