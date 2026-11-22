@@ -10,7 +10,7 @@ import { knobPictureText, pictureLabel, type PictureLabel } from './picture-labe
 // The one place ui reaches into the shell: layer names live in the browser per keyboard, and every picture names
 // layer keys by them.
 import { useConnectedLayerNames } from '../shell/layer-names'
-import { keycodeId, posKey, type KeyboardData, type KleKey } from '../device/api'
+import { keycodeId, layoutChoices, posKey, type KeyboardData, type KleKey } from '../device/api'
 import { useLegendRevision } from '../device/layout'
 
 /** How many pixels the widget draws a 1u key at, in the picture's own size (before it is scaled to fit). */
@@ -139,6 +139,9 @@ export function KeyboardPicture({
     }
     return map
   }, [keyboard, layer, names, legends])
+  // Only the chosen layout's keys (device/layout-options.ts): the widget moves the chosen alternatives into place and
+  // leaves out the others.
+  const layoutOptions = useMemo(() => new Map(layoutChoices(keyboard)), [keyboard])
   // Only knobs the app can change can be picked.
   const editableKnobs = keyboard.knobCount > 0
 
@@ -161,6 +164,7 @@ export function KeyboardPicture({
         keycodes={keycodes}
         labelOverrides={labels}
         encoderKeycodes={knobKeycodes}
+        layoutOptions={layoutOptions}
         pressedKeys={pressed}
         highlightedKeys={highlighted}
         keyColors={fillColours ?? seenFills}

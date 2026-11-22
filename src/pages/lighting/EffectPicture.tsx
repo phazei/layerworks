@@ -4,7 +4,7 @@
 // and Mixed zones draw their editors, in the same frame, so switching effects doesn't move the page around.
 
 import { useMemo } from 'react'
-import { posKey, useDevice } from '../../device'
+import { posKey, useDevice, visibleLayoutKeys } from '../../device'
 import { KeyboardPicture } from '../../ui/KeyboardPicture'
 import { Card } from '../../ui/layout'
 import type { EffectInfo } from './effects'
@@ -53,9 +53,9 @@ export function EffectPicture({ effect, on, hue, sat, val }: Props) {
   const baseLayer = useDevice((s) => s.layer?.base ?? 0)
   const layer = Math.min(baseLayer, (keyboard?.layers ?? 1) - 1)
 
-  // Each key's centre, in key units, from the layout the picture is drawn from.
+  // Each key's centre, in key units, from the layout the picture is drawn from: the chosen layout's keys only.
   const places = useMemo<KeyPlace[]>(() => {
-    const keys = keyboard?.layout?.keys ?? []
+    const keys = keyboard ? visibleLayoutKeys(keyboard) : []
     return keys
       .filter((k) => k.encoderIdx < 0 && !k.decal && !k.ghost)
       .map((k) => ({ pos: posKey(k.row, k.col), x: k.x + k.width / 2, y: k.y + k.height / 2 }))

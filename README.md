@@ -1262,6 +1262,15 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   in the read-back after a failed Keychron write). Decided in `ledRowsMissed` (`device/keychron-rgb.ts`), used by the
   store's `readKeychron`. Test: `device/__tests__/keychron-led-rows.test.ts` (on the demo C100 8K).
 
+- **Layout options** (278 of vial-qmk's 857 definitions draw alternatives: split Backspace or not, ISO Enter, bottom
+  rows …, a group per label in `layouts.labels`). The keyboard keeps which choice it has as one number (VIA's layout
+  options, read at load into `KeyboardData.layoutOptions`). Every picture (Keys and the stage, Home, Lighting's
+  still picture and its painting, the unlock highlight) draws only the chosen layout: the vendored widget moves the
+  chosen alternatives into the first one's place and leaves the others out, given the choices (`layoutOptions`).
+  A stored value out of range for the labels, or a choice without keys, counts as the first choice, so a whole
+  keyboard is always drawn. Decided in `layoutChoices` and `visibleLayoutKeys` (`device/layout-options.ts`). Test:
+  `device/__tests__/layout-options.test.tsx` (on the demo GH80-3000).
+
 - **No knob, or several.** The Test page says "the knob" or "each knob", "it" or "them". Decided in `severalKnobs`
   (`pages/test/knob.ts`). Test: `pages/test/__tests__/knob.test.ts`.
 
