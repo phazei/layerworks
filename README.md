@@ -363,7 +363,8 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     `effects.ts` knows (`hue`, `preview`): effects that use the colour tint every key with it; rainbow effects show
     a fixed rainbow from the keys' real positions, left to right, top to bottom, in rings or round the middle (of
     each half for the two-centre ones), as the effect runs; Rainbow, all keys (every key one colour that keeps
-    changing) shows one moment of it, every key the same colour (`cycle`); Digital rain is green, the heat map blue,
+    changing) gets the left to right rainbow too, as the colours it passes through, with a caption of its own
+    saying all keys share one colour on the keyboard (`cycle`); Digital rain is green, the heat map blue,
     the random raindrops scattered colours; lights off is black keys. Brightness and vividness apply, live with the
     sliders. A line beside it says what it shows: for One colour that every key has the colour; for the other
     colour effects that the effect decides which keys light, and when, since most of them leave keys dark.

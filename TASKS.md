@@ -24,9 +24,7 @@ findings files are in `%TEMP%\opencode\layerworks-audit\` (`spec-audit.md`, `hel
 
 The text on the pages themselves (hover lines, hints, effect descriptions, confirmations, messages) was audited
 and corrected too (`ui-text-audit.md` in the same folder, T1 to T43, by `ses_dff103bf6ffeeheF4xktrsBLLr`).
-**In progress right now:** `ses_dff103bf6ffeeheF4xktrsBLLr`: the still picture for "Rainbow, all keys" drawn as a
-rainbow across the keys, not solid red (the user). Files: `src/pages/lighting/picture.ts`, `EffectPicture.tsx`,
-their test, one README sentence. Port 5202. When it reports: checks, screenshot, commit.
+Nothing is running in the background, and nothing is waiting for an answer from the user.
 
 - The audit's calls made by the orchestrator, for the user to flip if wanted: the firmware key push and matrix
   read stay optional and deferred; creating a macro from the Keys inspector is dropped; the main lighting and the

@@ -29,7 +29,7 @@ function caption(layout: PictureLayout, effect: EffectInfo): string {
         ? 'Every key in your colour, at the brightness set above.'
         : 'Your colour, at the brightness set above. On the keyboard the effect decides which keys light, and when.'
     case 'cycle':
-      return 'All keys share one colour, which changes round the rainbow; this is one moment of it.'
+      return 'On the keyboard all keys share one colour, which changes round the rainbow; the picture shows the colours it passes through.'
     case 'rainbow': {
       const way = {
         across: 'from left to right',

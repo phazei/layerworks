@@ -20,7 +20,8 @@ export type PictureLayout =
   | { kind: 'fixed'; hue: number }
   /**
    * Every key shares one colour that keeps changing round the rainbow (Rainbow, all keys: cycle_all_anim.h sets the
-   * same hue on every key, from the time). The picture shows one moment of it: every key in the same colour.
+   * same hue on every key, from the time). The picture shows the colours it passes through as a rainbow left to right,
+   * like the rainbow pictures; the caption says it is all keys at once (its own kind, so its caption differs).
    */
   | { kind: 'cycle' }
   | { kind: 'off' }
@@ -74,8 +75,6 @@ export interface KeyFill {
 
 const TURN = 256
 
-/** The moment of a colour-cycling effect the picture shows: red, where the firmware's cycle starts (hue 0). */
-export const CYCLE_MOMENT = 0
 
 /** Where a key falls in the rainbow, 0 – 1, for the layout's direction. */
 function rainbowPlace(direction: Extract<PictureLayout, { kind: 'rainbow' }>['direction'], key: KeyPlace, box: Box): number {
@@ -137,7 +136,8 @@ export function pictureFills(
     let hue = colour.hue
     if (layout.kind === 'rainbow') hue = Math.round(rainbowPlace(layout.direction, key, box) * (TURN - 1))
     else if (layout.kind === 'fixed') hue = layout.hue
-    else if (layout.kind === 'cycle') hue = CYCLE_MOMENT
+    // The colours a cycling effect passes through, laid out left to right.
+    else if (layout.kind === 'cycle') hue = Math.round(rainbowPlace('across', key, box) * (TURN - 1))
     else if (layout.kind === 'scattered') hue = scatteredHue(key.pos)
     out.set(key.pos, { colour: hsvCss(hue, colour.sat, value), light: isLightColour(hue, colour.sat, value) })
   }
