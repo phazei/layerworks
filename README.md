@@ -1099,6 +1099,9 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
 - **No knob, or several.** The Test page says "the knob" or "each knob", "it" or "them". Decided in `severalKnobs`
   (`pages/test/knob.ts`). Test: `pages/test/__tests__/knob.test.ts`.
 
+- **Unlock keys other than Esc and Enter.** The unlock dialog names the keyboard's own keys; the `unlock` help topic
+  gives the K15's Esc and Enter only as an example. Text only (`help/topics.ts`, `unlock`).
+
 ## Tests
 
 Unit tests sit in `__tests__/` beside the code. `src/device/fake-keyboard.ts` provides a `HidLink` with no

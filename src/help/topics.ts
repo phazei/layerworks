@@ -130,7 +130,7 @@ const topics = {
       'Everyday changes such as keys, layers and lighting work while it is locked. When something needs unlocking, the app says so and shows you how: you hold the keys the keyboard names, two on most keyboards, for a few seconds.',
       'While it unlocks, the keyboard doesn’t type and the unlock can’t be cancelled; letting go of the keys only starts the count again. Unplugging the keyboard, or moving its connection switch, ends it. Once unlocked, it stays so until it restarts or changes connection mode, or until you lock it again with Lock in the keyboard’s card at the top left.',
     ],
-    example: 'On the K15 Max: click Unlock… in the keyboard’s card at the top left, then hold Esc and Enter until the bar is full.',
+    example: 'Click Unlock… in the keyboard’s card at the top left, then hold the keys the dialog marks on the picture until the bar is full: on a Keychron K15 Max, for instance, Esc and Enter.',
     where: [
       { label: 'The keyboard’s card, top left, above the pages', href: '#/' },
       { label: 'Home, Protection', href: '#/' },
