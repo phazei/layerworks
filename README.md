@@ -41,7 +41,7 @@ The `?demo-…` options act on the demo keyboard only by nature.
 | `?put-on-key=TD(1)` | The Keys page starts armed with that keycode (QMK name), as "Put it on a key…" leaves it, for screenshots |
 | `?press-key` | The Keys palette's "Press a key" starts out waiting, for screenshots of what it says; with `?select=` |
 | `?key-search=magic` | The key palette opens with that search typed, for screenshots; with `?select=` |
-| `?demo-keyboard=<name>` | A developer option: the demo keyboard stands in for another keyboard instead of the K15 Max, to see the app on keyboards that differ from it: `corne`, `gh80`, `splinter`, `cloud`, `q2`, `q0`, `vipad`, `macropad` (README "Demo keyboard", "Other keyboards in the demo") |
+| `?demo-keyboard=<name>` | A developer option: the demo keyboard stands in for another keyboard instead of the K15 Max, to see the app on keyboards that differ from it: `corne`, `gh80`, `splinter`, `cloud`, `q2`, `q0`, `vipad`, `klein`, `macropad` (README "Demo keyboard", "Other keyboards in the demo") |
 | `?demo-effect=<id>` | Starts the demo keyboard on another lighting effect (VialRGB id, e.g. `25`), for screenshots |
 | `?demo-unlocked` | Starts the demo keyboard unlocked (the Test page reads every key) |
 | `?demo-wireless` | The demo keyboard is reached through the 2.4 GHz receiver, reports a battery level (76 %) and has the K15 Max's wireless timers and debounce, for screenshots of the wireless parts |
@@ -57,7 +57,7 @@ Example: `http://localhost:5199/?demo&theme=light#/keys`.
 
 | Command | |
 |---|---|
-| `pnpm typecheck` / `pnpm lint` / `pnpm test` | Must pass before every hand-over. `test` includes the vendored tests. |
+| `pnpm typecheck` / `pnpm lint` / `pnpm test` | Must pass before every hand-over. `test` includes the vendored tests and uses half the CPU cores (`--maxWorkers=50%`), so a run doesn't stall the rest of the computer. |
 | `pnpm build` | Production build into `dist/`, with `licences.txt` and `LICENSE.txt` beside the page (see "Hosting") |
 | `pnpm hardware` | Loads the real keyboard through the device layer, without a browser, and prints what it read. Reads only. Set `LINK=receiver` to go through the 2.4 GHz receiver (`$env:LINK='receiver'; pnpm hardware`). |
 | `pnpm vendor check` | Vendored files still match the recorded Pipette commit (see `VENDOR.md`) |
@@ -1117,6 +1117,7 @@ keyboards that differ from the K15 Max (`demo/other-keyboards.ts`):
 | `q2` | keychron/q2/ansi_encoder | a Keychron board whose layers go Mac, Windows, Fn, Fn 2, Fn 3, with Keychron's lighting |
 | `q0` | keychron/q0/base | a Keychron number pad: no Mac / Windows switch, no knob |
 | `vipad` | vipad | firmware that never locks (`VIAL_INSECURE`), eighteen layers, two knobs, an RGB matrix the definition writes as an object |
+| `klein` | era/sirind/klein_hs | a switch matrix too big for the switch-matrix read (10 rows of 16), rotated keys, a backlight |
 | `macropad` | ymdk/ymd09 | a 3 × 3 macropad: no knob, no entry slots, no typing settings |
 
 Each is `src/demo/keyboards/<name>.json`, written by `node scripts/demo-keyboards.mjs [path to vial-qmk]` (default
@@ -1237,6 +1238,13 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   Unlock, and the store sends no lock, so nothing is ever refused as "locked"; the `unlock` help topic says so.
   Decided in `neverLocks` (`device/unlock.ts`): unlocked with no unlock keys. Test:
   `pages/__tests__/never-locks.test.tsx` (on the demo Vipad).
+
+- **A switch matrix too big for the switch-matrix read** (`(cols / 8 + 1) × rows` over 28: era/sirind/klein_hs and
+  klein_sd 10 × 16, bpiphany/frosty_flake 18 × 8, converter/adb_usb 16 × 8). VIA's read then answers with nothing.
+  The app never reads it: the Test page and "Press a key" go by the browser, unlocked or not, say why, and offer no
+  unlock for it; the `keyMatrix` capability gives the reason and the `test-keys` help topic says so. Decided in
+  `matrixReadable` (`device/matrix.ts`), used by the capability, the store's poll and `useMatrix`. Test:
+  `pages/__tests__/matrix-too-big.test.tsx` (on the demo Klein).
 
 - **No knob, or several.** The Test page says "the knob" or "each knob", "it" or "them". Decided in `severalKnobs`
   (`pages/test/knob.ts`). Test: `pages/test/__tests__/knob.test.ts`.

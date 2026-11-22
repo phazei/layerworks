@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Keyboard } from 'lucide-react'
-import { useDevice, type KeyboardData } from '../../device'
+import { matrixReadable, useDevice, type KeyboardData } from '../../device'
 import { useMatrix } from '../../device/useMatrix'
 import { keycodeOfEvent } from '../../shell/pressed-keys'
 import { screenshotOption } from '../../shell/session'
@@ -37,6 +37,8 @@ export function usePressKey({ keyboard, onPick }: Options): { button: ReactNode;
   const [refusal, setRefusal] = useState<string | null>(null)
   const layer = useDevice((s) => s.layer) ?? NO_LAYER
   const unlocked = useDevice((s) => s.unlock?.unlocked === true)
+  // Compatibility: a matrix too big for VIA's read (device/matrix.ts) is never read; only the browser's keys count.
+  const tooBig = !matrixReadable(keyboard.rows, keyboard.cols)
   const matrix = useMatrix(waiting)
   const watching = matrix.mode === 'watching'
   const browserTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -60,14 +62,16 @@ export function usePressKey({ keyboard, onPick }: Options): { button: ReactNode;
   const onBrowserKey = useCallback(
     (eventCode: string) => {
       const code = keycodeOfEvent(eventCode) ?? null
-      const refused = unlocked
-        ? 'That key couldn’t be read. Try again, or pick it below.'
-        : 'The browser can’t tell which key that is. Unlocking lets this see every key; or pick it below.'
+      const refused = tooBig
+        ? 'The browser can’t tell which key that is; pick it below.'
+        : unlocked
+          ? 'That key couldn’t be read. Try again, or pick it below.'
+          : 'The browser can’t tell which key that is. Unlocking lets this see every key; or pick it below.'
       if (!watching) return take(code, refused)
       clearTimeout(browserTimer.current)
       browserTimer.current = setTimeout(() => take(code, refused), MATRIX_WAIT_MS)
     },
-    [take, unlocked, watching],
+    [take, unlocked, tooBig, watching],
   )
   useKeyCapture(waiting, onBrowserKey, stop)
 
@@ -107,7 +111,14 @@ export function usePressKey({ keyboard, onPick }: Options): { button: ReactNode;
   )
 
   let note: ReactNode | null = null
-  if (waiting) {
+  if (waiting && tooBig) {
+    note = (
+      <>
+        Press the key on the keyboard. Only keys the computer receives count: this keyboard has more switches than its
+        firmware can report to an app, so not Fn, layer or macro keys. Esc stops.
+      </>
+    )
+  } else if (waiting) {
     note = unlocked ? (
       <>
         Press the key on the keyboard: this key then does what that one does now, on the layer the keyboard is on.

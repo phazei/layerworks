@@ -6,6 +6,7 @@ import type { DynamicEntryCounts } from '../vendor/pipette/shared/types/protocol
 import type { KeychronState } from '../vendor/pipette/shared/types/keychron'
 import { PER_KEY_EFFECT, ZONES_EFFECT } from './keychron-rgb'
 import type { LightingKind } from './lighting-kind'
+import { MATRIX_TOO_BIG, matrixReadable } from './matrix'
 
 /** VialRGB's Off and Direct Control: listed by every VialRGB keyboard, never offered as effects. */
 const NOT_EFFECTS: readonly number[] = [0, 1]
@@ -43,6 +44,8 @@ export interface CapabilitySources {
   unlocked?: boolean | null
   /** The Keychron part is still being read (`keychron` is null meanwhile, as for firmware without it). */
   keychronPending?: boolean
+  /** The switch matrix's size, for whether VIA's matrix read can report it (./matrix.ts, matrixReadable). */
+  matrix?: { rows: number; cols: number }
 }
 
 export type Feature =
@@ -197,6 +200,8 @@ export function buildCapabilities(sources: CapabilitySources): Capabilities {
       case 'snapClick':
         return keychronOnly((kc) => kc.hasSnapClick)
       case 'keyMatrix':
+        // A matrix too big for VIA's read (./matrix.ts) can't be read unlocked either.
+        if (sources.matrix && !matrixReadable(sources.matrix.rows, sources.matrix.cols)) return no(MATRIX_TOO_BIG)
         if (sources.unlocked == null) return no(STILL_LOADING)
         return sources.unlocked
           ? yes

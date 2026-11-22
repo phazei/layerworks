@@ -20,6 +20,20 @@ export const matrixRequest = () => [GET_KEYBOARD_VALUE, SWITCH_MATRIX_STATE]
  */
 export const MATRIX_POLL_MS: Record<LinkKind, number> = { cable: 20, receiver: 60 }
 
+/**
+ * Compatibility: VIA's switch-matrix read fills its one 32-byte reply only where `(cols / 8 + 1) * rows <= 28`
+ * (integer division; vial_qmk quantum/via.c, id_switch_matrix_state); a bigger matrix gets its request back with
+ * nothing in it (e.g. era/sirind/klein_hs 10 × 16, bpiphany/frosty_flake 18 × 8, converter/adb_usb 16 × 8). There the
+ * app never reads the matrix: the Test page and "Press a key" go by what the browser sees, and say why.
+ */
+export function matrixReadable(rows: number, cols: number): boolean {
+  return (Math.floor(cols / 8) + 1) * rows <= 28
+}
+
+/** Said where reading every key would be offered, on a keyboard whose matrix is too big for it. */
+export const MATRIX_TOO_BIG =
+  'This keyboard has more switches than its firmware can report to an app in one go, so only keys the computer receives can be seen here: not Fn or layer keys.'
+
 /** "row,col" of every key down in a switch-matrix reply: one big-endian bit field per row, after two bytes. */
 export function parseMatrix(reply: Uint8Array, rows: number, cols: number): Set<string> {
   const bytesPerRow = Math.ceil(cols / 8)

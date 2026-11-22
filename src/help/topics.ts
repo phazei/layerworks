@@ -907,6 +907,7 @@ const topics = {
     body: [
       'Press every key once: each lights up while it is down and stays marked afterwards, so a key that never lights is one that doesn’t work.',
       'While the keyboard is locked, the app sees keys the way any web page does, through the browser: only the keys that type something, and only while this window is in front. Fn and other layer keys send nothing the browser can see. Unlocked, the app reads every switch straight from the keyboard, Fn included.',
+      'A few keyboards have more switches than their firmware can report to an app in one go. There the page always goes by the browser, unlocked or not, and says so.',
       'The marks stay while you look at other pages; Start again clears them. Through the 2.4 GHz receiver, reading the switches pauses after two minutes without a key press, so the keyboard can go to sleep; any key carries on.',
     ],
     example: 'Unlock, then hold Fn: its key lights up although your computer never hears about it.',

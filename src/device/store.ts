@@ -37,7 +37,7 @@ import { lightingKind } from './lighting-kind'
 import { buildCapabilities, type Capabilities, type LightingInfo } from './capabilities'
 import type { HidLink, LinkKind } from './link'
 import { FACTORY_RESET_PUSH, LAYER_PUSH, parseLayerReport, type LayerState } from './pushes'
-import { pollMatrix, type MatrixPoller } from './matrix'
+import { matrixReadable, pollMatrix, type MatrixPoller } from './matrix'
 import { createTransport, TransportError, type Transport } from './transport'
 import { neverLocks, parseUnlockStatus, runUnlock, statusRequest, UnlockStopped, type UnlockProgress } from './unlock'
 import {
@@ -526,7 +526,9 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
 
   function syncMatrix(): void {
     const kb = state.keyboard
-    const wanted = matrixWatchers.size > 0 && session !== null && kb !== null && state.unlock?.unlocked === true
+    // Never on a matrix too big for VIA's read (./matrix.ts): its replies are empty.
+    const wanted =
+      matrixWatchers.size > 0 && session !== null && kb !== null && state.unlock?.unlocked === true && matrixReadable(kb.rows, kb.cols)
     if (matrix && (!wanted || matrix.session !== session)) {
       matrix.poller.stop()
       matrix = null
@@ -559,6 +561,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       keychron: state.keychron,
       keychronPending: state.loading.includes('keychron'),
       unlocked: state.unlock ? state.unlock.unlocked : null,
+      matrix: { rows: kb.rows, cols: kb.cols },
     })
   }
 

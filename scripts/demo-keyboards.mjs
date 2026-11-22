@@ -53,6 +53,10 @@ const BOARDS = {
     path: 'vipad',
     shows: 'firmware that never locks (VIAL_INSECURE), eighteen layers, two knobs, an RGB matrix the definition writes as an object',
   },
+  klein: {
+    path: 'era/sirind/klein_hs',
+    shows: 'a switch matrix too big for the switch-matrix read (10 rows of 16), rotated keys, a backlight',
+  },
   macropad: {
     path: 'ymdk/ymd09',
     shows: 'a 3 × 3 macropad: no knob, no slots for multi-tap keys, chords, replacements or repeat rules, no typing settings',

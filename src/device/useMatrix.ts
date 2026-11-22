@@ -5,6 +5,7 @@
 // after a while with nothing pressed it pauses until a key or click brings it back (spec section 8).
 
 import { useEffect, useState } from 'react'
+import { matrixReadable } from './matrix'
 import { deviceStore, useDevice } from './useDevice'
 
 /** How long the receiver link may go without a change before reading pauses. */
@@ -23,7 +24,10 @@ const NONE: ReadonlySet<string> = new Set()
 
 /** `enabled`: read only while the caller needs it (the Keys page: while "Press a key" waits). */
 export function useMatrix(enabled = true): { mode: MatrixMode; down: ReadonlySet<string>; resume: () => void } {
-  const unlocked = useDevice((s) => s.unlock?.unlocked === true && s.unlocking === null)
+  // Readable: unlocked, not unlocking, and a matrix VIA's read can report (./matrix.ts, matrixReadable).
+  const unlocked = useDevice(
+    (s) => s.unlock?.unlocked === true && s.unlocking === null && (!s.keyboard || matrixReadable(s.keyboard.rows, s.keyboard.cols)),
+  )
   const wireless = useDevice((s) => s.link?.kind === 'receiver')
   const [visible, setVisible] = useState(() => typeof document === 'undefined' || document.visibilityState !== 'hidden')
   const [paused, setPaused] = useState(false)

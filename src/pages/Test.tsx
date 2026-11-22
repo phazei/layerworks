@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, Lock, LockOpen, MousePointerClick, Pause, RotateCcw, RotateCw } from 'lucide-react'
-import { keycodeTitle, matrixKeys, useDevice, type KeyboardData, type LayerState } from '../device'
+import { keycodeTitle, MATRIX_TOO_BIG, matrixKeys, matrixReadable, useDevice, type KeyboardData, type LayerState } from '../device'
 import type { PageDef } from '../plugins/api'
 import { useConnectedLayerNames } from '../shell/layer-names'
 import { knobDirections, useKnobTurns, usePressedKeys } from '../shell/pressed-keys'
@@ -54,15 +54,29 @@ function useWindowFocus(): boolean {
   return focused
 }
 
-function ModeNote({ mode, wireless, canUnlock, resume }: { mode: MatrixMode; wireless: boolean; canUnlock: boolean; resume: () => void }) {
+function ModeNote({
+  mode,
+  wireless,
+  canUnlock,
+  tooBig,
+  resume,
+}: {
+  mode: MatrixMode
+  wireless: boolean
+  canUnlock: boolean
+  /** Compatibility: a matrix too big for VIA's read (device/matrix.ts): browser only, unlocked or not. */
+  tooBig: boolean
+  resume: () => void
+}) {
   if (mode === 'off') {
     return (
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <p className="flex min-w-0 flex-1 gap-2.5">
           <Lock size={16} aria-hidden className="mt-0.5 shrink-0" />
           <span>
-            Seeing keys through the browser, as any web page can. Fn and other layer keys send
-            nothing the browser sees, so they can’t be tested while the keyboard is locked.
+            {tooBig
+              ? `Seeing keys through the browser, as any web page can. ${MATRIX_TOO_BIG}`
+              : 'Seeing keys through the browser, as any web page can. Fn and other layer keys send nothing the browser sees, so they can’t be tested while the keyboard is locked.'}
           </span>
         </p>
         {canUnlock && (
@@ -218,7 +232,13 @@ function KeyTest({ keyboard }: { keyboard: KeyboardData }) {
         </div>
       </Card>
       <div className="flex flex-col gap-2 rounded-card bg-card px-5 py-4 text-[13px] text-muted shadow-card">
-        <ModeNote mode={matrix.mode === 'hidden' ? 'watching' : matrix.mode} wireless={wireless} canUnlock={canUnlock} resume={matrix.resume} />
+        <ModeNote
+          mode={matrix.mode === 'hidden' ? 'watching' : matrix.mode}
+          wireless={wireless}
+          canUnlock={canUnlock}
+          tooBig={!matrixReadable(keyboard.rows, keyboard.cols)}
+          resume={matrix.resume}
+        />
         <KnobNote plan={plan} layer={layer ?? NO_LAYER} />
         {!focused && (matrix.mode === 'off' || knobs.length > 0) && (
           <p className="flex gap-2.5 text-content">
