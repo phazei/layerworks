@@ -10,7 +10,7 @@ import { useConnectedLayerNames } from '../shell/layer-names'
 import { screenshotOption } from '../shell/session'
 import { shownLayer, stage as stageStore, toSlot, useStage, type Selection } from '../shell/stage-store'
 import { Button } from '../ui/controls'
-import { Card, Notice } from '../ui/layout'
+import { Card, HelpButton, Notice } from '../ui/layout'
 import { armedDone, armingState, armKey, disarm, forgetJustPut, useArming, type Armed } from './keys/arming'
 import { Inspector } from './keys/Inspector'
 import { layerName } from './keys/describe'
@@ -28,6 +28,10 @@ export function NothingSelected({ knob }: { knob: boolean }) {
           <li>To change what a key does while Fn is held, pick that layer on the left first.</li>
           <li>Every change goes to the keyboard straight away, and Undo at the bottom takes it back.</li>
           <li>Esc lets go of the selected key.</li>
+          <li className="flex items-center gap-0.5">
+            Without a mouse: Tab to the picture, move with the arrow keys, and press Enter to pick a key.
+            <HelpButton topic="without-mouse" />
+          </li>
         </ul>
       </div>
     </Card>

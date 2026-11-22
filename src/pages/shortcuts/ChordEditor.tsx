@@ -76,7 +76,14 @@ export function ChordEditor({ index }: { index: number }) {
           ))}
         </div>
         <div className="rounded-control border border-edge p-2">
-          <KeyboardPicture keyboard={kb} layer={base} highlighted={marked} onSelect={onPicture} />
+          <KeyboardPicture
+            keyboard={kb}
+            layer={base}
+            highlighted={marked}
+            picked={marked}
+            label="Keys for the chord: Enter adds or takes out the key"
+            onSelect={onPicture}
+          />
         </div>
         <p className="text-[13px] text-muted">
           Click a key to add it, again to take it out. The picture shows the {layerNames[base] ?? `layer ${base}`} layer:

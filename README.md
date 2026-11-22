@@ -110,6 +110,8 @@ src/
     prefs.ts           what the app remembers in the browser (usePref)
     theme.ts           dark / light / system, applied as the `dark` class on <html>
     KeyboardPicture.tsx  the keyboard for one layer; wraps the vendored keyboard widget
+    usePictureKeys.tsx the picture without a mouse: one Tab stop, arrows between keys, Enter picks, names for
+                       screen readers; picture-keys.ts: where each key is, which one an arrow goes to, its name
     picture-labels.ts  the picture's friendly labels: "Macro 1" (M1), "Multi-tap 1" (TD(1)), "Hold" over a layer's
                        name, a tap / hold key as hold over tap
     KeyTile.tsx        KeyTile (a palette key drawn like a keycap; `empty` draws it faint) and KeyCap (one key)
@@ -226,7 +228,10 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
   page throw on every visit, "Try again" first closes every remembered section (`closeRememberedSections`).
 - **Theme**: dark by default; Settings offers dark, light and "Like the system". Stored with `prefs.ts`
   (`theme`); a small script in `index.html` applies it before the app loads, and a `<style>` there gives the page its
-  colour (`--surface`, each theme's) before the stylesheet arrives, so a reload doesn't flash white.
+  colour (`--surface`, each theme's) before the stylesheet arrives, so a reload doesn't flash white. Small text and
+  control outlines meet WCAG's contrast in both themes (4.5:1 for text such as warnings on controls and red on its
+  tint, 3:1 for `--control-edge`, the outline of text boxes, select boxes, checkboxes and an off switch); a test
+  reads `tokens.css` and checks those pairs (`ui/__tests__/colour-contrast.test.ts`).
 - Designed for 1280 × 800, usable down to 560 px wide with the sidebar's icons only (every page lays out without
   overlap; the K15's keys in the picture are about 24 px at 640 px and get smaller below). Narrower than that, the
   page area (title, stage, page and status line together) keeps 496 px (`min-w-124` in `Shell.tsx`) and scrolls
@@ -493,6 +498,7 @@ title is the one before the app starts.
 
   A note under the picture says which source is in use; locked, it names what can't be seen and offers "Unlock to
   see every key…". Seen keys survive a visit to another page (`test/seen.ts`), not another keyboard.
+
   Seen keys show by more than their tint: `seen` also outlines them in `--key-edge-seen`, 3:1 against a key not seen
   yet in both themes. Once no more than a quarter of the keys is left, "Not seen yet: F5, Insert and Right Ctrl."
   under the picture names them, up to 20 then "and 7 more", with knob turns still to check (`test/not-seen.ts`): by
@@ -733,7 +739,20 @@ stage pages keeps the layer and selection:
   up as worked out on layer 0 (`NO_LAYER` in `pressed-keys.ts`, as on the Test page). A double click or the pencil
   renames a layer (`renameLayer`); the names live in the browser per keyboard (`layer-names.ts`).
 - `stage: 'select'` makes keys and knob directions clickable. A click sets `selection` (a key's row and column,
-  or a knob and direction, without the layer); Esc clears it. A page reads `useStage().selection` and turns it
+  or a knob and direction, without the layer); Esc clears it.
+- **Without a mouse** (`ui/usePictureKeys.tsx`, `ui/picture-keys.ts`): wherever the picture has an `onSelect` (the
+  Keys stage, a key chord's picture, Lighting's key colours and zones) it is one Tab stop, a list box. The arrow keys
+  move to the nearest key that lies that way by where the keys are drawn (each key's middle, rotation and the chosen
+  layout options included; being off to the side counts twice as much as distance ahead, and a key must be at least
+  0.4 of a key ahead, so slanted rows and split halves read as a person would point), Home / End go to the first and
+  last in reading order, Enter or Space picks as a click would; Esc is left to the page. Knob directions are among
+  the keys, except knobs the firmware keeps ("Fixed"), which are hidden from it. The widget is vendored, so after
+  each render the hook puts `role="option"`, an id, a name ("Escape, row 1, column 2"; "Knob turned left: Volume
+  Down"; the picture's words where the description is only QMK's name, "Macro 1") and `aria-selected` on its key
+  groups, and the box carries `aria-activedescendant`. The key the arrows are on gets a ring of its own (an outline
+  in `--content` with a `--card` halo, shown only after keyboard focus or an arrow), apart from the selected key's
+  fill. `clickable={false}` leaves clicks to `PaintSurface` (painting), `picked` marks several keys (a chord),
+  `describeKey` adds to a key's name (its colour, its zone). A picture without `onSelect` takes no Tab stop. A page reads `useStage().selection` and turns it
   into a slot with `toSlot(selection, shownLayer(...))` for `deviceStore.assign`. On `stage: 'view'` pages the
   picture is not clickable and no selection is drawn, but the selection is kept for when the user comes back.
 - A different keyboard connecting (or none) resets the stage.

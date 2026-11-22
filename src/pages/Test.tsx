@@ -24,7 +24,10 @@ import { keptOnTestPage } from './test/keep-keys'
 const NO_LAYER: LayerState = { base: 0, held: 0, active: 0 }
 const KNOB = 'knob:'
 
-/** Keys the browser would act on (scroll, focus, menus, reload), kept for the test while this page is open. */
+/**
+ * Keys the browser would act on (scroll, menus, reload), kept for the test while this page is open; Tab, and Enter
+ * or Space on a control, still work (test/keep-keys.ts).
+ */
 function useKeepKeysOnPage(): void {
   useEffect(() => {
     const keep = (event: KeyboardEvent) => {

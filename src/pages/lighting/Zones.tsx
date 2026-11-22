@@ -79,7 +79,20 @@ export function Zones({ renames }: { renames: Readonly<Record<number, EffectRena
         <div className="grid gap-5 @2xl:grid-cols-[minmax(0,1fr)_15rem] @4xl:grid-cols-[minmax(0,1fr)_17rem]">
           <div className="flex min-w-0 flex-col gap-3">
             <PaintSurface label={`Keyboard: move keys into zone ${zone + 1}`} onPaint={onPaint}>
-              <KeyboardPicture keyboard={keyboard} layer={layer} outlines={outlines} />
+              <KeyboardPicture
+                keyboard={keyboard}
+                layer={layer}
+                outlines={outlines}
+                // From the keyboard, Enter moves the key the arrows are on into the zone; the mouse paints through
+                // PaintSurface.
+                clickable={false}
+                label={`Keys: Enter moves the key into zone ${zone + 1}`}
+                onSelect={(s) => s.kind === 'key' && onPaint(`${s.row},${s.col}`, true)}
+                describeKey={(s) => {
+                  const led = s.kind === 'key' ? leds.get(`${s.row},${s.col}`) : undefined
+                  return led !== undefined ? `zone ${(regions[led] ?? 0) + 1}` : undefined
+                }}
+              />
             </PaintSurface>
             <p className="text-[13px] text-muted">
               This keyboard has {zoneCount} zones. Each plays up to {slots} effects in turn, each for as long as you set, fading

@@ -113,7 +113,21 @@ export function KeyColours() {
         <div className="grid gap-5 @2xl:grid-cols-[minmax(0,1fr)_15rem] @4xl:grid-cols-[minmax(0,1fr)_17rem]">
           <div className="flex min-w-0 flex-col gap-3">
             <PaintSurface label="Keyboard: paint keys" onPaint={onPaint}>
-              <KeyboardPicture keyboard={keyboard} layer={layer} fills={fills} />
+              <KeyboardPicture
+                keyboard={keyboard}
+                layer={layer}
+                fills={fills}
+                // From the keyboard, Enter paints the key the arrows are on (or picks up its colour); the mouse paints
+                // through PaintSurface.
+                clickable={false}
+                label={tool === 'pick' ? 'Keys: Enter picks up the key’s colour' : 'Keys: Enter paints the key'}
+                onSelect={(s) => s.kind === 'key' && onPaint(`${s.row},${s.col}`, true)}
+                describeKey={(s) => {
+                  const led = s.kind === 'key' ? leds.get(`${s.row},${s.col}`) : undefined
+                  const c = led !== undefined ? colours[led] : undefined
+                  return c ? colourName(c[0], c[1]).toLowerCase() : undefined
+                }}
+              />
             </PaintSurface>
             <div className="flex flex-col gap-2">
               <div className="flex flex-wrap items-center gap-1.5">

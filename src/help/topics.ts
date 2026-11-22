@@ -92,13 +92,13 @@ const topics = {
   'assign-key': {
     title: 'Changing what a key does',
     body: [
-      'Click a key in the picture, then choose what it should do. The change is written to the keyboard straight away and stays there, on any computer, without this app running.',
+      'Click a key in the picture, then choose what it should do. The change is written to the keyboard straight away and stays there, on any computer, without this app running. Without a mouse, Tab to the picture, move with the arrow keys and press Enter.',
       'To change what a key does while Fn is held, pick that layer in the list beside the picture first. Every key change can be undone with Undo in the bar at the bottom, and Esc lets go of the selected key.',
       'A key that runs a macro or a multi-tap key says so under Now, with a link to change what it does on Shortcuts & macros.',
     ],
     example: 'Click Caps Lock, then pick Esc: the Caps Lock key now sends Esc.',
     where: [{ label: 'Keys page', href: '#/keys' }],
-    related: ['key-palette', 'shortcut-key', 'layer-key', 'tap-hold', 'undo'],
+    related: ['key-palette', 'shortcut-key', 'layer-key', 'tap-hold', 'undo', 'without-mouse'],
   },
   undo: {
     title: 'Undo and redo',
@@ -152,6 +152,17 @@ const topics = {
       { label: 'Help, Start here', href: '#/help' },
     ],
     related: ['welcome', 'layer-names', 'key-legends'],
+  },
+  'without-mouse': {
+    title: 'Using the app without a mouse',
+    body: [
+      'Tab and Shift + Tab move through every page; Enter or Space presses what has the focus, and Esc closes the help or lets go of the selected key. A “?” opens its explanation with the focus in it, and Esc gives the focus back to the “?”.',
+      'The keyboard picture is one stop: the arrow keys move between its keys by where they are drawn, Home and End go to the first and last, and Enter or Space picks the key, as a click would. The key you are on has a ring of its own; the selected key is filled. Knob directions are among the keys, except on a knob the firmware keeps (“Fixed”). On the Lighting page Enter paints the key or moves it into the zone; in a key chord it adds or takes out the key.',
+      'Three places take keys for themselves, as they must when you may be typing on the very keyboard you are changing. The Test page keeps keys from the browser so they don’t scroll or reload the page, but Tab still moves and Enter or Space still presses a button. “Press a key” takes the next key, and Esc stops it. Recording a macro takes everything you type, and Esc stops recording (Esc itself isn’t recorded).',
+    ],
+    example: 'Keys page: Tab to the picture, arrow to Caps Lock, Enter, then pick Esc in the list.',
+    where: [{ label: 'Keys page', href: '#/keys' }],
+    related: ['assign-key', 'press-key', 'test-keys', 'macro-record'],
   },
 
   // ---- Keys and layers ----
@@ -702,7 +713,7 @@ const topics = {
     title: 'Key colours',
     qmkName: 'Keychron per-key RGB',
     body: [
-      'With the “Key by key” effect every key shows a colour of its own. Pick a colour, then click a key or drag across several; the keyboard changes as you paint and keeps the colours after a moment. Paint all keys, or a group such as the letters, in one click; Start from gives a ready-made scheme to change; Pick up a colour takes a key’s colour to paint with.',
+      'With the “Key by key” effect every key shows a colour of its own. Pick a colour, then click a key or drag across several; the keyboard changes as you paint and keeps the colours after a moment. Paint all keys, or a group such as the letters, in one click; Start from gives a ready-made scheme to change; Pick up a colour takes a key’s colour to paint with. From the keyboard, Tab to the picture, arrow to a key and press Enter to paint it.',
       'Brightness is one setting for the whole keyboard (the Brightness slider), so a key’s colour is only its colour and vividness. Undo takes back one stroke at a time.',
     ],
     example: 'Paint the letters white, then W, A, S and D red, for games.',

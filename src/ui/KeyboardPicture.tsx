@@ -2,7 +2,7 @@
 // The picture of the keyboard for one layer. Wraps Pipette's keyboard widget so the rest of the app doesn't
 // depend on its props.
 
-import { useId, useMemo } from 'react'
+import { useId, useMemo, useRef } from 'react'
 import { KeyboardWidget } from '../vendor/pipette/renderer/components/keyboard'
 import { KEY_UNIT } from '../vendor/pipette/renderer/components/keyboard/constants'
 import { cx } from './controls'
@@ -12,6 +12,7 @@ import { knobPictureText, pictureLabel, type PictureLabel } from './picture-labe
 import { useConnectedLayerNames } from '../shell/layer-names'
 import { keycodeId, layoutChoices, posKey, type KeyboardData, type KleKey } from '../device/api'
 import { useLegendRevision } from '../device/layout'
+import { usePictureKeys } from './usePictureKeys'
 
 /** How many pixels the widget draws a 1u key at, in the picture's own size (before it is scaled to fit). */
 export const PICTURE_KEY_UNIT = KEY_UNIT
@@ -26,8 +27,22 @@ interface Props {
   /** "row,col" of keys held down right now. */
   pressed?: Set<string>
   selection?: PictureSelection | null
-  /** Makes keys and knob directions clickable. */
+  /**
+   * Makes keys and knob directions clickable, and the picture one Tab stop where the arrow keys move between them and
+   * Enter or Space picks one (ui/usePictureKeys.tsx).
+   */
   onSelect?: (selection: PictureSelection) => void
+  /**
+   * False: a click is handled around the picture (painting, ui/PaintSurface.tsx), so the picture only picks from the
+   * keyboard. Default true.
+   */
+  clickable?: boolean
+  /** The picture's name as a list of keys, for screen readers. Default: "Keys on <layer name>". */
+  label?: string
+  /** "row,col" of keys shown as picked where several can be (a key chord's keys). */
+  picked?: ReadonlySet<string>
+  /** A note added to a key's spoken name, e.g. its colour. */
+  describeKey?: (selection: PictureSelection) => string | undefined
   /** "row,col" of keys to mark as seen (the Test page), in the token colour --key-bg-seen. Pressed wins. */
   seen?: Set<string>
   /** "row,col" of keys to point out, e.g. the keys to hold for unlocking. */
@@ -115,6 +130,10 @@ function keyRules(
 export function KeyboardPicture({
   keyboard,
   layer,
+  clickable = true,
+  label,
+  picked,
+  describeKey,
   pressed,
   selection,
   onSelect,
@@ -172,19 +191,55 @@ export function KeyboardPicture({
   // Only knobs the app can change can be picked.
   const editableKnobs = keyboard.knobCount > 0
 
+  // From the keyboard: one Tab stop, arrows between keys, Enter or Space to pick (usePictureKeys.tsx).
+  const box = useRef<HTMLDivElement>(null)
+  const ring = useRef<HTMLDivElement>(null)
+  const { boxProps } = usePictureKeys({
+    box,
+    ring,
+    scope,
+    keyboard,
+    layer,
+    enabled: onSelect !== undefined && keyboard.layout !== null,
+    knobs: editableKnobs,
+    onPick: (picked) => onSelect?.(picked),
+    selection,
+    picked,
+    label: label ?? `Keys on ${names[layer]?.trim() || `layer ${layer}`}`,
+    describe: describeKey,
+    layerNames: names,
+  })
+  // What a click picks: nothing where the clicks are handled around the picture.
+  const onClickSelect = clickable ? onSelect : undefined
+
   if (!keyboard.layout) return null
   return (
     // The widget draws at a fixed size; let it shrink to the space there is. It fills a held key with
     // var(--success) and picks the label colour for that per theme; inside the picture --success is the pressed
     // key token, light enough in the light theme for the dark label the widget keeps there.
     <div
+      ref={box}
       data-picture={scope}
+      {...boxProps}
       className={cx(
-        'flex justify-center [--success:var(--key-bg-pressed)]',
+        'relative flex justify-center [--success:var(--key-bg-pressed)]',
+        // The ring on the key the arrows are on stands for the focus ring (it shows only when focused from the keyboard).
+        onSelect && 'rounded-control focus-visible:outline-none',
         // The svg's viewBox keeps the shape when both sides are set: it scales to fit and centres.
         fit ? 'h-full w-full [&>svg]:h-full [&>svg]:w-full' : '[&>svg]:h-auto [&>svg]:max-w-full',
       )}
     >
+      {onSelect && (
+        // The key the arrow keys are on: a ring in the text colour with a halo in the card's, so it shows on any key
+        // colour and differs from the selected key's fill.
+        <div
+          ref={ring}
+          hidden
+          aria-hidden
+          data-picture-ring=""
+          className="pointer-events-none absolute z-10 rounded-control outline-2 outline-offset-2 outline-content shadow-[0_0_0_5px_var(--card)]"
+        />
+      )}
       {knobStyle && <style>{knobStyle}</style>}
       <KeyboardWidget
         keys={keyboard.layout.keys}
@@ -197,14 +252,14 @@ export function KeyboardPicture({
         keyColors={fillColours ?? seenFills}
         selectedKey={selection?.kind === 'key' ? selection : null}
         selectedEncoder={selection?.kind === 'knob' ? { idx: selection.knob, dir: selection.direction } : null}
-        onKeyClick={onSelect && ((key: KleKey) => onSelect({ kind: 'key', row: key.row, col: key.col }))}
+        onKeyClick={onClickSelect && ((key: KleKey) => onClickSelect({ kind: 'key', row: key.row, col: key.col }))}
         onEncoderClick={
-          onSelect && editableKnobs
+          onClickSelect && editableKnobs
             ? (key: KleKey, direction: number) =>
-                onSelect({ kind: 'knob', knob: key.encoderIdx, direction: direction === 1 ? 1 : 0 })
+                onClickSelect({ kind: 'knob', knob: key.encoderIdx, direction: direction === 1 ? 1 : 0 })
             : undefined
         }
-        readOnly={!onSelect}
+        readOnly={!onClickSelect}
       />
     </div>
   )

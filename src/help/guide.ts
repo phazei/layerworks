@@ -19,7 +19,7 @@ export const GUIDE: GuideGroup[] = [
     id: 'start',
     title: 'Getting started',
     description: 'What the app does, connecting, the picture and layers, your first change, how to take it back, and the app’s own settings.',
-    topics: ['welcome', 'connecting', 'demo', 'layers', 'live-layer', 'assign-key', 'undo', 'saving', 'unlock', 'app-settings'],
+    topics: ['welcome', 'connecting', 'demo', 'layers', 'live-layer', 'assign-key', 'undo', 'saving', 'unlock', 'app-settings', 'without-mouse'],
   },
   {
     id: 'keys',
