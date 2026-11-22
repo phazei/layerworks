@@ -21,10 +21,24 @@ export function HelpPanel() {
   const topic = shownId ? HELP_TOPICS[shownId] : null
   const panel = useRef<HTMLElement>(null)
   const names = useConnectedLayerNames()
+  // What had the focus when the panel opened (usually the "?"), to give it back when the panel closes.
+  const opener = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (open) return
+    const back = opener.current
+    opener.current = null
+    // Only when the focus was in the panel (or was lost with it): a "?" pressed again keeps its own focus.
+    const now = document.activeElement
+    if (back?.isConnected && (!now || now === document.body || panel.current?.contains(now))) back.focus()
+  }, [open])
 
   useEffect(() => {
     if (!open) return
-    // Screen readers and keyboard users land on the explanation; Tab reaches the close button from there.
+    const now = document.activeElement
+    if (now instanceof HTMLElement && now !== document.body && !panel.current?.contains(now)) opener.current = now
+    // Screen readers and keyboard users land on the explanation; Tab reaches the close button from there. The panel
+    // is visible at once when it opens (only its sliding is animated), so it can take the focus now.
     panel.current?.focus()
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') closeHelp()
@@ -45,8 +59,9 @@ export function HelpPanel() {
       inert={!open}
       className={cx(
         'absolute inset-y-0 right-0 z-20 flex w-90 max-w-full flex-col border-l border-edge bg-card shadow-pop outline-none',
-        'transition-[translate,visibility] duration-(--motion) ease-out',
-        open ? 'translate-x-0' : 'invisible translate-x-full',
+        'duration-(--motion) ease-out',
+        // Opening, visibility changes at once (a hidden panel can't take the focus); closing, it waits for the slide.
+        open ? 'visible translate-x-0 transition-[translate]' : 'invisible translate-x-full transition-[translate,visibility]',
       )}
     >
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-edge pr-3 pl-6">

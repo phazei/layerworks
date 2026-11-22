@@ -210,7 +210,9 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
 - **The help panel** slides in over the right edge of the page (not over the status line) when anything calls
   `openHelp(topic)`, usually a `HelpButton`. A `HelpButton` toggles (`toggleHelp`): pressed again while its topic
   is shown, it closes the panel; another "?" switches topic. It carries `aria-expanded` and `aria-controls`
-  (`help-panel`). Esc or the close button hides it; the page stays usable. A topic's link says where it goes ("Read
+  (`help-panel`). Opening it moves the focus into it (it is visible at once; only the slide is animated, as a hidden
+  panel can't take the focus), and Esc or the close button hides it and gives the focus back to what opened it, the
+  "?" usually; the page stays usable. A topic's link says where it goes ("Read
   more in the QMK documentation", "… the Vial manual", "… Keychron’s guide"; `help/docs-site.ts`). Under the text:
   related topics (they open in the panel) and "Open on the Help page".
 - **The first-run tour** (see "Help and the tour") is mounted once in the shell (`shell/Tour.tsx`).
