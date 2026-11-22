@@ -6,10 +6,11 @@
 
 import { useEffect } from 'react'
 import { Command } from 'lucide-react'
-import { useDevice } from '../device'
+import { useDevice, type Capabilities } from '../device'
 import type { PageDef } from '../plugins/api'
 import { replacePath, usePath } from '../shell/router'
 import { Card } from '../ui/layout'
+import { PageLink } from '../ui/PageLink'
 import { ChordEditor } from './shortcuts/ChordEditor'
 import { MacroEditor } from './shortcuts/MacroEditor'
 import { OverrideEditor } from './shortcuts/OverrideEditor'
@@ -20,8 +21,22 @@ import { kindFromPath, macroHref, openedFromPath, shortcutPath, type Opened } fr
 import { ShortcutList } from './shortcuts/ShortcutList'
 import { TapDanceEditor } from './shortcuts/TapDanceEditor'
 
-/** With no macros in the firmware (`macros` false) the card says so instead of offering Macro 1. */
-export function Nothing({ macros }: { macros: boolean }) {
+/**
+ * With no macros in the firmware (`macros` false) the card says so instead of offering Macro 1; with none of the
+ * other kinds either (`others` false), it doesn't point at them.
+ */
+export function Nothing({ macros, others = true }: { macros: boolean; others?: boolean }) {
+  if (!macros && !others) {
+    return (
+      <Card title="Shortcuts" description="What the keyboard can do beyond one key, one character.">
+        <p className="text-[13px] text-muted">
+          This keyboard’s firmware has no room for macros, multi-tap keys, key chords, shortcut replacements or repeat
+          rules, so there is nothing to set up here. Its keys can still type, send shortcuts and switch layers: see the{' '}
+          <PageLink href="#/keys">Keys page</PageLink>.
+        </p>
+      </Card>
+    )
+  }
   return (
     <Card title="Pick a shortcut" description="Choose one on the left to see what it does and change it.">
       <div className="flex flex-col gap-2 text-[13px] text-muted">
@@ -41,14 +56,25 @@ export function Nothing({ macros }: { macros: boolean }) {
         ) : (
           <p>This keyboard’s firmware has no macros.</p>
         )}
-        <p>
-          {macros ? 'Below the macros, or under More options until you use them: ' : 'On the left, or under More options until you use them: '}
-          keys that do different things when tapped or held, keys pressed together, shortcuts that send something else,
-          and what the repeat key does.
-        </p>
+        {others && (
+          <p>
+            {macros ? 'Below the macros, or under More options until you use them: ' : 'On the left, or under More options until you use them: '}
+            keys that do different things when tapped or held, keys pressed together, shortcuts that send something
+            else, and what the repeat key does, as far as this keyboard’s firmware has them.
+          </p>
+        )}
       </div>
     </Card>
   )
+}
+
+/**
+ * Compatibility: firmware built without tap dance, combos, key overrides and alt repeat reports no slots for any of
+ * them (vial_qmk quantum/vial.c, dynamic_vial_get_number_of_entries; e.g. keyboards/flehrad/bigswitch). True while
+ * the counts aren't known yet.
+ */
+function hasEntrySlots(caps: Capabilities | null): boolean {
+  return !caps || caps.tapDances + caps.combos + caps.keyOverrides + caps.altRepeatKeys > 0
 }
 
 function Editor({ opened }: { opened: Opened }) {
@@ -100,7 +126,9 @@ function ShortcutsPage() {
       <div className="grid items-start gap-4 @2xl:grid-cols-[17rem_minmax(0,1fr)] @5xl:grid-cols-[22rem_minmax(0,1fr)]">
         <ShortcutList selected={selected} focus={kind && free === null ? kind : null} />
         {/* Keyed by keyboard too: what an editor holds (a save's outcome, an open picker) belongs to one keyboard. */}
-        {selected === null ? <Nothing macros={macroCount > 0} /> : <Editor key={`${uid}:${selected.kind}:${selected.index}`} opened={selected} />}
+        {selected === null ? (
+          <Nothing macros={macroCount > 0} others={hasEntrySlots(caps)} />
+        ) : <Editor key={`${uid}:${selected.kind}:${selected.index}`} opened={selected} />}
       </div>
     </div>
   )

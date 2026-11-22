@@ -274,4 +274,11 @@ describe('the card before a shortcut is picked', () => {
     expect(screen.queryByRole('link', { name: 'Start with Macro 1' })).toBeNull()
     expect(screen.getByText('This keyboard’s firmware has no macros.')).toBeInTheDocument()
   })
+
+  it('doesn’t point at multi-tap keys and the rest where the firmware has none of them either', () => {
+    render(<Nothing macros={false} others={false} />)
+    expect(screen.getByText(/has no room for macros, multi-tap keys, key chords/)).toBeInTheDocument()
+    expect(screen.queryByText(/under More options until you use them/)).toBeNull()
+    expect(screen.getByRole('link', { name: 'Keys page' })).toHaveAttribute('href', '#/keys')
+  })
 })

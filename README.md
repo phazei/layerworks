@@ -1102,6 +1102,11 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
 - **Unlock keys other than Esc and Enter.** The unlock dialog names the keyboard's own keys; the `unlock` help topic
   gives the K15's Esc and Enter only as an example. Text only (`help/topics.ts`, `unlock`).
 
+- **Firmware without any shortcut slots** (no tap dance, combos, key overrides or alt repeat). The Shortcuts page
+  says there is nothing to set up instead of pointing at sections that don't exist. Decided in `hasEntrySlots`
+  (`pages/Shortcuts.tsx`). Test: `pages/shortcuts/__tests__/Shortcuts.test.tsx` ("doesn't point at multi-tap keys
+  and the rest where the firmware has none of them either").
+
 ## Tests
 
 Unit tests sit in `__tests__/` beside the code. `src/device/fake-keyboard.ts` provides a `HidLink` with no
