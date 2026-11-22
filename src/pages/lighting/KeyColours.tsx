@@ -25,7 +25,7 @@ export const KEY_STYLES: readonly { value: number; name: string; qmkName: string
   { value: 1, name: 'Breathing', qmkName: 'Breathing' },
   { value: 2, name: 'Light up when pressed', qmkName: 'Reactive Simple' },
   { value: 3, name: 'Glow around pressed keys', qmkName: 'Reactive Multi Wide' },
-  { value: 4, name: 'Splash from pressed keys', qmkName: 'Reactive Splash' },
+  { value: 4, name: 'Splash from the key pressed', qmkName: 'Reactive Splash' },
 ]
 
 const FULL = 255

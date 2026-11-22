@@ -18,7 +18,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 export function About() {
   return (
-    <Card title="About Layerworks" description="A configurator for Keychron keyboards running Vial firmware.">
+    <Card title="About Layerworks" description="A configurator for keyboards running Vial firmware, with Keychron’s extras where the keyboard has them.">
       <dl className="-my-2.5 divide-y divide-edge">
         <Row label="Version">
           <span className="tabular-nums">{version}</span>

@@ -59,8 +59,8 @@ export function ConnectPrompt() {
             <HelpButton topic="connecting" />
           </div>
           <p className="text-muted">
-            Plug the keyboard in with its cable, or plug in its Keychron Link receiver to use 2.4 GHz. Close Vial,
-            Launcher and other keyboard apps first: only one can use the keyboard at a time.
+            Plug the keyboard in with its cable (or, for a Keychron wireless keyboard, plug in its Keychron Link receiver to
+            use 2.4 GHz). Close Vial, Launcher and other keyboard apps first: only one can use the keyboard at a time.
           </p>
         </div>
 

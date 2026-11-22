@@ -65,7 +65,9 @@ If the script leaves a server behind (it was killed half-way):
 - UI text is plain language for someone who has never heard of QMK: friendly name first, the QMK name beside it.
   Every setting has a help topic (`src/help/topics.ts`): a sentence or two, an example, a link to the QMK docs.
 - Colours, radii and shadows come from `src/ui/tokens.css` through the Tailwind names; no literal values in
-  components. Build pages from `src/ui/` controls and add missing ones there, not in the page.
+  components. Build pages from `src/ui/` controls and add missing ones there, not in the page. Colours that are data
+  (the same in both themes, such as a zone's own colour or an effect's fixed colour) may be literal, with a comment
+  saying so.
 - Everyday options are visible; advanced ones sit behind a `Disclosure` ("More options"). No global
   simple/advanced switch, and no tabs inside pages.
 - Pages and plugins import from `src/device` and `src/ui`, never from `src/vendor`.

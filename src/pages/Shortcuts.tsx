@@ -20,22 +20,31 @@ import { kindFromPath, macroHref, openedFromPath, shortcutPath, type Opened } fr
 import { ShortcutList } from './shortcuts/ShortcutList'
 import { TapDanceEditor } from './shortcuts/TapDanceEditor'
 
-function Nothing() {
+/** With no macros in the firmware (`macros` false) the card says so instead of offering Macro 1. */
+export function Nothing({ macros }: { macros: boolean }) {
   return (
     <Card title="Pick a shortcut" description="Choose one on the left to see what it does and change it.">
       <div className="flex flex-col gap-2 text-[13px] text-muted">
+        {macros ? (
+          <>
+            <p>
+              A macro types text or presses a series of keys when you press one key: a signature, a greeting, or a
+              shortcut that takes three hands. Text is typed the way a US keyboard types it; on another layout, build
+              symbols such as @ from “Tap a key” steps.
+            </p>
+            <p>
+              Build it from steps or record it as you type, save it to the keyboard, then put it on a key from the Keys
+              page. <a className="font-medium text-accent hover:underline" href={macroHref(1)}>Start with Macro 1</a>,
+              which runs the key printed M1 on keyboards that have one.
+            </p>
+          </>
+        ) : (
+          <p>This keyboard’s firmware has no macros.</p>
+        )}
         <p>
-          A macro types text or presses a series of keys when you press one key: your e-mail address, a signature, or
-          a shortcut that takes three hands.
-        </p>
-        <p>
-          Build it from steps or record it as you type, save it to the keyboard, then put it on a key from the Keys
-          page. <a className="font-medium text-accent hover:underline" href={macroHref(1)}>Start with Macro 1</a>, which
-          the key printed M1 runs on Keychron keyboards.
-        </p>
-        <p>
-          Below the macros, or under More options until you use them: keys that do different things when tapped or
-          held, keys pressed together, shortcuts that send something else, and what the repeat key does.
+          {macros ? 'Below the macros, or under More options until you use them: ' : 'On the left, or under More options until you use them: '}
+          keys that do different things when tapped or held, keys pressed together, shortcuts that send something else,
+          and what the repeat key does.
         </p>
       </div>
     </Card>
@@ -91,7 +100,7 @@ function ShortcutsPage() {
       <div className="grid items-start gap-4 @2xl:grid-cols-[17rem_minmax(0,1fr)] @5xl:grid-cols-[22rem_minmax(0,1fr)]">
         <ShortcutList selected={selected} focus={kind && free === null ? kind : null} />
         {/* Keyed by keyboard too: what an editor holds (a save's outcome, an open picker) belongs to one keyboard. */}
-        {selected === null ? <Nothing /> : <Editor key={`${uid}:${selected.kind}:${selected.index}`} opened={selected} />}
+        {selected === null ? <Nothing macros={macroCount > 0} /> : <Editor key={`${uid}:${selected.kind}:${selected.index}`} opened={selected} />}
       </div>
     </div>
   )

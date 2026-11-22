@@ -178,12 +178,37 @@ const PLAIN: Record<string, string> = {
   KC_WH_D: 'Mouse wheel down',
   KC_WH_L: 'Mouse wheel left',
   KC_WH_R: 'Mouse wheel right',
+  KC_BTN1: 'Left click (mouse button 1)',
+  KC_BTN2: 'Right click (mouse button 2)',
+  KC_BTN3: 'Middle click (mouse button 3)',
+  KC_BTN4: 'Back (mouse button 4)',
+  KC_BTN5: 'Forward (mouse button 5)',
+  // Held, these set a fixed speed (mousekey.c, move_unit); let go, the mouse keys accelerate again.
+  KC_ACL0: 'Mouse keys slow while held (a quarter of top speed)',
+  KC_ACL1: 'Mouse keys medium while held (half of top speed)',
+  KC_ACL2: 'Mouse keys at top speed while held',
+  KC__VOLDOWN: 'Volume down, other kind (for computers that ignore the usual one)',
+  KC__VOLUP: 'Volume up, other kind (for computers that ignore the usual one)',
+  KC_MYCM: 'Open This PC (File Explorer) on Windows',
+  // HID's editing keys: Windows and macOS ignore them; Linux uses them.
+  KC_UNDO: 'Undo key: most computers ignore it (Linux uses it); for undo, use the shortcut Ctrl + Z',
+  KC_CUT: 'Cut key: most computers ignore it (Linux uses it); for cut, use the shortcut Ctrl + X',
+  KC_COPY: 'Copy key: most computers ignore it (Linux uses it); for copy, use the shortcut Ctrl + C',
+  KC_PSTE: 'Paste key: most computers ignore it (Linux uses it); for paste, use the shortcut Ctrl + V',
+  KC_FIND: 'Find key: most computers ignore it (Linux uses it); for find, use the shortcut Ctrl + F',
+  KC_AGIN: 'Again (redo) key: most computers ignore it (Linux uses it); for redo, use the shortcut Ctrl + Y',
+  KC_STOP: 'Stop key: most computers ignore it (Linux uses it)',
+  KC_HELP: 'Help key: most computers ignore it (Linux uses it)',
+  KC_SLCT: 'Select key: most computers ignore it (Linux uses it)',
+  KC_EXEC: 'Execute key: most computers ignore it (Linux uses it)',
+  QK_REPEAT_KEY: 'Sends the last key again (Repeat)',
+  QK_ALT_REPEAT_KEY: 'Sends the “opposite” of the last key, or what a repeat rule says (Alt Repeat)',
   RGB_TOG: 'Lights on or off',
   RGB_MOD: 'Next lighting effect',
   RGB_RMOD: 'Previous lighting effect',
   RGB_HUI: 'Lighting colour forward',
   RGB_HUD: 'Lighting colour back',
-  RGB_SAI: 'Stronger lighting colour',
+  RGB_SAI: 'More vivid lighting colour',
   RGB_SAD: 'Paler lighting colour',
   RGB_VAI: 'Lights brighter',
   RGB_VAD: 'Lights dimmer',
@@ -196,7 +221,7 @@ const PLAIN: Record<string, string> = {
   RM_PREV: 'Previous lighting effect',
   RM_HUEU: 'Lighting colour forward',
   RM_HUED: 'Lighting colour back',
-  RM_SATU: 'Stronger lighting colour',
+  RM_SATU: 'More vivid lighting colour',
   RM_SATD: 'Paler lighting colour',
   RM_VALU: 'Lights brighter',
   RM_VALD: 'Lights dimmer',
@@ -357,7 +382,11 @@ function plainDescription(keycode: tables.Keycode): string | undefined {
   if (FRIENDLY[keycode.qmkId]) return FRIENDLY[keycode.qmkId].description
   if (PLAIN[keycode.qmkId]) return PLAIN[keycode.qmkId]
   if (keycode.qmkId.startsWith('KC_KP_')) return `Number pad ${keycode.label.replace(/\n/g, ' ')}`
-  return keycode.tooltip
+  if (keycode.tooltip) return keycode.tooltip
+  // Number and symbol keys are labelled "!\n1": shifted above, plain below. In words: "1 and !".
+  const lines = keycode.label.split('\n')
+  if (lines.length === 2 && lines.every((line) => [...line].length === 1)) return `${lines[1]} and ${lines[0]}`
+  return undefined
 }
 
 export interface PaletteGroup {
@@ -556,7 +585,12 @@ function everydayGroups(): PaletteGroup[] {
     { id: 'mouse', title: 'Mouse', keys: entries(tables.KEYCODES_SYSTEM_MOUSE) },
     // The shared RGB_ codes: Keychron's keymaps use them, and the firmware sends them to the RGB matrix.
     { id: 'lighting', title: 'Lighting controls', keys: entries(tables.KEYCODES_LIGHTING_RGB.filter((k) => SHARED_LIGHTING.has(k.qmkId))) },
-    { id: 'keyboard', title: 'This keyboard', keys: entries(tables.KEYCODES_USER) },
+    {
+      id: 'keyboard',
+      title: 'This keyboard',
+      note: 'Keys this keyboard’s firmware adds; their names come from the keyboard.',
+      keys: entries(tables.KEYCODES_USER),
+    },
     // In QMK's numbers, slot 0 last (numberedSlots).
     { id: 'macros', title: 'Macros', keys: zeroLast(entries(tables.KEYCODES_MACRO_M)) },
     { id: 'tapDance', title: 'Multi-tap keys', keys: zeroLast(entries(tables.KEYCODES_TAP_DANCE)) },
@@ -608,7 +642,7 @@ export const LAYER_ACTIONS: LayerAction[] = [
   },
   { op: 'TG', sentence: 'Turn {layer} on or off', hint: 'Press once to switch it on, again to switch it off.', short: 'Toggle' },
   { op: 'OSL', sentence: 'Use {layer} for the next key only', hint: 'Tap it, then the next key you press comes from that layer.', short: 'Next key' },
-  { op: 'TO', sentence: 'Switch to {layer} and stay there', hint: 'Turns every other layer off. Make sure that layer has a way back.', short: 'Switch to' },
+  { op: 'TO', sentence: 'Switch to {layer} and stay there', hint: 'Turns every other layer off, apart from the base layer. Make sure that layer has a way back.', short: 'Switch to' },
   { op: 'DF', sentence: 'Make {layer} the base layer', hint: 'Changes which layer the keyboard rests on until it restarts.', short: 'Base' },
 ]
 
@@ -664,12 +698,7 @@ export function keycodeTitle(code: number): string {
   const id = serialize(code)
   const keycode = id.includes('(') ? tables.KEYCODES_SHIFTED.find((k) => deserialize(k.qmkId) === code) : findKeycode(id)
   if (keycode) {
-    const plain = plainDescription(keycode)
-    if (plain) return plain
-    const lines = keycode.label.split('\n')
-    // Number and symbol keys are labelled "!\n1": shifted above, plain below.
-    if (lines.length === 2 && lines.every((line) => [...line].length === 1)) return `${lines[1]} and ${lines[0]}`
-    return lines.join(' ')
+    return plainDescription(keycode) ?? keycode.label.split('\n').join(' ')
   }
   const shortcut = readShortcut(code)
   if (shortcut) {

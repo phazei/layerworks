@@ -228,6 +228,7 @@ export function Inspector({ keyboard, slot, names, base, justPut }: Props) {
               label="Keys"
               tools={pressKey.button}
               note={pressKey.note}
+              noMatch="If you know its QMK name, type it under More options, Key code."
             />
           )}
           {choice === 'shortcut' && <ShortcutChoice current={current} groups={shortcutKeys} onAssign={assign} />}

@@ -11,6 +11,7 @@ import { connectDemo, disconnect } from '../../../shell/session'
 import { Shell } from '../../../shell/Shell'
 import { stage, type Selection } from '../../../shell/stage-store'
 import { getPref, setPref } from '../../../ui/prefs'
+import { NothingSelected } from '../../Keys'
 
 // The demo keyboard rests on its Windows layer (2). Row 3, column 2 is A; row 5, column 7 is MO(3); on layer 3,
 // row 4, column 1 is "same as the layer below", over Left Shift.
@@ -95,7 +96,8 @@ describe('the Keys page', () => {
     fireEvent.change(search, { target: { value: 'kc_esc' } })
     expect(within(palette()).getByRole('button', { name: 'Escape' })).toBeInTheDocument()
     fireEvent.change(search, { target: { value: 'nothing like it' } })
-    expect(screen.getByText(/No key matches/)).toBeInTheDocument()
+    // The Keys page has a Key code field to point to.
+    expect(screen.getByText(/No key matches .* type it under More options, Key code/)).toBeInTheDocument()
   })
 
   it('builds a shortcut from modifiers and a key', async () => {
@@ -129,7 +131,7 @@ describe('the Keys page', () => {
   it('sets "same as the layer below" and says what the key falls through to', async () => {
     await openKeys(A_KEY, 3)
     openMoreOptions()
-    await click(screen.getByRole('button', { name: /Same as the layer below/ }))
+    await click(screen.getByRole('button', { name: /^Same as the layer below/ }))
     await waitFor(() => expect(keymap(3, 3, 2)).toBe(0x01))
     expect(screen.getByText(/It normally does what it does on Windows/)).toHaveTextContent('A KC_A')
   })
@@ -299,7 +301,8 @@ describe('the keys beyond the everyday ones', () => {
     await openKeys(A_KEY)
     search('nkro')
     expect(tiles()).toEqual([])
-    expect(screen.getByText(/No key matches/)).toBeInTheDocument()
+    // The Keys page has a Key code field to point to.
+    expect(screen.getByText(/No key matches .* type it under More options, Key code/)).toBeInTheDocument()
 
     await act(() => deviceStore.assign({ kind: 'key', layer: 2, row: 3, col: 2 }, keycode('NK_TOGG')))
     act(() => stage.select(null))
@@ -362,5 +365,15 @@ describe('the keys beyond the everyday ones', () => {
     await act(() => deviceStore.assign({ kind: 'key', layer: 2, row: 3, col: 2 }, 0x7103))
     await openKeys(A_KEY)
     expect(screen.getByRole('group', { name: 'What it does now' })).toHaveTextContent('A MIDI music key')
+  })
+})
+
+describe('the card before a key is picked', () => {
+  it('mentions the knob only on a keyboard that has one', () => {
+    const { unmount } = render(<NothingSelected knob />)
+    expect(screen.getByText(/or one side of the knob/)).toBeInTheDocument()
+    unmount()
+    render(<NothingSelected knob={false} />)
+    expect(screen.getByText('Click a key in the picture to choose what it does.')).toBeInTheDocument()
   })
 })

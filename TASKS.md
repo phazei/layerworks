@@ -20,8 +20,16 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
 The audits are done and applied: the spec (`../docs/spec/layerworks.md`) and the documents are current, the Help
 section was checked against the app and the firmware and corrected, and N-key rollover is hidden where the
 keyboard does it by itself. The parent repo's documents are edited and uncommitted (the user commits there). The
-findings files are in `%TEMP%\opencode\layerworks-audit\` (`spec-audit.md`, `help-audit.md`). Nothing is running
-in the background, and nothing is waiting for an answer from the user.
+findings files are in `%TEMP%\opencode\layerworks-audit\` (`spec-audit.md`, `help-audit.md`).
+
+The text on the pages themselves (hover lines, hints, effect descriptions, confirmations, messages) was audited
+and corrected too (`ui-text-audit.md` in the same folder, T1 to T43, by `ses_dff103bf6ffeeheF4xktrsBLLr`).
+Nothing is running in the background.
+
+Asked of the user: the K15's own keys carry names from the definition in the parent project
+(`..\keyboards\keychron\k15_max\ansi_encoder\rgb\keymaps\ripple\vial.json`, `..\via\*.json`): "Misson Control"
+(a typo), "2.4G", "Bluetooth Host 1". Better titles are proposed in the audit's T11; changing them needs a
+firmware build and flash, and is the user's call.
 
 - The audit's calls made by the orchestrator, for the user to flip if wanted: the firmware key push and matrix
   read stay optional and deferred; creating a macro from the Keys inspector is dropped; the main lighting and the
@@ -102,8 +110,6 @@ extensions (under "Later"):
   reaches into the shell; move the names store down (`src/device` or `src/ui`) when it is next touched.
 - The picture: "Hold" over a long layer name ("Windows Fn") takes three lines on a 1u key; tight but legible.
 - Typing feel: clicking a group in the side list scrolls to it but doesn't move keyboard focus there.
-- Shortcuts & macros: the "Pick a shortcut" card's example (a macro that types your e-mail address) doesn't say
-  that macro text is typed as on a US layout; the macros help topic does.
 - Lighting: a zone slot's play time can't be set while it is the zone's only effect (harmless). The picture in
   the key colours editor is small at 1000×700. Read back while the lights are off, the keyboard can report the
   saved colour rather than the last one sent; turning the lights on sends the values the page shows.

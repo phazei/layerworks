@@ -4,16 +4,19 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { ChevronRight, CircleHelp } from 'lucide-react'
 import { HELP_PANEL_ID, toggleHelp, useHelpTopic } from '../help/help-store'
-import type { HelpTopicId } from '../help/topics'
+import { HELP_TOPICS, type HelpTopicId } from '../help/topics'
 import { Button, cx, IconButton } from './controls'
 import { usePref } from './prefs'
 
-/** A "?" that opens the help panel at one topic, and closes it again when pressed a second time. */
+/**
+ * A "?" that opens the help panel at one topic, and closes it again when pressed a second time. Screen readers hear
+ * the topic's title ("Explain: Brightness"), so the many "?" on a page can be told apart.
+ */
 export function HelpButton({ topic }: { topic: HelpTopicId }) {
   const shown = useHelpTopic() === topic
   return (
     <IconButton
-      label="Explain this"
+      label={`Explain: ${HELP_TOPICS[topic].title}`}
       aria-expanded={shown}
       aria-controls={HELP_PANEL_ID}
       className="size-6"

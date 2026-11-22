@@ -10,7 +10,7 @@ import { describeUnsaved, useUnsaved } from './unsaved'
 /** What each background part is, in words. */
 export const PART_NAMES: Record<LoadPart, string> = {
   macros: 'macros',
-  entries: 'multi-tap keys and key chords',
+  entries: 'multi-tap keys, chords and other shortcuts',
   settings: 'typing settings',
   lighting: 'lighting',
   unlock: 'lock state',

@@ -2,7 +2,7 @@
 // The connected keyboard at a glance: how it is connected, battery, the layer that is on, firmware and lock.
 
 import { BatteryFull, BatteryLow, BatteryMedium, Cable, Cpu, Layers, Lock, LockOpen, Radio } from 'lucide-react'
-import { useDevice, type LoadPart } from '../../device'
+import { receiverName, useDevice, type LoadPart } from '../../device'
 import { readFirmware } from '../device/firmware'
 import { useConnectedLayerNames } from '../../shell/layer-names'
 import { openUnlock } from '../../shell/unlock-dialog'
@@ -33,12 +33,12 @@ export function Status() {
   const layerName = (i: number) => names[i] ?? `Layer ${i}`
 
   return (
-    <Card title={keyboard?.name ?? link?.productName} description="Everything you change is kept on the keyboard itself.">
+    <Card title={keyboard?.name ?? link?.productName} description="What you change is kept on the keyboard itself; layer and macro names stay in this browser.">
       <Facts label="At a glance">
         <Fact
           label="Connection"
           icon={wireless ? <Radio size={ICON} aria-hidden /> : <Cable size={ICON} aria-hidden />}
-          hint={wireless ? 'Through the Keychron Link receiver' : 'Plugged in with the cable'}
+          hint={wireless && link ? `Through ${receiverName(link.productName)}` : 'Plugged in with the cable'}
         >
           {wireless ? '2.4 GHz' : 'Cable'}
         </Fact>
@@ -76,7 +76,7 @@ export function Status() {
             unlock === null
               ? undefined
               : unlock.unlocked
-                ? 'Everything can be changed until the keyboard restarts.'
+                ? 'Everything can be changed until the keyboard restarts or you lock it.'
                 : 'Keys and lighting change freely; a few powerful changes ask first.'
           }
         >

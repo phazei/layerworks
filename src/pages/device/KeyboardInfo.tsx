@@ -3,7 +3,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { Cable, Cpu, Keyboard, Layers, Lock, LockOpen, Radio } from 'lucide-react'
-import { deviceStore, keyboardIdentity, matrixKeys, useDevice, type TransportStats } from '../../device'
+import { deviceStore, keyboardIdentity, matrixKeys, offeredEffectCount, receiverName, useDevice, type TransportStats } from '../../device'
 import { Fact, Facts } from '../../ui/display'
 import { Card, Disclosure, HelpButton } from '../../ui/layout'
 import { readFirmware } from './firmware'
@@ -79,7 +79,7 @@ function TechnicalDetails() {
       {lighting && (
         <Row label="Lighting">
           {lighting.kind}
-          {lighting.kind === 'vialrgb' && `, ${lighting.effects.size - 1} effects, brightness up to ${lighting.maxBrightness}`}
+          {lighting.kind === 'vialrgb' && `, ${state.capabilities?.effectCount ?? offeredEffectCount(lighting.effects)} effects, brightness up to ${lighting.maxBrightness}`}
         </Row>
       )}
       <Row label="Requests">
@@ -107,7 +107,7 @@ export function KeyboardInfo() {
           <Fact
             label="Connection"
             icon={wireless ? <Radio size={ICON} aria-hidden /> : <Cable size={ICON} aria-hidden />}
-            hint={wireless ? `Through the ${link.productName} receiver` : 'Plugged in with the cable'}
+            hint={wireless ? `Through ${receiverName(link.productName)}` : 'Plugged in with the cable'}
           >
             {wireless ? '2.4 GHz' : 'Cable'}
           </Fact>

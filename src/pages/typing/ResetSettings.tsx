@@ -34,8 +34,9 @@ export function ResetSettings() {
         }}
       >
         <p>
-          Every timing on this page, Capitals by holding, the mouse keys, and the swapped and disabled keys go back to the
-          firmware’s defaults. Undo can’t bring them back.
+          Every setting on this page goes back to the firmware’s defaults, including the swapped and disabled keys (the Esc
+          and Caps Lock swap and N-key rollover too, even where they were set with keys), and one-tap modifiers are
+          switched on again. Undo can’t bring them back.
         </p>
         {keeps.length > 0 && <p className="mt-2">{capitalise(keeps.join(' and '))} stay as they are.</p>}
       </Dialog>

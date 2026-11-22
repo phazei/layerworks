@@ -24,7 +24,12 @@ function caption(layout: PictureLayout, effect: EffectInfo): string {
     case 'off':
       return 'The lights are off.'
     case 'tint':
-      return 'Every key in your colour, at the brightness set above.'
+      // Only One colour lights every key alike; the others light some keys, or at some moments.
+      return effect.preview === 'solid'
+        ? 'Every key in your colour, at the brightness set above.'
+        : 'Your colour, at the brightness set above. On the keyboard the effect decides which keys light, and when.'
+    case 'cycle':
+      return 'All keys share one colour, which changes round the rainbow; this is one moment of it.'
     case 'rainbow': {
       const way = {
         across: 'from left to right',

@@ -106,7 +106,7 @@ describe('createBackup', () => {
     await loaded(store)
 
     expect(createBackup(store.getState(), [], NOW).entries).toBeNull()
-    expect(missingParts(store.getState())).toEqual(['tap dance, combos and the like'])
+    expect(missingParts(store.getState())).toEqual(['multi-tap keys, key chords and the like'])
   })
 
   it('needs a keyboard', async () => {

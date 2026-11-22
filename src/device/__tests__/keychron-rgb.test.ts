@@ -236,7 +236,7 @@ describe('restore', () => {
       expect.arrayContaining([
         '1 Snap Click pair (SOCD)',
         'Key by key lighting: colours and how they light up (per-key RGB)',
-        'Lighting zones: which keys are in each zone and the zones’ effects (mixed RGB)',
+        'Mixed zones: which keys are in each zone and the zones’ effects (mixed RGB)',
       ]),
     )
     const report = await store.restore(plan)
@@ -256,6 +256,6 @@ describe('restore', () => {
     await connect(fakeKeyboardConfig({ keychron: { protocol: 2, features: 0x01, firmware: 'v1' } }))
     const plan = planRestore(contents, store.getState())
     expect(plan.keyColours).toBeNull()
-    expect(plan.ignored).toEqual(expect.arrayContaining([expect.stringMatching(/^Key colours/), expect.stringMatching(/^Lighting zones/)]))
+    expect(plan.ignored).toEqual(expect.arrayContaining([expect.stringMatching(/^Key colours/), expect.stringMatching(/^Mixed zones/)]))
   })
 })

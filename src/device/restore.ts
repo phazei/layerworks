@@ -209,10 +209,10 @@ export const PART_NAMES: Record<RestorePart, { one: string; many: string; qmk?: 
   settings: { one: 'typing setting', many: 'typing settings', qmk: 'QMK settings' },
   lighting: { one: 'lighting', many: 'lighting' },
   wireless: { one: 'wireless timers', many: 'wireless timers' },
-  debounce: { one: 'debounce', many: 'debounce' },
+  debounce: { one: 'key bounce filter', many: 'key bounce filter', qmk: 'debounce' },
   snapClick: { one: 'Snap Click pair', many: 'Snap Click pairs', qmk: 'SOCD' },
   keyColours: { one: 'key colours', many: 'key colours', qmk: 'per-key RGB' },
-  zones: { one: 'lighting zones', many: 'lighting zones', qmk: 'mixed RGB' },
+  zones: { one: 'mixed zones', many: 'mixed zones', qmk: 'mixed RGB' },
   lockLights: { one: 'lock lights', many: 'lock lights', qmk: 'indicators' },
   layerNames: { one: 'layer names', many: 'layer names' },
   macroNames: { one: 'macro names', many: 'macro names' },
@@ -375,7 +375,7 @@ export function planRestore(
   }
   if (contents.debounce) {
     const d = contents.debounce
-    if (!kc?.hasDebounce) plan.ignored.push('Debounce: this keyboard doesn’t let the app set it.')
+    if (!kc?.hasDebounce) plan.ignored.push('Key bounce filter: this keyboard doesn’t let the app set it.')
     else if (d.type !== kc.debounceType || d.time !== kc.debounceTime) plan.debounce = { ...d }
   }
 
@@ -421,9 +421,9 @@ export function planRestore(
   }
   if (contents.zones) {
     const { regions, effects } = contents.zones
-    if (!rgb || rgb.mixedRGBLayers === 0) plan.ignored.push('Lighting zones: this keyboard has none.')
+    if (!rgb || rgb.mixedRGBLayers === 0) plan.ignored.push('Mixed zones: this keyboard has none.')
     else if (regions.length !== rgb.ledCount || effects.length !== rgb.mixedRGBLayers) {
-      plan.ignored.push('Lighting zones: this keyboard has a different number of lights or zones.')
+      plan.ignored.push('Mixed zones: this keyboard has a different number of lights or zones.')
     } else {
       const sameRegions = regions.every((z, i) => z === rgb.mixedRGBRegions[i])
       const changed = effects.flatMap((list, zone) => {
@@ -565,7 +565,7 @@ export function describePlan(plan: RestorePlan, layerNames: string[], boot: numb
       needsUnlock: false,
     })
   }
-  if (plan.debounce) lines.push({ part: 'debounce', text: `Debounce (${plan.debounce.time} ms)`, needsUnlock: false })
+  if (plan.debounce) lines.push({ part: 'debounce', text: `Key bounce filter: ${plan.debounce.time} ms (debounce)`, needsUnlock: false })
   if (plan.snapClick.length) lines.push({ part: 'snapClick', text: countOf('snapClick', plan.snapClick.length), needsUnlock: false })
   if (plan.keyColours) {
     const what = [plan.keyColours.colours && 'colours', plan.keyColours.style !== null && 'how they light up'].filter(Boolean)
@@ -573,7 +573,7 @@ export function describePlan(plan: RestorePlan, layerNames: string[], boot: numb
   }
   if (plan.zones) {
     const what = [plan.zones.regions && 'which keys are in each zone', plan.zones.effects.length > 0 && 'the zones’ effects'].filter(Boolean)
-    lines.push({ part: 'zones', text: `Lighting zones: ${what.join(' and ')} (mixed RGB)`, needsUnlock: false })
+    lines.push({ part: 'zones', text: `Mixed zones: ${what.join(' and ')} (mixed RGB)`, needsUnlock: false })
   }
   if (plan.lockLights) lines.push({ part: 'lockLights', text: 'Lock lights: colour and which light up (indicators)', needsUnlock: false })
   if (plan.layerNames) lines.push({ part: 'layerNames', text: 'Layer names (kept in this browser)', needsUnlock: false })

@@ -77,7 +77,7 @@ function useResetScope() {
   ].filter((w): w is string => !!w)
   const stays = [
     lighting && lighting.kind !== 'none' && 'the lighting',
-    keychron?.hasRgb && 'key colours, zones and the Caps Lock light',
+    keychron?.hasRgb && 'key colours, mixed zones and the Caps Lock light',
     'layer and macro names',
     keychron?.hasDebounce && 'the key bounce filter',
     keychron?.hasSnapClick && 'Snap Click',

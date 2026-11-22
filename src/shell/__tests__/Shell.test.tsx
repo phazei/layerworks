@@ -124,7 +124,7 @@ describe('the shell on the demo keyboard', () => {
     const { container } = render(<Shell />)
     const panel = container.querySelector<HTMLElement>('aside[aria-label="Help"]')!
     expect(panel).toHaveAttribute('aria-hidden', 'true')
-    act(() => within(screen.getByRole('region', { name: 'Keyboard and layers' })).getByRole('button', { name: 'Explain this' }).click())
+    act(() => within(screen.getByRole('region', { name: 'Keyboard and layers' })).getByRole('button', { name: /^Explain: / }).click())
     expect(panel).toHaveAttribute('aria-hidden', 'false')
     expect(panel).toHaveTextContent('Follow the keyboard')
     act(() => within(panel).getByRole('button', { name: 'Close help' }).click())

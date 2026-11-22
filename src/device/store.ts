@@ -980,10 +980,10 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       const { type, time } = plan.debounce
       steps.push({
         part: 'debounce',
-        what: 'debounce',
+        what: 'key bounce filter',
         needsUnlock: false,
         send: async () => {
-          if (!(await setKeychronDebounce(type, time))) throw new Error('The keyboard refused the debounce setting.')
+          if (!(await setKeychronDebounce(type, time))) throw new Error('The keyboard refused the key bounce filter setting.')
         },
         applied: () => (state.keychron ? { keychron: { ...state.keychron, debounceType: type, debounceTime: time } } : {}),
       })
@@ -1035,14 +1035,14 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
       const { regions, effects } = plan.zones
       steps.push({
         part: 'zones',
-        what: 'lighting zones',
+        what: 'mixed zones',
         needsUnlock: false,
         send: async () => {
           const packets = [
             ...(regions ? regionPackets(state.keychron?.rgb?.mixedRGBRegions ?? [], regions) : []),
             ...effects.flatMap((z) => effectPackets(z.zone, z.effects)),
           ]
-          await sendKeyLighting([...packets, savePacket()], 'The keyboard refused the lighting zones.')
+          await sendKeyLighting([...packets, savePacket()], 'The keyboard refused the mixed zones.')
         },
         applied: () => {
           const list = [...(state.keychron?.rgb?.mixedRGBEffects ?? [])]
@@ -1174,7 +1174,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
   function writeDebounce({ type, time }: Debounce): Promise<boolean> {
     return write(
       async () => {
-        if (!(await setKeychronDebounce(type, time))) throw new Error('The keyboard refused the debounce setting.')
+        if (!(await setKeychronDebounce(type, time))) throw new Error('The keyboard refused the key bounce filter setting.')
       },
       () => (state.keychron ? { keychron: { ...state.keychron, debounceType: type, debounceTime: time } } : {}),
     )

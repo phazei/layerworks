@@ -16,11 +16,13 @@ interface Props {
   use: KeyUse
   /** Offer the modifiers (taps); holding and letting go take one plain key. */
   shortcuts: boolean
+  /** What the key is for, for screen readers: "Key for this step", "Key for tap twice". */
+  label?: string
   onPick: (key: number) => void
   onClose: () => void
 }
 
-export function KeyPicker({ current, use, shortcuts, onPick, onClose }: Props) {
+export function KeyPicker({ current, use, shortcuts, label = 'Key for this step', onPick, onClose }: Props) {
   const keyboard = useDevice((s) => s.keyboard)
   const settings = useDevice((s) => s.settings)
   const nkroMode = useDevice((s) => s.capabilities?.nkro ?? 'pending')
@@ -51,7 +53,7 @@ export function KeyPicker({ current, use, shortcuts, onPick, onClose }: Props) {
           current={base}
           onPick={(key) => onPick(mods && canTakeModifiers(key.code) ? shortcutKeycode(mods, key.code) : key.code)}
           hint={mods ? 'Pick the key to tap with the ticked keys held.' : 'Pick the key.'}
-          label="Key for this step"
+          label={label}
         />
       </div>
       <div>

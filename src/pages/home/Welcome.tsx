@@ -24,7 +24,7 @@ export function Welcome({ connecting }: { connecting: boolean }) {
       </div>
       <ul aria-label="What you can do" className="grid w-full max-w-2xl grid-cols-3 gap-6">
         <Point icon={<Keyboard size={17} aria-hidden />} title="Change what keys do">
-          Any key or knob turn can type, open a shortcut or switch layers.
+          Any key or knob turn can type, send a shortcut, run a macro or switch layers.
         </Point>
         <Point icon={<Palette size={17} aria-hidden />} title="Set the lighting">
           Pick an effect, its colour, speed and brightness.

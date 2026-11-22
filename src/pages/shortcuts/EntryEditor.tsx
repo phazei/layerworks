@@ -221,6 +221,7 @@ export function KeyField({ label, value, onChange, shortcuts = false, optional =
           current={value}
           shortcuts={shortcuts}
           use={use}
+          label={`Key for ${label.toLowerCase()}`}
           onPick={(code) => {
             onChange(code)
             setOpen(false)

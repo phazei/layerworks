@@ -113,8 +113,8 @@ describe('the "?" buttons', () => {
     const { container } = render(<Shell />)
     const panel = container.querySelector<HTMLElement>('aside[aria-label="Help"]')!
     const title = screen.getByRole('heading', { level: 1, name: 'Keys' }).parentElement!
-    const pageHelp = within(title).getByRole('button', { name: 'Explain this' })
-    const stageHelp = within(screen.getByRole('region', { name: 'Keyboard and layers' })).getByRole('button', { name: 'Explain this' })
+    const pageHelp = within(title).getByRole('button', { name: /^Explain: / })
+    const stageHelp = within(screen.getByRole('region', { name: 'Keyboard and layers' })).getByRole('button', { name: /^Explain: / })
     expect(pageHelp).toHaveAttribute('aria-expanded', 'false')
     expect(pageHelp).toHaveAttribute('aria-controls', panel.id)
 
@@ -141,7 +141,7 @@ describe('the "?" buttons', () => {
     await go('#/settings')
     const { container } = render(<Shell />)
     const panel = container.querySelector<HTMLElement>('aside[aria-label="Help"]')!
-    act(() => within(screen.getByRole('heading', { name: /Layer names/ })).getByRole('button', { name: 'Explain this' }).click())
+    act(() => within(screen.getByRole('heading', { name: /Layer names/ })).getByRole('button', { name: /^Explain: / }).click())
     expect(panel).toHaveTextContent('Layer names')
     act(() => within(panel).getByRole('button', { name: 'Layers' }).click())
     expect(within(panel).getByRole('heading', { level: 2 })).toHaveTextContent('Layers')

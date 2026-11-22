@@ -46,6 +46,30 @@ describe('the N-key rollover capability', () => {
   })
 })
 
+describe('whether Home lists N-key rollover as available', () => {
+  const nkro = (sources: CapabilitySources) => buildCapabilities(sources).check('nkro')
+
+  it('is, where Keychron’s answer reports it, adaptive or switchable', () => {
+    expect(nkro({ ...base, keychron: keychron({ nkroAdaptive: true }) }).available).toBe(true)
+    expect(nkro({ ...base, keychron: keychron({ nkroSupported: true }), qmkSettings: new Set() }).available).toBe(true)
+  })
+
+  it('is, without Keychron commands, where the keyboard lists QMK’s Magic setting (as Typing feel shows it)', () => {
+    expect(nkro(base).available).toBe(true)
+    expect(buildCapabilities(base).nkro).toBe('setting')
+  })
+
+  it('isn’t, without either, and says the firmware lacks it', () => {
+    expect(nkro({ ...base, qmkSettings: new Set([7]) })).toEqual({ available: false, reason: 'This keyboard’s firmware doesn’t include it.' })
+    expect(nkro({ ...base, keychron: keychron({ hasNkro: false }), qmkSettings: new Set() }).available).toBe(false)
+  })
+
+  it('waits while the Keychron part or the settings are being read', () => {
+    expect(nkro({ ...base, keychronPending: true })).toMatchObject({ available: false, reason: 'Still reading this from the keyboard.' })
+    expect(nkro({ ...base, qmkSettings: null }).available).toBe(false)
+  })
+})
+
 describe('the fake keyboard’s answer', () => {
   const answer = (nkro: number | undefined, request: number[]) => {
     const config = fakeKeyboardConfig({ keychron: { protocol: 2, features: 0x0200, firmware: 'v1', misc: 0x80, nkro } })

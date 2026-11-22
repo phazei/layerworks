@@ -65,7 +65,7 @@ export interface Backup {
 
 /** Parts the backup would be missing because they couldn't be read (empty when the backup is complete). */
 export function missingParts(state: DeviceState): string[] {
-  const names = { macros: 'macros', entries: 'tap dance, combos and the like', settings: 'typing settings', lighting: 'lighting', keychron: 'Keychron settings' } as const
+  const names = { macros: 'macros', entries: 'multi-tap keys, key chords and the like', settings: 'typing settings', lighting: 'lighting', keychron: 'Keychron settings' } as const
   return (Object.keys(names) as (keyof typeof names)[]).filter((p) => state.failed.includes(p)).map((p) => names[p])
 }
 

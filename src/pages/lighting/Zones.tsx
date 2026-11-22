@@ -72,9 +72,9 @@ export function Zones({ renames }: { renames: Readonly<Record<number, EffectRena
   const keysIn = (z: number) => [...leds.values()].filter((led) => regions[led] === z).length
 
   return (
-    <section aria-label="Zones">
+    <section aria-label="Mixed zones">
       <Card
-        title="Zones"
+        title="Mixed zones"
         help="lighting-zones"
         description="Split the keyboard into areas; each area plays its own effect. Pick a zone, then click or drag across keys to move them into it."
       >

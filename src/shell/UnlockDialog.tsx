@@ -42,7 +42,8 @@ function Warning({ children }: { children: ReactNode }) {
 const HOW_TO_END =
   'If you can’t finish, unplug the keyboard and plug it back in, or move its connection switch away and back: that ends it, still locked.'
 
-function Counting({ progress, keys }: { progress: UnlockProgress | null; keys: string }) {
+/** `count`: how many keys the keyboard asks for (two on most, up to 15). */
+export function Counting({ progress, keys, count }: { progress: UnlockProgress | null; keys: string; count: number }) {
   const done = progress ? progress.total - progress.remaining : 0
   const total = progress?.total ?? 50
   // Remember how far it got, to say so when letting go starts the count again.
@@ -66,7 +67,7 @@ function Counting({ progress, keys }: { progress: UnlockProgress | null; keys: s
             ) : progress.silent ? (
               'The keyboard isn’t answering right now. Still asking…'
             ) : restarted ? (
-              'The count started again: hold both keys at the same time.'
+              `The count started again: hold ${count === 2 ? 'both keys' : 'all of them'} at the same time.`
             ) : done === 0 ? (
               'Waiting for the keys…'
             ) : (
@@ -179,7 +180,7 @@ export function UnlockDialog() {
                 <KeyboardPicture keyboard={keyboard} layer={base} highlighted={highlighted} />
               </div>
             )}
-            <Counting progress={unlocking} keys={keys} />
+            <Counting progress={unlocking} keys={keys} count={unlockKeys.length} />
           </div>
         )}
         {step === 'done' && (

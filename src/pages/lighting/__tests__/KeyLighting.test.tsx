@@ -133,7 +133,7 @@ let rgbOverride: FakeKeychronRgb
 describe('zones', () => {
   it('moves painted keys into the chosen zone and lists each zone’s effects', async () => {
     await open(49)
-    const editor = await screen.findByRole('region', { name: 'Zones' })
+    const editor = await screen.findByRole('region', { name: 'Mixed zones' })
     expect(within(editor).getByRole('region', { name: 'Zone 1' })).toHaveTextContent('4 keys')
     act(() => within(editor).getByRole('radio', { name: /Zone 2/ }).click())
     act(() => drag('0,0', '0,1'))

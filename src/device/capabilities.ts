@@ -4,6 +4,15 @@
 
 import type { DynamicEntryCounts } from '../vendor/pipette/shared/types/protocol'
 import type { KeychronState } from '../vendor/pipette/shared/types/keychron'
+import { PER_KEY_EFFECT, ZONES_EFFECT } from './keychron-rgb'
+
+/** VialRGB's Off and Direct Control: listed by every VialRGB keyboard, never offered as effects. */
+const NOT_EFFECTS: readonly number[] = [0, 1]
+
+/** How many lighting effects there are to choose from: the ids listed, without Off, Direct Control and `hidden`. */
+export function offeredEffectCount(effects: ReadonlySet<number>, hidden: readonly number[] = []): number {
+  return [...effects].filter((id) => !NOT_EFFECTS.includes(id) && !hidden.includes(id)).length
+}
 
 export interface LightingInfo {
   /** The definition's lighting type: 'vialrgb', 'qmk_rgblight', ... or 'none'. */
@@ -85,12 +94,20 @@ export interface Capabilities {
   /** Supported QMK setting IDs; null until they have been read. */
   readonly qmkSettings: ReadonlySet<number> | null
   readonly lighting: LightingInfo | null
+  /**
+   * The lighting effects the Lighting page offers: the listed ones without Off and Direct Control, and without
+   * Keychron's Key by key and Mixed zones where the keyboard can't be painted. 0 without VialRGB lighting.
+   */
+  readonly effectCount: number
   readonly nkro: NkroMode
   check(feature: Feature): Availability
   has(feature: Feature): boolean
   hasCommand(name: string): boolean
   hasQmkSetting(qsid: number): boolean
 }
+
+/** Vial's QMK setting with Magic's switches, N-key rollover among them (qmk_settings.c, id 21). */
+const MAGIC_SETTING = 21
 
 const FEATURE_FLAG_CAPS_WORD = 0x01
 const FEATURE_FLAG_LAYER_LOCK = 0x02
@@ -164,7 +181,12 @@ export function buildCapabilities(sources: CapabilitySources): Capabilities {
       case 'debounce':
         return keychronOnly((kc) => kc.hasDebounce)
       case 'nkro':
-        return keychronOnly((kc) => kc.hasNkro)
+        // Keychron's own report where the keyboard has one (adaptive or switchable); otherwise QMK's Magic switch,
+        // where the keyboard lists that setting (21). Same split as nkroMode.
+        if (keychron?.hasNkro) return yes
+        if (sources.keychronPending) return no(STILL_LOADING)
+        if (!qmkSettings) return no(STILL_LOADING)
+        return qmkSettings.has(MAGIC_SETTING) ? yes : no(NOT_IN_FIRMWARE)
       case 'snapClick':
         return keychronOnly((kc) => kc.hasSnapClick)
       case 'keyMatrix':
@@ -188,6 +210,13 @@ export function buildCapabilities(sources: CapabilitySources): Capabilities {
     altRepeatKeys: counts.altRepeatKey,
     qmkSettings,
     lighting,
+    effectCount:
+      lighting?.kind === 'vialrgb'
+        ? offeredEffectCount(lighting.effects, [
+            ...(check('perKeyLighting').available ? [] : [PER_KEY_EFFECT]),
+            ...(check('lightingZones').available ? [] : [ZONES_EFFECT]),
+          ])
+        : 0,
     nkro: nkroMode(sources),
     check,
     has: (feature) => check(feature).available,

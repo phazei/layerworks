@@ -15,12 +15,13 @@ import { Inspector } from './keys/Inspector'
 import { layerName } from './keys/describe'
 import { useShortcutKeys } from './keys/shortcut-keys'
 
-function NothingSelected() {
+/** The card before a key is picked; `knob` mentions the knob only on a keyboard that has one. */
+export function NothingSelected({ knob }: { knob: boolean }) {
   return (
     <Card className="flex items-start gap-4">
       <MousePointerClick size={22} aria-hidden className="mt-0.5 shrink-0 text-accent" />
       <div className="flex flex-col gap-1.5">
-        <p className="font-medium">Click a key in the picture, or one side of the knob, to choose what it does.</p>
+        <p className="font-medium">Click a key in the picture{knob && ', or one side of the knob,'} to choose what it does.</p>
         <ul className="flex flex-col gap-1 text-[13px] text-muted">
           <li>To change what a key does while Fn is held, pick that layer on the left first.</li>
           <li>Every change goes to the keyboard straight away, and Undo at the bottom takes it back.</li>
@@ -32,7 +33,7 @@ function NothingSelected() {
 }
 
 /** Armed: which shortcut the next click puts on a key, on which layer, and Cancel. */
-function ArmedCard({ armed, layer }: { armed: Armed; layer: string }) {
+function ArmedCard({ armed, layer, knob }: { armed: Armed; layer: string; knob: boolean }) {
   return (
     <Card className="flex items-start gap-4 border border-accent">
       <Pointer size={22} aria-hidden className="mt-0.5 shrink-0 text-accent" />
@@ -42,7 +43,7 @@ function ArmedCard({ armed, layer }: { armed: Armed; layer: string }) {
         </p>
         <ul className="flex flex-col gap-1 text-[13px] text-muted">
           <li>
-            On {layer}. For another layer, pick it in the list of layers first. One side of the knob works too.
+            On {layer}. For another layer, pick it in the list of layers first.{knob && ' One side of the knob works too.'}
           </li>
           {armed.hint && <li>{armed.hint}</li>}
           <li>Undo at the bottom takes it back. Esc or Cancel stops without changing anything.</li>
@@ -109,14 +110,14 @@ function KeysPage() {
   if (armed) {
     return (
       <div data-tour="keys-page">
-        <ArmedCard armed={armed} layer={layerName(names, layer)} />
+        <ArmedCard armed={armed} layer={layerName(names, layer)} knob={keyboard.knobCount > 0} />
       </div>
     )
   }
   if (!selection) {
     return (
       <div data-tour="keys-page">
-        <NothingSelected />
+        <NothingSelected knob={keyboard.knobCount > 0} />
       </div>
     )
   }

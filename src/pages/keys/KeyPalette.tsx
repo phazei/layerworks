@@ -56,12 +56,14 @@ interface Props {
   tools?: ReactNode
   /** A line under the search row, when there is something to say (what "Press a key" is waiting for). */
   note?: ReactNode
+  /** Said after "No key matches …" when a search finds nothing: where else to look, if this page has somewhere. */
+  noMatch?: string
 }
 
 /** `?key-search=magic` in the URL: the palette opens with that search, for screenshots. */
 const searchFromUrl = (): string => (typeof location === 'undefined' ? '' : (new URLSearchParams(location.search).get('key-search') ?? ''))
 
-export function KeyPalette({ groups, current, picked, onPick, hint, label, tools, note }: Props) {
+export function KeyPalette({ groups, current, picked, onPick, hint, label, tools, note, noMatch }: Props) {
   const [query, setQuery] = useState(searchFromUrl)
   const [pointed, setPointed] = useState<PaletteKey | null>(null)
   const box = useRef<HTMLDivElement>(null)
@@ -154,7 +156,7 @@ export function KeyPalette({ groups, current, picked, onPick, hint, label, tools
       >
         {shown.length === 0 && (
           <p className="pt-3 text-[13px] text-muted">
-            No key matches “{query.trim()}”. If you know its QMK name, type it under More options, Key code.
+            No key matches “{query.trim()}”.{noMatch && ` ${noMatch}`}
           </p>
         )}
         {(searching ? shown : everyday).map(section)}

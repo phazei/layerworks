@@ -15,7 +15,7 @@ function TermField({ value, onChange }: { value: number; onChange: (ms: number) 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="flex min-w-36 items-center gap-0.5 text-[13px] font-medium text-muted">
-        How long counts as a hold
+        Its own hold time
         <HelpButton topic="tapping-term" />
       </span>
       <TextInput
@@ -23,7 +23,7 @@ function TermField({ value, onChange }: { value: number; onChange: (ms: number) 
         min={1}
         max={MAX_TAPPING_TERM}
         step={10}
-        aria-label="How long counts as a hold, in milliseconds"
+        aria-label="Its own hold time, in milliseconds"
         value={value}
         onChange={(e) => onChange(Math.round(Number(e.target.value)))}
         className="w-24"
@@ -63,7 +63,7 @@ export function TapDanceEditor({ index }: { index: number }) {
           code={tapDanceKeycode(index)}
           name={tapDanceTitle(index)}
           hint={unsavedHint(tapDanceTitle(index), entryIsEmpty('tapDance', draft.saved), draft.dirty)}
-          howTo={`Or, on the Keys page, click a key and pick “Multi-tap ${index}” (TD(${index})) under Multi-tap keys.`}
+          howTo={`Or, on the Keys page, click a key and pick “Multi-tap key ${index}” (TD(${index})) under Multi-tap keys.`}
         />
       }
     >

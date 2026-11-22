@@ -47,7 +47,7 @@ describe('Device, More options', () => {
     const box = within(dialog(/^Reset the keyboard/))
     expect(box.getByText('Every key on all 5 layers')).toBeTruthy()
     expect(box.getByText('Key chords')).toBeTruthy()
-    expect(box.getByText(/Stays as it is: the lighting, key colours, zones and the Caps Lock light, layer and macro names/)).toBeTruthy()
+    expect(box.getByText(/Stays as it is: the lighting, key colours, mixed zones and the Caps Lock light, layer and macro names/)).toBeTruthy()
     expect(box.getByText('Unticked, the macros stay as they are.')).toBeTruthy()
     expect(box.getByRole('button', { name: 'Save a backup first' })).toBeTruthy()
 

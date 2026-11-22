@@ -13,6 +13,7 @@ import { stage } from '../../../shell/stage-store'
 import { closeUnlock } from '../../../shell/unlock-dialog'
 import { summarize } from '../describe'
 import { clearDrafts } from '../drafts'
+import { Nothing } from '../../Shortcuts'
 
 async function go(path: string): Promise<void> {
   await act(async () => {
@@ -260,5 +261,17 @@ describe('summarize', () => {
   it('says what a macro does in one line', () => {
     expect(summarize([])).toBe('Empty')
     expect(summarize([{ kind: 'wait', ms: 200 }, { kind: 'down', key: 0xe1 }])).toBe('Waits 0.2 s, holds Left Shift')
+  })
+})
+
+describe('the card before a shortcut is picked', () => {
+  it('offers Macro 1, with the US-layout caveat, only where the firmware has macros', () => {
+    const { unmount } = render(<Nothing macros />)
+    expect(screen.getByRole('link', { name: 'Start with Macro 1' })).toBeInTheDocument()
+    expect(screen.getByText(/typed the way a US keyboard types it/)).toBeInTheDocument()
+    unmount()
+    render(<Nothing macros={false} />)
+    expect(screen.queryByRole('link', { name: 'Start with Macro 1' })).toBeNull()
+    expect(screen.getByText('This keyboard’s firmware has no macros.')).toBeInTheDocument()
   })
 })

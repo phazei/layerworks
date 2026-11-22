@@ -7,6 +7,16 @@ export const REPORT_LEN = 32
 export type LinkKind = 'cable' | 'receiver'
 
 /**
+ * The receiver in words, from the name its USB descriptor gives ("Keychron Link" → "the Keychron Link receiver"). A
+ * name that already says receiver is used as it is; an empty one becomes "the 2.4 GHz receiver".
+ */
+export function receiverName(productName: string): string {
+  const name = productName.trim()
+  if (!name) return 'the 2.4 GHz receiver'
+  return /receiver/i.test(name) ? `the ${name}` : `the ${name} receiver`
+}
+
+/**
  * A raw HID connection: reports out, reports in, nothing else. The transport (./transport) adds the request
  * queue on top. WebHID is one implementation (./webhid); tests use a fake, and a desktop shell would add its own.
  */

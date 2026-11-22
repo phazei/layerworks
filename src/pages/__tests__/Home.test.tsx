@@ -9,6 +9,7 @@ import { connectDemo, demoKeyboard, disconnect } from '../../shell/session'
 import { Shell } from '../../shell/Shell'
 import { closeUnlock } from '../../shell/unlock-dialog'
 import { describeCapabilities } from '../home/features'
+import { buildCapabilities, type CapabilitySources } from '../../device/capabilities'
 
 async function go(path: string): Promise<void> {
   await act(async () => {
@@ -118,4 +119,49 @@ describe('describeCapabilities', () => {
     const lines = describeCapabilities(deviceStore.getState().capabilities!)
     expect(lines.find((l) => l.id === 'nkro')).toMatchObject({ available: true, detail: 'the keyboard does it by itself' })
   })
+
+  it('counts the effects the Lighting page offers, without Off and Direct Control', async () => {
+    await connectDemo()
+    await waitFor(() => expect(deviceStore.getState().loading).toEqual([]))
+    const caps = deviceStore.getState().capabilities!
+    const listed = [...caps.lighting!.effects]
+    expect(caps.effectCount).toBe(listed.filter((id) => id > 1).length)
+    expect(describeCapabilities(caps).find((l) => l.id === 'lighting')?.detail).toBe(`${caps.effectCount} effects`)
+  })
 })
+
+describe('Home’s N-key rollover line, for each way a keyboard has it', () => {
+  const line = (sources: Partial<CapabilitySources>) =>
+    describeCapabilities(buildCapabilities({ ...SOURCES, ...sources })).find((l) => l.id === 'nkro')!
+  const kc = (patch: Record<string, boolean>) =>
+    ({ hasNkro: true, nkroEnabled: false, nkroSupported: false, nkroAdaptive: false, ...patch }) as unknown as CapabilitySources['keychron']
+
+  it('done by the keyboard itself', () => {
+    expect(line({ keychron: kc({ nkroAdaptive: true }) })).toMatchObject({ available: true, detail: 'the keyboard does it by itself' })
+  })
+
+  it('QMK’s switch on Typing feel', () => {
+    expect(line({})).toMatchObject({ available: true, detail: 'a switch on Typing feel' })
+  })
+
+  it('still being read', () => {
+    expect(line({ keychronPending: true })).toMatchObject({ available: false, reason: 'Still reading this from the keyboard.' })
+  })
+
+  it('a keyboard without the setting', () => {
+    expect(line({ qmkSettings: new Set([7]) })).toMatchObject({ available: false, reason: 'This keyboard’s firmware doesn’t include it.' })
+  })
+})
+
+const SOURCES: CapabilitySources = {
+  viaProtocol: 12,
+  vialProtocol: 6,
+  layers: 4,
+  knobs: 0,
+  counts: { tapDance: 0, combo: 0, keyOverride: 0, altRepeatKey: 0, featureFlags: 0 },
+  macroCount: 0,
+  macroBytes: 0,
+  qmkSettings: new Set([21]),
+  lighting: null,
+  keychron: null,
+}

@@ -120,7 +120,7 @@ describe('planning', () => {
       '1 typing setting (QMK settings)',
       'Lighting: effect, speed, colour and brightness',
       'Wireless timers: lights off after 10 min, sleep after 2 h',
-      'Debounce (5 ms)',
+      'Key bounce filter: 5 ms (debounce)',
       'Layer names (kept in this browser)',
     ])
     expect(lines.find((l) => l.part === 'macros')?.needsUnlock).toBe(true)

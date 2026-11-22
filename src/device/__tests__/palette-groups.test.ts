@@ -111,6 +111,32 @@ describe('the extra groups', () => {
   })
 })
 
+describe('what pointing at an everyday key says', () => {
+  const key = (groupId: string, id: string) => group(groupId).keys.find((k) => k.id === id)!
+
+  it('names number and symbol keys as the inspector does: “1 and !”', () => {
+    connect()
+    expect(key('numbers', 'KC_1').description).toBe('1 and !')
+    expect(key('numbers', 'KC_MINUS').description).toBe('- and _')
+    expect(keycodeTitle(parseKeycode('KC_1')!)).toBe('1 and !')
+    // Letters keep their legend: the tile says it all.
+    expect(key('letters', 'KC_A').description).toBeUndefined()
+  })
+
+  it('says what the keys that mislead by their name really do', () => {
+    connect()
+    expect(key('media', 'KC_UNDO').description).toBe('Undo key: most computers ignore it (Linux uses it); for undo, use the shortcut Ctrl + Z')
+    expect(key('mouse', 'KC_BTN1').description).toBe('Left click (mouse button 1)')
+    expect(key('mouse', 'KC_ACL0').description).toMatch(/while held/)
+    expect(key('repeat', 'QK_ALT_REPEAT_KEY').description).toMatch(/opposite/)
+  })
+
+  it('notes that the keyboard’s own keys are named by the keyboard', () => {
+    connect()
+    expect(group('keyboard').note).toMatch(/names come from the keyboard/)
+  })
+})
+
 describe('keys from the families the palette leaves out', () => {
   it('are named by their family rather than as a bare number', () => {
     connect()

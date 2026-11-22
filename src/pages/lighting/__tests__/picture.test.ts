@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { hsvCss } from '../../../ui/colour'
 import { effectInfo } from '../effects'
-import { pictureFills, pictureLayout, type KeyPlace } from '../picture'
+import { CYCLE_MOMENT, pictureFills, pictureLayout, type KeyPlace } from '../picture'
 
 /** Three keys in a row and one under the middle one. */
 const KEYS: KeyPlace[] = [
@@ -24,8 +24,14 @@ describe('the still picture', () => {
     expect(pictureLayout(effectInfo(22), true)).toEqual({ kind: 'rainbow', direction: 'around' })
     expect(pictureLayout(effectInfo(30), true)).toEqual({ kind: 'fixed', hue: 85 })
     expect(pictureLayout(effectInfo(25), true)).toEqual({ kind: 'scattered' })
-    // Colour-cycling effects with no direction of their own.
-    expect(pictureLayout(effectInfo(13), true)).toEqual({ kind: 'rainbow', direction: 'across' })
+    // Rainbow, all keys: every key shares one changing colour, so no rainbow across the keys.
+    expect(pictureLayout(effectInfo(13), true)).toEqual({ kind: 'cycle' })
+  })
+
+  it('shows one moment of a colour-cycling effect: every key the same colour, whatever colour is chosen', () => {
+    const fills = pictureFills(KEYS, { kind: 'cycle' }, { hue: 170, sat: 200, val: 255 })
+    expect(new Set([...fills.values()].map((f) => f.colour))).toEqual(new Set([hsvCss(CYCLE_MOMENT, 200)]))
+    expect(fills.size).toBe(4)
   })
 
   it('tints every key with the colour at the brightness set', () => {

@@ -8,6 +8,7 @@ import { deviceStore } from '../../device'
 import { connectDemo, demoKeyboard, disconnect } from '../session'
 import { Shell } from '../Shell'
 import { closeUnlock, openUnlock } from '../unlock-dialog'
+import { Counting } from '../UnlockDialog'
 
 const ESC = '0,1'
 const ENTER = '3,14'
@@ -133,5 +134,16 @@ describe('the unlock dialog', () => {
 
     await waitFor(() => expect(card).toHaveTextContent('Locked'))
     expect(within(card).getByRole('button', { name: 'Unlock…' })).toBeInTheDocument()
+  })
+})
+
+describe('the count, when it starts again', () => {
+  it('asks for both keys on a keyboard with two, all of them on one with more', () => {
+    const progress = (remaining: number) => ({ remaining, total: 50, silent: false })
+    const { rerender } = render(<Counting progress={progress(40)} keys="Esc and Enter" count={2} />)
+    rerender(<Counting progress={progress(50)} keys="Esc and Enter" count={2} />)
+    expect(screen.getByText('The count started again: hold both keys at the same time.')).toBeInTheDocument()
+    rerender(<Counting progress={progress(50)} keys="Esc, Enter and Space" count={3} />)
+    expect(screen.getByText('The count started again: hold all of them at the same time.')).toBeInTheDocument()
   })
 })

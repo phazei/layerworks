@@ -380,7 +380,7 @@ const topics = {
     title: 'Keys that swap or switch off keys',
     qmkName: 'Magic keycodes, CL_SWAP, GU_TOGG, NK_TOGG …',
     body: [
-      'A press changes one of the keyboard’s switches for swapped and disabled keys: swap Caps Lock and Ctrl, swap Esc and Caps Lock, swap Alt and Win for a Mac, switch the Windows keys off for a game, or let the computer see any number of keys at once (N-key rollover; Keychron keyboards do that by themselves, adaptive N-key rollover, so on them the app doesn’t offer those keys). The keyboard remembers the switch until it is changed again.',
+      'A press changes one of the keyboard’s switches for swapped and disabled keys: swap Caps Lock and Ctrl, swap Esc and Caps Lock, swap Alt and Win for a Mac, switch the Windows keys off for a game, or let the computer see any number of keys at once (N-key rollover; keyboards that do that by themselves, adaptive N-key rollover, which Keychron’s firmware uses, say so, and there the app doesn’t offer those keys). The keyboard remembers the switch until it is changed again.',
       'Most of the same switches are on the Typing feel page, under Swapped and disabled keys; swapping Esc and Caps Lock is only here, as keys. A key for them is handy for switching often without opening the app. “Toggle” keys flip the switch each press; the others set it one way.',
     ],
     example: 'Put “Windows keys off, or on again” on a key of an Fn layer: one press before a game, one after.',
@@ -769,7 +769,7 @@ const topics = {
     title: 'More tap-or-hold settings',
     qmkName: 'Retro Tapping, Quick Tap Term, Flow Tap, Tapping Toggle, Tap Hold Caps Delay, Tap Code Delay',
     body: [
-      'Under More options on the Tap or hold card. Tap anyway when held alone (Retro Tapping): a tap-or-hold key held past its time and let go with nothing else pressed still sends its tap. Tap, then hold to repeat (Quick Tap Term): tap the key, then press and hold it again within this time, and it repeats its tap key instead of acting as held. Taps only while typing fast (Flow Tap): a tap-or-hold letter pressed within this time after another letter, Space or punctuation is always a tap. For the last two, 0 turns them off.',
+      'Under More options on the Tap or hold card. Tap anyway when held alone (Retro Tapping): a tap-or-hold key held past its time and let go with nothing else pressed still sends its tap. Tap, then hold to repeat (Quick Tap Term): tap the key, then press and hold it again within this time, and it repeats its tap key instead of acting as held (it works up to “How long counts as a hold”; longer makes no difference). Taps only while typing fast (Flow Tap): a tap-or-hold letter pressed within this time after another letter, Space or punctuation is always a tap. For the last two, 0 turns them off.',
       'Taps to lock a layer on (Tapping Toggle) is how many taps keep a layer on with a “Hold for a layer, or tap it 5 times to keep it on” key. Caps Lock press length and Length of taps the keyboard sends only matter if a program, or macOS, misses taps the keyboard makes by itself.',
       'Keyboards with older firmware show a few of these as switches instead (marked “older firmware” in QMK’s names), with two more: Ignore other keys while deciding, where only the time decides, and No repeat after a quick tap, the opposite of Tap, then hold to repeat.',
     ],
@@ -833,7 +833,7 @@ const topics = {
     body: [
       'Switches that change what modifier keys do on every layer at once, without editing each key: swap Caps Lock and Ctrl, swap Alt and Win for a Mac, or switch the Windows keys off for games. Swapping Esc and Caps Lock has no switch here; it is a key on the Keys page.',
       'The keys still show their own names on the Keys page; the swap happens in the keyboard after that. Turn the switch off to undo it.',
-      'Here too, under More options: “Any number of keys at once” (N-key rollover), which lets the computer see every key held together rather than six; the switch turns it on and off. A few BIOS screens and old computers don’t understand it; turn it off if keys stop working there. Keychron keyboards do it by themselves (adaptive N-key rollover): they send keys the ordinary way and switch over once more than six are held. The keyboard tells the app so, and on such a keyboard the app doesn’t show the switch or the keys for it.',
+      'Here too, under More options: “Any number of keys at once” (N-key rollover), which lets the computer see every key held together rather than six; the switch turns it on and off. A few BIOS screens and old computers don’t understand it; turn it off if keys stop working there. Some keyboards do it by themselves (adaptive N-key rollover, which Keychron’s firmware uses): they send keys the ordinary way and switch over once more than six are held. Such a keyboard tells the app so, and there the app doesn’t show the switch or the keys for it.',
     ],
     example: 'Turn on “Windows keys do nothing” before a game, and off again afterwards.',
     docs: QMK + 'keycodes_magic',
@@ -883,7 +883,7 @@ const topics = {
     title: 'Resetting the typing settings',
     qmkName: 'Reset QMK Settings (Vial)',
     body: [
-      'Puts every setting on this page back to how the firmware came, in one go: the timings, Capitals by holding, the mouse keys, and the swapped and disabled keys. The key bounce filter and Snap Click are Keychron’s and stay as they are.',
+      'Puts every setting on this page back to how the firmware came, in one go: the timings, Capitals by holding, the mouse keys, and the swapped and disabled keys, including the Esc and Caps Lock swap and N-key rollover, which can also be set with keys. One-tap modifiers are switched on again, even if a key had switched them off. The key bounce filter and Snap Click are Keychron’s and stay as they are.',
       'It can’t be undone with Undo, so make a backup first (Device page) if you might want your settings back.',
     ],
     example: 'Lost track of what you changed and the keyboard feels odd? Back up, then reset, and start again from the firmware’s own settings.',
@@ -924,7 +924,7 @@ const topics = {
   backup: {
     title: 'Making a backup',
     body: [
-      'A backup is one file with everything the keyboard holds: every key on every layer, the knob, macros, multi-tap keys, key chords, shortcut replacements and repeat rules, typing settings, the lighting with key colours, zones and the Caps Lock light, the key bounce filter, Snap Click and the wireless timers. The names you gave layers and macros, which live in this browser, go in it too.',
+      'A backup is one file with everything the keyboard holds: every key on every layer, the knob, macros, multi-tap keys, key chords, shortcut replacements and repeat rules, typing settings, the lighting with key colours, mixed zones and the Caps Lock light, the key bounce filter, Snap Click and the wireless timers. The names you gave layers and macros, which live in this browser, go in it too.',
       'Saving a backup only reads from the keyboard; nothing on it changes. Keep the file somewhere safe and make a new one after big changes.',
     ],
     example: 'Back up before flashing new firmware; afterwards, restore the file to get your layout back.',
@@ -1002,7 +1002,7 @@ const topics = {
     qmkName: 'Dynamic keymap reset (VIA); Keychron factory reset',
     body: [
       'The firmware has a keymap built in, the one it came with. Resetting puts it back on every layer and the knob, and clears what was set up on top: the typing settings, multi-tap keys, key chords, shortcut replacements and repeat rules. Macros stay unless you tick “Empty the macros too”; neither needs the keyboard unlocked.',
-      'The lighting, the key colours and zones, the Caps Lock light, the layer and macro names, and Keychron’s key bounce filter, Snap Click and wireless timers stay as they are. Undo can’t bring the old setup back, and resetting empties Undo, so save a backup first: restoring it puts everything back.',
+      'The lighting, the key colours and mixed zones, the Caps Lock light, the layer and macro names, and Keychron’s key bounce filter, Snap Click and wireless timers stay as they are. Undo can’t bring the old setup back, and resetting empties Undo, so save a backup first: restoring it puts everything back.',
       'Keychron keyboards also have a factory reset of their own, on the keyboard: hold Fn, J and Z together for about three seconds. It wipes everything the keyboard holds, the key bounce filter, Snap Click, lighting and wireless timers included, and forgets its Bluetooth and 2.4 GHz pairings. Back up first.',
     ],
     example: 'Lost track of what you changed? Save a backup, reset, and start from the firmware’s own keys.',

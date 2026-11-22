@@ -99,7 +99,7 @@ describe('key chords', () => {
 })
 
 describe('what the pickers offer', () => {
-  const picker = () => within(screen.getByRole('group', { name: 'Key for this step' }))
+  const picker = () => within(screen.getByRole('group', { name: /^Key for / }))
   const groups = () => picker().getAllByRole('region').map((region) => region.getAttribute('aria-label'))
 
   it('offers a chord the less common keys too, and names them in the summary', async () => {
@@ -111,6 +111,14 @@ describe('what the pickers offer', () => {
     expect(within(section('Key chords')).getAllByRole('link')[0]).toHaveTextContent('J + K together → Capitals for one word (Caps Word)')
     await click('Save to keyboard')
     expect(entries().combo[0].output).toBe(0x7c73)
+  })
+
+  it('says only that nothing matches: a picker has no Key code field to point to', async () => {
+    await show('#/shortcuts/chord/1')
+    await click('Change sends')
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search keys' }), { target: { value: 'nothing like it' } })
+    expect(screen.getByText('No key matches “nothing like it”.')).toBeInTheDocument()
+    expect(screen.queryByText(/Key code/)).toBeNull()
   })
 
   it('offers a shortcut replacement only keys the keyboard can send there', async () => {

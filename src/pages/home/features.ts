@@ -32,7 +32,8 @@ const FEATURES: [Feature, FeatureText][] = [
     {
       name: 'Lighting effects',
       qmkName: 'RGB Matrix',
-      detail: (c) => (c.lighting && c.lighting.effects.size > 0 ? `${c.lighting.effects.size} effects` : undefined),
+      // The effects the Lighting page offers (no Off or Direct Control), the number that page shows.
+      detail: (c) => (c.effectCount > 0 ? `${c.effectCount} effect${c.effectCount === 1 ? '' : 's'}` : undefined),
     },
   ],
   ['perKeyLighting', { name: 'A colour for each key', qmkName: 'Per-key RGB' }],
@@ -47,8 +48,17 @@ const FEATURES: [Feature, FeatureText][] = [
   ['liveLayer', { name: 'Shows which layer is on' }],
   ['battery', { name: 'Wireless and battery' }],
   ['debounce', { name: 'Key bounce filter', qmkName: 'Debounce' }],
-  // Where the keyboard does it by itself (Keychron's adaptive N-key rollover) there is nothing to set: it says so.
-  ['nkro', { name: 'Any number of keys at once', qmkName: 'NKRO', detail: (c) => (c.nkro === 'automatic' ? 'the keyboard does it by itself' : undefined) }],
+  // Where the keyboard does it by itself (adaptive N-key rollover) there is nothing to set: it says so. Otherwise the
+  // switch is QMK's, on Typing feel, where the keyboard lists that setting.
+  [
+    'nkro',
+    {
+      name: 'Any number of keys at once',
+      qmkName: 'NKRO',
+      detail: (c) =>
+        c.nkro === 'automatic' ? 'the keyboard does it by itself' : c.nkro === 'setting' && c.hasQmkSetting(21) ? 'a switch on Typing feel' : undefined,
+    },
+  ],
   ['snapClick', { name: 'Snap Click', qmkName: 'SOCD' }],
 ]
 

@@ -63,8 +63,9 @@ export function Backup() {
         <div className="flex flex-col gap-2">
           <h3 className="font-medium">Save everything on this keyboard to a file</h3>
           <p className="text-[13px] text-muted">
-            Every key on every layer, the knob, macros, typing settings, lighting, and the names you gave layers and macros. Saving only
-            reads; nothing on the keyboard changes.
+            Every key on every layer, the knob, macros and the other shortcuts, typing settings (the key bounce filter and
+            Snap Click too), the lighting with key colours and mixed zones, the wireless timers, and the names you gave
+            layers and macros. Saving only reads; nothing on the keyboard changes.
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <Button
@@ -109,8 +110,8 @@ export function Backup() {
       <Disclosure id="device-vial" label="Vial files">
         <div className="flex flex-col gap-2">
           <p className="flex items-center gap-1 text-[13px] text-muted">
-            A layout file for Vial, the app this firmware was made for. It has no lighting, wireless timers or layer
-            names.
+            A layout file for Vial, the app this firmware was made for. It has the keys, knob, macros, shortcuts and
+            typing settings only: no lighting, Keychron settings, wireless timers, or layer and macro names.
             <HelpButton topic="vial-file" />
           </p>
           <div>

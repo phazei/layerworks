@@ -219,8 +219,10 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
   battery (on 2.4 GHz, when known), the active layer by name, firmware version and lock state (with Unlock… while
   locked; the facts' "?" sit beside their labels); four shortcut
   tiles (keys, lighting, backup, test); and what the keyboard can do, from `capabilities`
-  (`home/features.ts` gives each feature its friendly and QMK name; N-key rollover reads "the keyboard does it by
-  itself" where the keyboard reports adaptive N-key rollover), with the missing ones and their reasons
+  (`home/features.ts` gives each feature its friendly and QMK name; lighting counts the effects the Lighting page
+  offers, `capabilities.effectCount`, without Off and Direct Control; N-key rollover reads "the keyboard does it by
+  itself" where the keyboard reports adaptive N-key rollover, and "a switch on Typing feel" where it is QMK's
+  setting 21, and is available exactly where one of the two applies), with the missing ones and their reasons
   behind a `Disclosure`. With no keyboard it shows the connect prompt and three lines on what the app is for.
 - **Keys** (`Keys.tsx`, `keys/`): click a key or one side of the knob on the stage; with nothing selected the
   page says so. Armed from a shortcut's "Put it on a key…" (see Shortcuts & macros, the macro editor), it says
@@ -243,7 +245,10 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
   - **A key** (`keys/KeyPalette.tsx`): `keyPalette()` groups as key tiles in a box that scrolls and fills the
     space left; the current key is marked and scrolled into view. The search matches label, description and QMK
     names (a single character only matches a label, so "a" finds A); the line beside it says what the key under
-    the pointer does. A click assigns. Beside the search, "Press a key" (`keys/PressKey.tsx`, also for a knob
+    the pointer does (`plainDescription`: the friendly words, "1 and !" for a number or symbol key, and plain words
+    in `PLAIN` where the vendored name misleads, such as the Undo or Copy key most computers ignore, the mouse
+    buttons and the mouse speed keys). When nothing matches it says so, and only the Keys page's "A key" adds where
+    to type a QMK name (the `noMatch` prop; the pickers elsewhere have no Key code field). A click assigns. Beside the search, "Press a key" (`keys/PressKey.tsx`, also for a knob
     direction) takes the next key pressed on the keyboard and assigns it through the same path as a tile (one undo
     step; the firmware update key still asks to unlock). Locked, it listens to the browser's key events
     (`ui/KeyCapture.tsx`'s `useKeyCapture`, `keycodeOfEvent`), so only keys the computer receives count, and a line
@@ -357,9 +362,11 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     of the lighting, not an animation (`lighting/EffectPicture.tsx`, `lighting/picture.ts`). It works from what
     `effects.ts` knows (`hue`, `preview`): effects that use the colour tint every key with it; rainbow effects show
     a fixed rainbow from the keys' real positions, left to right, top to bottom, in rings or round the middle (of
-    each half for the two-centre ones), as the effect runs; effects that cycle colours over time get the left to
-    right rainbow; Digital rain is green, the heat map blue, the random raindrops scattered colours; lights off is
-    black keys. Brightness and vividness apply, live with the sliders. A line beside it says what it shows.
+    each half for the two-centre ones), as the effect runs; Rainbow, all keys (every key one colour that keeps
+    changing) shows one moment of it, every key the same colour (`cycle`); Digital rain is green, the heat map blue,
+    the random raindrops scattered colours; lights off is black keys. Brightness and vividness apply, live with the
+    sliders. A line beside it says what it shows: for One colour that every key has the colour; for the other
+    colour effects that the effect decides which keys light, and when, since most of them leave keys dark.
   - *Caps Lock light* (`lighting/LockLights.tsx`, when `capabilities.has('lockLights')`): worded for the lock lights
     the keyboard reports ("Caps Lock light"; "Lock lights" with a switch each when it has several), a switch per
     light, then colour and vividness as sliders like the main ones; brightness (128 – 255, the firmware's floor)
@@ -520,7 +527,7 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     - *Shortcut replacement*: hold (modifiers), and press (key), to send instead (key), let go of while sending
       (modifiers), on / off. More options: the three modifier sets left and right apart (must be held, must not be
       held, let go of), the layers it works on, and the six option flags in words.
-    - *Multi-tap key*: tap, hold, tap twice; More options: tap then hold, and how long counts as a hold (ms, with
+    - *Multi-tap key*: tap, hold, tap twice; More options: tap then hold, and its own hold time (ms, with
       150 – 300 ms choices). "Runs when you press" lists the keys with its TD(n), as for macros.
     - *Repeat rule*: after (key), the repeat key sends (key), on / off; More options: modifiers it still applies
       with, both ways, left and right the same, and fallback for every other key. "Runs when you press" lists where
