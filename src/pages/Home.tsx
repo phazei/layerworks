@@ -2,7 +2,7 @@
 // Home, the landing page: the keyboard at a glance, shortcuts to the common jobs, and what the keyboard can do.
 // With no keyboard it welcomes the visitor around the connect prompt, so it works offline.
 
-import { HardDriveDownload, House, Keyboard, Palette, ScanLine } from 'lucide-react'
+import { Command, HardDriveDownload, House, Keyboard, Palette, ScanLine } from 'lucide-react'
 import { useDevice } from '../device'
 import type { PageDef } from '../plugins/api'
 import { ActionTile } from '../ui/display'
@@ -13,6 +13,9 @@ import { Welcome } from './home/Welcome'
 const ICON = 20
 
 function Shortcuts() {
+  // Compatibility: where the app can't change the lighting (backlight, underglow, none; device/capabilities.ts,
+  // 'lighting'), the second tile goes to Shortcuts & macros instead of a page that can only say so.
+  const lighting = useDevice((s) => s.capabilities?.has('lighting') ?? true)
   return (
     <nav aria-label="Shortcuts" className="grid gap-3 sm:grid-cols-2">
       <ActionTile
@@ -21,12 +24,21 @@ function Shortcuts() {
         title="Change what a key does"
         description="Click a key on the picture and choose what it should do."
       />
-      <ActionTile
-        href="#/lighting"
-        icon={<Palette size={ICON} aria-hidden />}
-        title="Pick a lighting effect"
-        description="Effects, colour, speed and brightness."
-      />
+      {lighting ? (
+        <ActionTile
+          href="#/lighting"
+          icon={<Palette size={ICON} aria-hidden />}
+          title="Pick a lighting effect"
+          description="Effects, colour, speed and brightness."
+        />
+      ) : (
+        <ActionTile
+          href="#/shortcuts"
+          icon={<Command size={ICON} aria-hidden />}
+          title="Make a macro or shortcut"
+          description="Type text or a series of keys with one key, and more."
+        />
+      )}
       <ActionTile
         href="#/device"
         icon={<HardDriveDownload size={ICON} aria-hidden />}

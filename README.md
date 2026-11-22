@@ -1293,7 +1293,9 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   and the rest where the firmware has none of them either").
 
 - **Lighting the app can't change** (backlight, underglow, none). Home says "Keys change freely", not "Keys and
-  lighting". Decided by the `lighting` capability (`device/capabilities.ts`), read in `pages/home/Status.tsx`. Test:
+  lighting", and its second shortcut tile is "Make a macro or shortcut" instead of "Pick a lighting effect".
+  Decided by the `lighting` capability (`device/capabilities.ts`), read in `pages/home/Status.tsx` and
+  `pages/Home.tsx`. Test:
   `pages/__tests__/Home.test.tsx` ("Home on a keyboard whose lighting the app can't change").
 
 - **Backups made on firmware that numbers keys differently.** A backup keeps raw keycode numbers; vial-qmk renumbered

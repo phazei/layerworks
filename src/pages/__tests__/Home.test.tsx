@@ -43,6 +43,18 @@ describe('Home on a keyboard whose lighting the app can’t change', () => {
     await waitFor(() => expect(glance).toHaveTextContent('Keys change freely; a few powerful changes ask first.'))
     expect(glance).not.toHaveTextContent('lighting change')
   })
+
+  it('offers macros and shortcuts in place of a lighting effect among the shortcuts (the demo Corne)', async () => {
+    history.replaceState(null, '', '/?demo-keyboard=corne')
+    await connectDemo()
+    await waitFor(() => expect(deviceStore.getState().loading).toEqual([]))
+    await go('#/')
+    render(<Shell />)
+    const tiles = screen.getByRole('navigation', { name: 'Shortcuts' })
+    expect(within(tiles).queryByRole('link', { name: /Pick a lighting effect/ })).toBeNull()
+    expect(within(tiles).getByRole('link', { name: /Make a macro or shortcut/ })).toHaveAttribute('href', '#/shortcuts')
+    history.replaceState(null, '', '/')
+  })
 })
 
 describe('Home on the demo keyboard', () => {
