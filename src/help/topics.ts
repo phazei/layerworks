@@ -726,7 +726,7 @@ const topics = {
     title: 'Mixed zones',
     qmkName: 'Keychron mixed RGB, lighting zones',
     body: [
-      'With the “Mixed zones” effect the keyboard is split into zones, and each zone plays its own effects. Every key belongs to one zone; paint keys to move them.',
+      'With the “Mixed zones” effect the keyboard is split into zones, and each zone plays its own effects. Every key belongs to one zone; paint keys to move them. Each zone’s keys are outlined in its own colour and its own line (solid, dashed, dotted, dash and dot), shown beside the zone’s name too, so zones can be told apart without telling colours apart.',
       'A zone can play several effects in turn, each for as long as you set, fading from one to the next. Each effect has its own colour and speed; brightness is the keyboard’s.',
     ],
     example: 'W, A, S and D breathing red in one zone while the rest of the keyboard plays a rainbow wave.',

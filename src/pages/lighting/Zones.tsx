@@ -25,10 +25,8 @@ import { Select } from '../../ui/Select'
 import { EffectPreview } from './EffectPreview'
 import { EFFECT_GROUPS, effectInfo, type EffectInfo, type EffectRename } from './effects'
 import { useKeyLighting } from './key-lighting'
+import { ZoneMark, zoneOutline, type ZoneOutline } from './zone-marks'
 
-/** Outline colours for the zones on the picture. Data colours: the same in both themes, apart in hue. */
-export const ZONE_COLOURS = ['hsl(36 95% 55%)', 'hsl(188 85% 48%)', 'hsl(300 75% 62%)', 'hsl(120 60% 48%)']
-const zoneColour = (zone: number) => ZONE_COLOURS[zone % ZONE_COLOURS.length]
 
 const EMPTY: ZoneEffect = { effect: 0, hue: 0, sat: 0, speed: 0, time: 0 }
 const DEFAULT_TIME = 5000
@@ -50,8 +48,8 @@ export function Zones({ renames }: { renames: Readonly<Record<number, EffectRena
   if (!pending.regions) working.current = regions
 
   const outlines = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const [pos, led] of leds) map.set(pos, zoneColour(regions[led] ?? 0))
+    const map = new Map<string, ZoneOutline>()
+    for (const [pos, led] of leds) map.set(pos, zoneOutline(regions[led] ?? 0))
     return map
   }, [leds, regions])
 
@@ -98,7 +96,7 @@ export function Zones({ renames }: { renames: Readonly<Record<number, EffectRena
                 value: String(z),
                 label: (
                   <span className="inline-flex items-center gap-1.5">
-                    <span aria-hidden className="size-2.5 rounded-pill" style={{ backgroundColor: zoneColour(z) }} />
+                    <ZoneMark zone={z} size={13} />
                     Zone {z + 1}
                   </span>
                 ),
@@ -152,7 +150,7 @@ function ZoneEffects({ zone, keys, effects, numbers, renames }: ZoneProps) {
   return (
     <section aria-label={`Zone ${zone + 1}`} className="rounded-card border border-edge p-4">
       <h3 className="mb-3 flex items-center gap-2 font-medium">
-        <span aria-hidden className="size-3 rounded-pill" style={{ backgroundColor: zoneColour(zone) }} />
+        <ZoneMark zone={zone} />
         Zone {zone + 1}
         <span className="text-[13px] font-normal text-muted">
           · {keys} {keys === 1 ? 'key' : 'keys'}

@@ -45,8 +45,11 @@ interface Props {
    * dark, otherwise light, in either theme.
    */
   fills?: ReadonlyMap<string, { colour: string; light: boolean }>
-  /** "row,col" → a CSS colour for a thick outline (lighting zones). */
-  outlines?: ReadonlyMap<string, string>
+  /**
+   * "row,col" → a thick outline (lighting zones): its CSS colour, and a stroke-dasharray so outlines can differ by
+   * their line as well as their colour (empty for solid); `round` gives the line round ends (dots).
+   */
+  outlines?: ReadonlyMap<string, PictureOutline>
   /** The layers' names, for layer keys ("Hold" over "Fn2"). Default: the connected keyboard's (shell/layer-names.ts). */
   layerNames?: readonly string[]
 }
@@ -83,18 +86,28 @@ function knobRules(scope: string, turned: ReadonlySet<string> = new Set(), seen:
   ].join('\n')
 }
 
+/** A thick outline round a key: its CSS colour, its stroke-dasharray (empty for solid), and round line ends. */
+export interface PictureOutline {
+  colour: string
+  dash: string
+  round?: boolean
+}
+
 /**
  * The key's outer shape is the first child of its <g data-key-pos>; rules scoped to this picture outline it, and
  * colour the labels of filled keys (the widget's own choice only knows its own fills).
  */
 function keyRules(
   scope: string,
-  outlines: ReadonlyMap<string, string> = new Map(),
+  outlines: ReadonlyMap<string, PictureOutline> = new Map(),
   fills: ReadonlyMap<string, { light: boolean }> = new Map(),
 ): string {
   const at = (pos: string) => `[data-picture="${scope}"] [data-key-pos="${pos}"]`
   return [
-    ...[...outlines].map(([pos, colour]) => `${at(pos)} > :first-child { stroke: ${colour}; stroke-width: 3.5px }`),
+    ...[...outlines].map(
+      ([pos, { colour, dash, round }]) =>
+        `${at(pos)} > :first-child { stroke: ${colour}; stroke-width: 3.5px; stroke-dasharray: ${dash || 'none'}; stroke-linecap: ${round ? 'round' : 'butt'} }`,
+    ),
     ...[...fills].map(([pos, { light }]) => `${at(pos)} text { fill: var(${light ? '--key-label-on-light' : '--key-label-on-dark'}) }`),
   ].join('\n')
 }

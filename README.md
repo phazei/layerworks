@@ -890,7 +890,10 @@ style, the zone of every LED and each zone's effect slots.
   modifiers from the base layer's keycodes, and each matrix row; `lighting/key-groups.ts`), three starting
   points, and the style. Zones: pick a zone and paint keys into it; per zone, its effects with the grid's names and
   previews, their colour, vividness and speed where the effect uses them, and how long each plays when there are
-  several.
+  several. Each zone is outlined in its own colour and its own line, solid, dashed, dotted, dash-dot
+  (`lighting/zone-marks.tsx`), with the same mark beside its name, so zones differ by more than colour (orange and
+  green look alike to someone who can't tell red from green). The colours are data, the same in both themes except
+  that the light theme takes a darker shade (`light-dark()`), so each outline is 3:1 against the keys in both.
 - **Lock lights** (`0xA8 0x03` / `0x04`, `os_indicator_config_t`, read at load into `rgb.osIndicatorConfig`): which
   lock lights the keyboard has (bits Num, Caps, Scroll, Compose, Kana; the K15 Max has only Caps Lock), an off bit
   each, and one colour for all (hue, saturation, brightness; the firmware raises a brightness under 128 to 128). A
