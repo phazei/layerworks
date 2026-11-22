@@ -24,7 +24,7 @@ function buildCommit(): string {
 export default defineConfig(({ mode }) => {
   const commit = mode === 'test' ? TEST_COMMIT : buildCommit()
   return {
-    // Relative addresses, so one build works wherever it is served from: https://phazei.github.io/layerworks/, a
+    // Relative addresses, so one build works wherever it is served from: https://layerworks.tybyfy.com/, a
     // fork under another name, a local preview at /. The app's routes are after the # and never touch the path.
     base: './',
     plugins: [react(), tailwindcss(), layerworksNotices(commit)],

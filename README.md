@@ -1053,11 +1053,15 @@ macros) and the restart for a firmware update (locked, through the receiver, uns
 
 ## Hosting
 
-The page is published at https://phazei.github.io/layerworks/ by `.github/workflows/pages.yml`: on every push to
+The page is published at https://layerworks.tybyfy.com/ by `.github/workflows/pages.yml`: on every push to
 `main` (and by hand from the Actions tab) it installs with the pnpm in `packageManager`, runs typecheck, lint and
 tests, builds, and deploys with GitHub's Pages actions. The repository must be public, with Settings → Pages →
 Source set to "GitHub Actions".
 
+- **The address** is GitHub Pages under a domain of its own: a DNS `CNAME` record `layerworks` →
+  `phazei.github.io` at the registrar of `tybyfy.com` (Porkbun), and `layerworks.tybyfy.com` as the custom domain
+  in Settings → Pages, with "Enforce HTTPS" on (WebHID needs HTTPS). The workflow deploys an artifact, so no
+  `CNAME` file is needed in the repo. `https://phazei.github.io/layerworks/` redirects there.
 - **Any path.** `base: './'` in `vite.config.ts` makes every address in the build relative, so the same `dist/`
   works under `/layerworks/`, under a fork's name or at `/`; the routes are after the `#`. To try it as published:
   `pnpm build`, then `node scripts/serve.mjs --sub-path=/layerworks/` (http://localhost:5198/layerworks/).
@@ -1071,8 +1075,9 @@ Source set to "GitHub Actions".
   text stops the build. The GPL's text goes beside it as `dist/LICENSE.txt`. About links both.
 - **Project facts** (copyright holder, source and issues addresses) are constants in `src/project.ts`, used by
   About and the licences file.
-- Nothing is loaded from other servers (no fonts, analytics or CDNs). Every `phazei.github.io` project shares one
-  origin, so everything the app keeps in the browser is named `layerworks:…` (`src/ui/prefs.ts`).
+- Nothing is loaded from other servers (no fonts, analytics or CDNs). Everything the app keeps in the browser is
+  named `layerworks:…` (`src/ui/prefs.ts`), so it stays apart from other pages wherever the build is served (a
+  fork on `<name>.github.io` shares its origin with that account's other projects).
 
 ## Licence
 

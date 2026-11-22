@@ -1,10 +1,10 @@
 {
   "name": "layerworks",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Layerworks: a beginner-friendly configurator for keyboards on Vial firmware, with Keychron's extras",
   "license": "GPL-3.0-or-later",
-  "homepage": "https://phazei.github.io/layerworks/",
+  "homepage": "https://layerworks.tybyfy.com/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/phazei/layerworks.git"

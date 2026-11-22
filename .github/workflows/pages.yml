@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Checks, builds and publishes Layerworks to GitHub Pages (https://phazei.github.io/layerworks/) on every push to
+# Checks, builds and publishes Layerworks to GitHub Pages (https://layerworks.tybyfy.com/) on every push to
 # main, and when started by hand (Actions tab, "Publish to GitHub Pages", "Run workflow").
 name: Publish to GitHub Pages
 

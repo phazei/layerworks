@@ -64,15 +64,9 @@ address in the history stays (already public on the user's other repos). The wor
 (`.github/workflows/pages.yml`) has never run: its first run is the user's first push after the repo is public.
 Left open:
 
-- **The address.** The user owns `tybyfy.com` and is thinking of `layerworks.tybyfy.com` instead of
-  `phazei.github.io/layerworks/`. Better decided before release: the browser ties the keyboard permission and the
-  stored names to the address, and an own address shares its storage with no other project. If chosen: a DNS
-  `CNAME` record `layerworks` → `phazei.github.io` (the user), the domain entered in Settings → Pages (the user;
-  no `CNAME` file is needed when the workflow deploys), and the address in README "Hosting", `package.json`
-  `homepage` and the workflow's comment. The build is relative, so nothing else changes.
-- **The version** shown in About is `0.0.0` (`package.json`); a release wants a real one.
-- **"Report a problem"** is in About and on Help's start page, not beside the connect error (left out so people
-  don't open issues for problems on their own computer).
+- **The address** is `https://layerworks.tybyfy.com/` (the user's own domain, registered at Porkbun; decided), and
+  the first release is `0.1.0` (`package.json`). "Report a problem" goes to the GitHub issues, from About and
+  Help's start page, and not from the connect error (the user agrees).
 - The bundle is one chunk, 857 kB (275 kB gzipped); the builder advises against splitting pages, at most React in
   a chunk of its own. `pnpm audit --prod` is clean; one moderate finding in a lint-only package (minimatch).
 - The user's steps on GitHub are under "Waiting on the user".
@@ -117,8 +111,10 @@ Left open:
 
 ## Waiting on the user
 - **Publishing, once on GitHub** (after the documents round): make the repo public (Settings → General → Danger
-  Zone); Settings → Pages → Build and deployment → Source: "GitHub Actions"; push `main` (or run "Publish to
-  GitHub Pages" from the Actions tab). If the first run fails at install, `node-hid` (a dev dependency with a
+  Zone); Settings → Pages → Build and deployment → Source: "GitHub Actions"; at Porkbun, a DNS record for
+  `tybyfy.com`: type `CNAME`, host `layerworks`, answer `phazei.github.io`; Settings → Pages → Custom domain:
+  `layerworks.tybyfy.com`, and tick "Enforce HTTPS" once the certificate is issued; push `main` (or run "Publish
+  to GitHub Pages" from the Actions tab). If the first run fails at install, `node-hid` (a dev dependency with a
   native part) is the likely cause.
 - The user is testing page by page and reports bugs as found; the dev server (`pnpm dev`) is open while agents
   edit, so the user sees work in progress.
