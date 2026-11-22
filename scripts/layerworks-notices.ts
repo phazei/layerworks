@@ -67,6 +67,14 @@ Pipette is built on Vial GUI, https://github.com/vial-kb/vial-gui (GNU GPL versi
 tables, layout parser, protocol and Keychron code are ported from Vial GUI and from tymon3310's version of it.`,
       },
       {
+        title: 'Keyboard definitions from vial-qmk',
+        when: has('/src/demo/keyboards/'),
+        body: `The demo keyboard can stand in for a few other keyboards (a developer option, ?demo-keyboard=). Their
+definitions (the vial.json of each keyboard's Vial keymap) come from vial-qmk, https://github.com/vial-kb/vial-qmk,
+licensed under the GNU GPL version 2 or later; each file in src/demo/keyboards/ of Layerworks' source names the
+folder and commit it was taken from. Layerworks uses them under the GNU GPL version 3 (${LICENSE_FILE}).`,
+      },
+      {
         title: 'kle-serial',
         when: has('/src/vendor/pipette/shared/kle/'),
         body: `Pipette's layout parser (src/vendor/pipette/shared/kle/) is based on kle-serial by Ian Prest,

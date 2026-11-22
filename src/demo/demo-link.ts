@@ -3,11 +3,12 @@
 // the same requests the real one does, and remembers changes until the page is reloaded. The keys of whatever
 // keyboard the visitor types on stand in for its switches: holding Esc and Enter holds the demo's unlock keys.
 
-import { FakeLink, fakeKeyboard, fakeKeyboardConfig, report } from '../device/fake-keyboard'
+import { FakeLink, fakeKeyboard, fakeKeyboardConfig, knobAt, report } from '../device/fake-keyboard'
 import type { HidLink } from '../device/link'
 import { encodeMacro, type MacroStep } from '../device/macros'
 import { browserEventFor, usageOf } from '../shell/pressed-keys'
 import data from './k15-max.json'
+import { demoKeyboardConfig, type DemoKeyboardFile } from './other-keyboards'
 
 const WINDOWS_LAYER = 2
 
@@ -251,11 +252,15 @@ export interface DemoLink extends HidLink {
   drop(): void
 }
 
-export function createDemoLink(): DemoLink {
+/**
+ * The demo keyboard: the K15 Max, or with `other` one of the keyboards in ./keyboards (`?demo-keyboard=`,
+ * other-keyboards.ts), on the cable, with its own USB identity and a made-up keymap.
+ */
+export function createDemoLink(other: DemoKeyboardFile | null = null): DemoLink {
   // `?demo-wireless`: the demo is reached through the 2.4 GHz receiver and reports its battery, as the real one
-  // does only when wireless.
-  const wireless = params().has('demo-wireless')
-  const config = fakeKeyboardConfig({
+  // does only when wireless. The K15 Max only.
+  const wireless = !other && params().has('demo-wireless')
+  const k15 = {
     name: `${data.definition.name} (demo)`,
     definition: data.definition,
     layers: data.keymap.length,
@@ -281,12 +286,15 @@ export function createDemoLink(): DemoLink {
     rgbEffects: K15_RGB_EFFECTS,
     rgbMaxBrightness: 255,
     unlockKeys: K15_UNLOCK_KEYS,
+  }
+  const config = fakeKeyboardConfig({
+    ...(other ? demoKeyboardConfig(other, K15_SETTINGS) : k15),
     // `?demo-unlocked` starts the demo unlocked, e.g. for screenshots of the Test page reading every key.
-    unlocked: params().has('demo-unlocked'),
+    ...(params().has('demo-unlocked') ? { unlocked: true } : {}),
     // Restarting for a firmware update: the real keyboard answers, waits 100 ms and leaves USB.
     onBootloaderJump: () => setTimeout(() => link.drop(), 100),
   })
-  const link = new FakeLink(wireless ? 'receiver' : 'cable')
+  const link = new FakeLink(wireless ? 'receiver' : 'cable', other?.usb)
   link.responder = fakeKeyboard(config)
 
   const setKey = (position: string, down: boolean) => {
@@ -342,7 +350,7 @@ export function createDemoLink(): DemoLink {
     const turns = (params().get('demo-turn') ?? '').split(';').filter((step) => step === '0' || step === '1')
     turns.forEach((direction, i) => {
       const turn = setTimeout(() => {
-        const event = browserEventFor(config.knob[config.layer.base][Number(direction)])
+        const event = browserEventFor(knobAt(config, config.layer.base, 0)?.[Number(direction)] ?? 0)
         if (event) window.dispatchEvent(event)
       }, PRESS_START_MS + i * PRESS_STEP_MS)
       cleanups.push(() => clearTimeout(turn))

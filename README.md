@@ -41,6 +41,7 @@ The `?demo-…` options act on the demo keyboard only by nature.
 | `?put-on-key=TD(1)` | The Keys page starts armed with that keycode (QMK name), as "Put it on a key…" leaves it, for screenshots |
 | `?press-key` | The Keys palette's "Press a key" starts out waiting, for screenshots of what it says; with `?select=` |
 | `?key-search=magic` | The key palette opens with that search typed, for screenshots; with `?select=` |
+| `?demo-keyboard=<name>` | A developer option: the demo keyboard stands in for another keyboard instead of the K15 Max, to see the app on keyboards that differ from it: `corne`, `gh80`, `splinter`, `cloud`, `q2`, `q0`, `macropad` (README "Demo keyboard", "Other keyboards in the demo") |
 | `?demo-effect=<id>` | Starts the demo keyboard on another lighting effect (VialRGB id, e.g. `25`), for screenshots |
 | `?demo-unlocked` | Starts the demo keyboard unlocked (the Test page reads every key) |
 | `?demo-wireless` | The demo keyboard is reached through the 2.4 GHz receiver, reports a battery level (76 %) and has the K15 Max's wireless timers and debounce, for screenshots of the wireless parts |
@@ -94,7 +95,8 @@ src/
     keychron-rgb.ts    Keychron's key colours, zones and lock lights: packets, the LED under each key, zone effect numbers
     useDevice.ts       the app's store and its React hook
     api.ts, index.ts   the public surface; pages, plugins and the shell import from here
-  demo/              the demo keyboard: a K15 Max inside the page (k15-max.json, demo-link.ts)
+  demo/              the demo keyboard: a K15 Max inside the page (k15-max.json, demo-link.ts), or another keyboard
+                     (?demo-keyboard=, other-keyboards.ts, keyboards/*.json)
   ui/                design tokens and shared components
     tokens.css         every colour, radius and shadow, dark and light
     controls.tsx       Button, IconButton, Toggle, Slider, Segmented, TextInput, Spinner, Badge, Checkbox,
@@ -156,6 +158,7 @@ src/
 hardware/            checks against the real keyboard (pnpm hardware)
 scripts/vendor.mjs      keeps src/vendor in step with the Pipette clone
 scripts/demo-data.mjs   rebuilds the demo keyboard from ../keyboards/.../vial.json and ../backups/keymap.json
+scripts/demo-keyboards.mjs  rebuilds src/demo/keyboards/*.json, the other keyboards the demo can be, from ../vial_qmk
 scripts/keychron-layers.mjs  rebuilds src/shell/keychron-layers.ts from the Keychron keymaps in ../vial_qmk
 scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
 ```
@@ -1099,6 +1102,35 @@ It also has two of each other kind (`DEMO_ENTRIES`): multi-tap keys 1 and 2 (TD(
 Shift + Esc → ~; after Ctrl + Z the repeat key sends Ctrl + Y, and Home ↔ End. The alternate repeat key is on Fn2 +
 Space. Fn2 also holds the Keys page's examples: Caps Lock tap Esc / hold Ctrl, Tab tap Tab / hold Windows Fn, the
 left Windows key "Windows keys off, or on again" (GU_TOGG) and Esc "Restart" (QK_REBOOT).
+
+### Other keyboards in the demo
+
+A developer option, `?demo-keyboard=<name>`, makes the demo stand in for another keyboard, to see the app on
+keyboards that differ from the K15 Max (`demo/other-keyboards.ts`):
+
+| Name | Keyboard (vial-qmk) | Shows |
+|---|---|---|
+| `corne` | crkbd | a split keyboard with rotated thumb keys, underglow, a definition whose `lighting` is an object |
+| `gh80` | gh80_3000 | layout options (nine groups), no lighting, two layers |
+| `splinter` | kiserdesigns/splinter | no name in its definition (the browser has its USB name), six knobs, eight layout option groups |
+| `cloud` | lazydesigners/cloud | a knob its firmware lets no app change (built without an encoder map), underglow, layout options |
+| `q2` | keychron/q2/ansi_encoder | a Keychron board whose layers go Mac, Windows, Fn, Fn 2, Fn 3, with Keychron's lighting |
+| `q0` | keychron/q0/base | a Keychron number pad: no Mac / Windows switch, no knob |
+| `macropad` | ymdk/ymd09 | a 3 × 3 macropad: no knob, no entry slots, no typing settings |
+
+Each is `src/demo/keyboards/<name>.json`, written by `node scripts/demo-keyboards.mjs [path to vial-qmk]` (default
+`../vial_qmk`): the keymap's Vial definition (vial-qmk's data, GPL-2.0-or-later, named in the file and in the
+licences file), the USB identity WebHID would report (the definition's IDs, else `keyboard.json` / `info.json`'s,
+with `keyboard_name` as the product name), where the keys and knobs are, and what the firmware has, read from the
+keymap's `config.h` and `rules.mk`: Vial keyboard ID, layers, unlock keys, `VIAL_INSECURE`, the knob map
+(`ENCODER_MAP_ENABLE`, off unless switched on), entry slots (8 of each, none where the feature is switched off),
+Caps Word and Layer Lock, QMK settings, VialRGB, and Keychron's commands (Keychron boards). The files are loaded
+only when asked for, so they don't add to the app's size. The keymap is made up: ordinary keys in a US keyboard's
+order on layer 0, Fn (MO 1) on the last key, the other layers transparent, knobs turning the volume on layer 0. The
+fake answers Vial's knob commands by index (`knobs`), and sends them back unchanged where the firmware has no knob
+map (`knobMap: false`), as vial-qmk does. Typing settings, where the firmware has them, are the K15 Max's. They are
+reached on the cable only (no `?demo-wireless`), and keep the demo's other options (`?demo-unlocked`,
+`?demo-press=` …). To add one, add a line to `BOARDS` in the script and run it.
 
 ## How it talks to the keyboard
 

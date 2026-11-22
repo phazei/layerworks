@@ -47,6 +47,9 @@ a delegated agent (`general_opus`), and reviews what comes back. It does not bui
 ## Seeing the result without a keyboard
 
 `?demo` in the URL connects the built-in demo keyboard (`src/demo/`), a K15 Max that lives in the page.
+`?demo-keyboard=<name>` makes it another keyboard (`corne`, `gh80`, `splinter`, `cloud`, `q2`, `q0`, `macropad`),
+to see the app on keyboards that differ from the K15 (README "Other keyboards in the demo"); e.g.
+`pnpm shots --query=demo-keyboard=gh80 /keys`.
 `pnpm shots /keys /lighting` builds, serves on port 5198, saves each page dark and light with headless Edge into
 `%TEMP%\opencode\layerworks-shots\`, and stops the server; `--offline`, `--size=`, `--theme=`, `--query=` and
 `--no-build` are in README "Screenshots". Read the PNGs to look at them. Screenshots go in the temp folder, not

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Starts the app: registers the built-in pages, reads the URL's options and shows the shell.
-//   ?demo           connects the demo keyboard
+//   ?demo           connects the demo keyboard; ?demo-keyboard=corne makes it another keyboard (a developer option,
+//                   src/demo/other-keyboards.ts)
 //   ?help=<topic>   opens the help panel at a topic (src/help/topics.ts)
 //   ?theme=dark     forces a theme without remembering it (src/ui/theme.ts)
 //   ?demo-effect=25 starts the demo keyboard on another lighting effect (read in src/demo/demo-link.ts)

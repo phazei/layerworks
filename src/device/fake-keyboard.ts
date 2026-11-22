@@ -17,7 +17,7 @@ const xor = (bytes: Uint8Array) => bytes.map((b) => b ^ XOR)
 export type Responder = (request: Uint8Array) => Uint8Array | number[] | null | undefined
 
 export class FakeLink implements HidLink {
-  readonly vendorId = 0x3434
+  readonly vendorId: number
   readonly productName: string
   readonly productId: number
   /** Every request sent, decoded. */
@@ -28,9 +28,17 @@ export class FakeLink implements HidLink {
   private reportListeners = new Set<(report: Uint8Array) => void>()
   private closeListeners = new Set<() => void>()
 
-  constructor(readonly kind: LinkKind = 'cable') {
-    this.productId = kind === 'cable' ? 0x0af0 : 0xd030
-    this.productName = kind === 'cable' ? 'Keychron K15 Max' : 'Keychron Link'
+  /**
+   * A K15 Max on the cable, or Keychron's receiver; `usb` gives another keyboard's USB identity on the cable (what
+   * WebHID reports: vendor and product ID, the product name from the firmware's USB descriptor).
+   */
+  constructor(
+    readonly kind: LinkKind = 'cable',
+    usb?: { vendorId: number; productId: number; productName: string },
+  ) {
+    this.vendorId = usb?.vendorId ?? 0x3434
+    this.productId = usb?.productId ?? (kind === 'cable' ? 0x0af0 : 0xd030)
+    this.productName = usb?.productName ?? (kind === 'cable' ? 'Keychron K15 Max' : 'Keychron Link')
   }
 
   async send(sent: Uint8Array): Promise<void> {
@@ -101,12 +109,20 @@ export interface FakeKeyboardConfig {
   keymap: number[][][]
   /** knob[layer] = [counter-clockwise, clockwise] */
   knob: [number, number][]
+  /** Several knobs: knobs[layer][index] = [counter-clockwise, clockwise]. When given, used instead of knob. */
+  knobs?: [number, number][][]
+  /**
+   * false: firmware built without ENCODER_MAP_ENABLE, which leaves Vial's knob commands unhandled and sends the
+   * request back unchanged (vial-qmk quantum/vial.c, vial_get_encoder / vial_set_encoder). Default true.
+   */
+  knobMap?: boolean
   /**
    * The keymap and knob built into the firmware, which VIA's keymap reset (`0x06`) puts back. Set from `keymap` and
    * `knob` when the fake starts.
    */
   firmwareKeymap?: number[][][]
   firmwareKnob?: [number, number][]
+  firmwareKnobs?: [number, number][][]
   /** A Vial build with VIAL_INSECURE: no bootloader jump (`0x0B` is an unknown command). */
   insecure?: boolean
   /** Called when the keyboard takes the bootloader jump: it is about to leave USB (the demo drops the link). */
@@ -269,6 +285,14 @@ export async function plainDefinition(bytes: number[]): Promise<string> {
  * later reads see them. Locked, macro writes are ignored and QK_BOOT in knob and entry writes becomes 0, as in
  * vial-qmk.
  */
+/**
+ * A knob's two directions on a layer, as the fake keeps them (to read or change in place): knobs where given, else
+ * knob, which ignores the index (one knob). undefined for a layer or knob the keyboard doesn't have.
+ */
+export function knobAt(config: FakeKeyboardConfig, layer: number, index: number): [number, number] | undefined {
+  return config.knobs ? config.knobs[layer]?.[index] : config.knob[layer]
+}
+
 export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
   const definition = new TextEncoder().encode(
     JSON.stringify(
@@ -285,6 +309,7 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
   config.rgbSaved ??= { ...config.rgb }
   config.firmwareKeymap ??= structuredClone(config.keymap)
   config.firmwareKnob ??= structuredClone(config.knob)
+  if (config.knobs) config.firmwareKnobs ??= structuredClone(config.knobs)
 
   /**
    * dynamic_keymap_reset (quantum/dynamic_keymap.c): every layer's keys and the knob from the firmware's keymap, the
@@ -295,6 +320,7 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
   const resetKeymap = () => {
     config.keymap = structuredClone(config.firmwareKeymap!)
     config.knob = structuredClone(config.firmwareKnob!)
+    if (config.firmwareKnobs) config.knobs = structuredClone(config.firmwareKnobs)
     config.settingValues = structuredClone(config.settingDefaults ?? {})
     const empty: Record<EntryKind, number[]> = {
       tapDance: [0, 0, 0, 0, 0, 0, 0, 0, ...le16(200)],
@@ -336,12 +362,16 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
         return Array.from(definition.subarray(block * REPORT_LEN, (block + 1) * REPORT_LEN))
       }
       case 0x03: {
-        const [cw, ccw] = config.knob[request[2]]
+        if (config.knobMap === false) return Array.from(request)
+        const [cw, ccw] = knobAt(config, request[2], request[3]) ?? [0, 0]
         return [...be16(cw), ...be16(ccw)]
       }
-      case 0x04:
-        config.knob[request[2]][request[4]] = firewall((request[5] << 8) | request[6])
+      case 0x04: {
+        if (config.knobMap === false) return Array.from(request)
+        const pair = knobAt(config, request[2], request[3])
+        if (pair) pair[request[4]] = firewall((request[5] << 8) | request[6])
         return []
+      }
       case 0x05: {
         const out = new Array<number>(REPORT_LEN).fill(0xff)
         out[0] = config.unlocked ? 1 : 0

@@ -5,6 +5,7 @@
 import { useSyncExternalStore } from 'react'
 import { chooseDevice, deviceStore, openLink } from '../device'
 import { createDemoLink, type DemoLink } from '../demo/demo-link'
+import { DEMO_KEYBOARDS, loadDemoKeyboard } from '../demo/other-keyboards'
 
 let demo: DemoLink | null = null
 let error: string | null = null
@@ -122,12 +123,20 @@ export function connectChosen(): Promise<void> {
   })
 }
 
-/** Connects to the built-in demo keyboard. */
+/**
+ * Connects to the built-in demo keyboard: the K15 Max, or, with the developer option `?demo-keyboard=<name>`, one of
+ * the other keyboards bundled for looking at the app on keyboards that differ from it (demo/other-keyboards.ts).
+ */
 export function connectDemo(): Promise<void> {
   return attempt(async () => {
     releaseClaim()
     setNotice(null)
-    demo = createDemoLink()
+    const name = typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('demo-keyboard')
+    const other = name ? await loadDemoKeyboard(name) : null
+    if (name && !other) {
+      throw new Error(`There is no demo keyboard called “${name}”. The demo has: ${DEMO_KEYBOARDS.join(', ')}.`)
+    }
+    demo = createDemoLink(other)
     await deviceStore.connect(demo)
   })
 }
