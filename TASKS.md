@@ -36,12 +36,16 @@ everything else is GPL then GPL it is").
   files: `src/ui/KeyboardPicture.tsx`, `src/pages/Test.tsx`, `src/pages/test/`, zone drawing in
   `src/pages/lighting/`, the help panel, values in `src/ui/tokens.css`. Port 5206. Its report ends with a table
   so that each fix is its own `fix(a11y): …` commit. The rest of the audit's polish is under "Later".
-- `ses_dfd15b6c7ffeHrjHNi3Zt3VgJE`: **the sidebar collapses to its icons** (the user: "so narrow devices work"):
-  by itself when the window is narrow and by a button, remembered; the keyboard's card becomes one icon that
-  opens the card beside it; the pages checked at 1000, 900, 768 and 640 px, with the minimum usable width stated
-  and the spec's width sentence corrected (`../docs/spec/layerworks.md`, that passage only). Its files: the
-  sidebar and navigation in `src/shell/`, `DeviceCard.tsx`, the layout of `Shell.tsx`. Port 5207. It lists
-  page-level breakage it may not fix (the other agent's files): that list is a follow-up for after both report.
+- **The collapsing sidebar is in** (`6acf624`, by `ses_dfd15b6c7ffeHrjHNi3Zt3VgJE`; README "The screen"): icons
+  only under 1024 px or by its button, the keyboard's card from one icon, usable down to 560 px wide, sideways
+  scrolling below. The spec's three sentences about it are corrected (parent repo, uncommitted). **Left at narrow
+  widths, a follow-up for that session once the accessibility fixes are committed:** Shortcuts under about 785 px
+  stacks the editor below the whole list, so clicking a macro shows no visible change, and its list sets the
+  560 px floor; Help opens scrolled down to its list when list and overview stack; with many layers (vipad, 18)
+  the layer chips take several rows and the picture shrinks to its minimum; the Test page's lock notice becomes
+  a narrow column beside Unlock (the accessibility agent's file). For the user to look at: 1024 px as the
+  collapsing point; the icon's corner marks and orange for unlocked; the popover's grey in the light theme;
+  hovering one icon while another has keyboard focus shows both names.
 - When each reports: the three checks (once; the user's computer is slowed by test runs, `pnpm test` uses half
   the cores), the diff, screenshots, commit. Then item 6, the documents round, with the user.
 - Committing one item out of a file with several items' edits: `node %TEMP%\opencode\stage-hunks.mjs [--not]
