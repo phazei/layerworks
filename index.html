@@ -4,6 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Layerworks</title>
+    <style>
+      /* The page's colour before the stylesheet arrives, so a reload doesn't flash white: --surface in
+         src/ui/tokens.css, light and dark (a test keeps them the same). */
+      html {
+        background: #f3f4f6;
+        color-scheme: light;
+      }
+      html.dark {
+        background: #0d0e10;
+        color-scheme: dark;
+      }
+    </style>
     <script>
       // The theme before the app starts, so the page doesn't flash; src/ui/theme.ts keeps it up to date after.
       try {

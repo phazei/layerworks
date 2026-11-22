@@ -32,9 +32,11 @@ there). The findings files are in `%TEMP%\opencode\layerworks-audit\` (`spec-aud
 
 Asked of the user, not yet answered:
 
-- One-shot modifiers have two names: "Modifier for the next key only" (Keys) and "One-tap modifiers" (Typing
-  feel). One name everywhere, and which? Until then each help topic names the other.
-- The four Layerworks backup files in `..\backups\` (2026-11-15): commit them or keep them out of git?
+- N-key rollover does nothing on firmware with Keychron's adaptive N-key rollover (see "Small things"): hide
+  the switch and keys there (recommended), or keep them with a note?
+
+Answered: "One-tap modifier" is the name everywhere and "a modifier for the next key only" its description (the
+user; being applied by the Help session, on the Keys page too). The backup files in `..\backups\` are left alone.
 - The audit's calls made by the orchestrator, for the user to flip if wanted: the firmware key push and matrix
   read stay optional and deferred; creating a macro from the Keys inspector is dropped; the main lighting and
   the sleep timers stay outside Undo; Keychron's factory reset (Fn + J + Z) is described in the help.
