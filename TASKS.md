@@ -17,14 +17,43 @@ into `README.md`, `AGENTS.md`, `VENDOR.md` or the spec (`../docs/spec/layerworks
 
 ## Where the conversation stands
 
-The audits are done and applied: the spec (`../docs/spec/layerworks.md`) and the documents are current, the Help
-section was checked against the app and the firmware and corrected, and N-key rollover is hidden where the
-keyboard does it by itself. The parent repo's documents are edited and uncommitted (the user commits there). The
-findings files are in `%TEMP%\opencode\layerworks-audit\` (`spec-audit.md`, `help-audit.md`).
+Everything but the Ripple plugin and the firmware extras is built. Three audits are done and applied: the spec
+and the documents, the Help section, and the text on the pages themselves (findings in
+`%TEMP%\opencode\layerworks-audit\`: `spec-audit.md`, `help-audit.md`, `ui-text-audit.md`). The parent repo's
+documents are edited and uncommitted (the user commits there). Nothing is running in the background.
 
-The text on the pages themselves (hover lines, hints, effect descriptions, confirmations, messages) was audited
-and corrected too (`ui-text-audit.md` in the same folder, T1 to T43, by `ses_dff103bf6ffeeheF4xktrsBLLr`).
-Nothing is running in the background, and nothing is waiting for an answer from the user.
+**Next: preparing a release** (the user's answers, 2026-11-21; nothing started, the user compacts the session
+first). Hosting: GitHub Pages from this repo, like the user's `https://phazei.github.io/MediaSyncer/`. The user
+won't test everything on the keyboard: bugs are reported as found, and people who find one are asked to open
+an issue.
+
+1. **Other keyboards** (a read-only agent first): load a spread of public Vial definitions into the fake keyboard
+   (no knob, no lighting, lighting that isn't VialRGB, not Keychron, odd matrix sizes, layout options, few or no
+   macros and entries, older Vial protocol) and report what breaks or reads wrongly on each page. "Layout
+   options" below belongs to this.
+2. **Licences and the name** (a read-only agent): how much of the app is vendored GPL code (files, lines, what
+   each part does) and what replacing it would take; that the notices, SPDX headers, the Settings licence list
+   and the dependencies' licences are complete and compatible; the demo data's origin (Keychron's keymap and
+   definition) and whether it holds anything personal; "Layerworks" against existing projects and trademarks.
+   The user asked whether rewriting the vendored parts would allow Apache or MIT: the answer given is under
+   "Later"; the agent's numbers settle the size.
+3. **Things that go wrong mid-write** (a read-only agent): unplugging during a restore, a reset or a macro save;
+   two tabs on one keyboard; a damaged or hostile backup or `.vil` file; a browser without WebHID (the user will
+   look at Firefox). What the app says and whether the keyboard can be left half-written.
+4. **Accessibility and colours**: text contrast of the token pairs in both themes, keyboard-only use, screen
+   reader names. The user: worth a look, not important as long as it is close.
+5. **Hosting**: `vite.config.ts` sets no `base`, so the build's asset addresses would break under
+   `https://phazei.github.io/layerworks/`; set it (the routes are `#/…`, so no rewrite rules are needed). A
+   GitHub Actions workflow that builds and publishes on push to `main` (the user pushes). GitHub Pages on a free
+   account needs the repo public. The app's preferences are in `localStorage` under `layerworks:` names, which
+   matters because every `phazei.github.io` project shares one origin. `pnpm audit`; the main chunk over 500 kB.
+   The published page must link to the source (the licence requires the source to be offered).
+6. **Documents for a public repo** (the user does this round in release prep): `README.md` reads like an agents
+   file and is too long for one; it becomes a README for people (what it is, which keyboards, how to open it,
+   screenshots, how to report a bug), and its how-it-works content moves to documents under `docs/`. The spec is
+   in the parent repo (`../docs/spec/layerworks.md`) and several documents cite `../vial_qmk` and other parent
+   paths: a standalone clone has dead links, so the spec moves here or the references say where it lives.
+   `TASKS.md` and `AGENTS.md` carry session IDs and are written for agents.
 
 - The audit's calls made by the orchestrator, for the user to flip if wanted: the firmware key push and matrix
   read stay optional and deferred; creating a macro from the Keys inspector is dropped; the main lighting and the
@@ -33,16 +62,10 @@ Nothing is running in the background, and nothing is waiting for an answer from 
   Shortcuts pickers and list, the key names by layout and the N-key rollover capability;
   `ses_dffa4d191ffeMwlEbSjDhltGcs` built the Caps Lock light, Lighting's picture for every effect, and Device's
   reset and firmware-update restart; `ses_e1dbde8fdffe6vAbqPoj1rjpio` built the Help guide and tour and applied
-  the Help audit; `ses_dff3fa2b0ffe6kjHrCoP9ijYcU` audited the spec and rewrote the documents.
-## Waiting on the user
+  the Help audit; `ses_dff3fa2b0ffe6kjHrCoP9ijYcU` audited the spec and rewrote the documents;
+  `ses_dff103bf6ffeeheF4xktrsBLLr` audited and corrected the pages' own texts.
 
-- **Proposed, waiting for the user's go: plain VIA keyboards, without lighting.** Keys, layers, knob, macros and
-  backup on firmware that has VIA but not Vial (the K15's VIA build, `..\tools\build.cmd`, is the test keyboard;
-  back up before swapping firmware). It reverses the spec's "Vial firmware only" (sections 2 and 3). What is known
-  (definitions from usevia.app, protocol versions, what is unchecked): `../docs/research/via-support.md`. Lighting
-  stays out (the user's call: VIA describes it in the definition's "custom menus"). Size: medium; the connect
-  sequence without Vial's definition, a VIA mode for the fake keyboard, and backup / restore without Vial data are
-  the bulk.
+## Waiting on the user
 - The user is testing page by page and reports bugs as found; the dev server (`pnpm dev`) is open while agents
   edit, so the user sees work in progress.
 - **To try on the real keyboard** (take a backup first):
@@ -146,6 +169,18 @@ waits on them: unlocking shows every key on the Test page and to "Press a key".
   doesn't read. Make it write a known format instead (a `.layerworks.json` holding only keys and knob, with the
   app accepting such partial files, is the least work; `.vil` needs QMK key names in Python), and point
   `scripts/demo-data.mjs` at the new file (also in `../TASKS.md` "Small things").
+- **Plain VIA keyboards, without lighting** (a to-do, not started; the user: stays as a to-do for now). Keys,
+  layers, knob, macros and backup on firmware that has VIA but not Vial (the K15's VIA build,
+  `..\tools\build.cmd`, is the test keyboard; back up before swapping firmware). It reverses the spec's "Vial
+  firmware only" (sections 2 and 3). What is known: `../docs/research/via-support.md`. Lighting stays out (VIA
+  describes it in the definition's "custom menus"). Size: medium; the connect sequence without Vial's definition,
+  a VIA mode for the fake keyboard, and backup / restore without Vial data are the bulk.
+- **A licence other than the GPL** (asked by the user, not planned): the app is GPL-3.0-or-later because the
+  vendored Pipette code (GPL-2.0-or-later) is bundled into it; bundling, importing or linking makes one work, a
+  separate program talked to at arm's length does not. Only our own code could be relicensed, so it would take
+  replacing every vendored part (keycode tables, layout parsing, protocol commands, macro and `.vil` encoding,
+  the keyboard picture) with independently written code, and the demo's Keychron keymap data. QMK, Vial, VIA's
+  app and Pipette are all GPL, so nothing in this field expects otherwise.
 - **The K15's own key names** in the palette's "This keyboard" group come from the definition in the parent
   project (`..\keyboards\keychron\k15_max\ansi_encoder\rgb\keymaps\ripple\vial.json`, `..\via\*.json`): "Misson
   Control" (a typo), "2.4G", "Bluetooth Host 1". Better titles are in `ui-text-audit.md`, T11 ("Bluetooth device 1
