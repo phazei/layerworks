@@ -32,11 +32,29 @@ everything else is GPL then GPL it is").
 - `ses_dfe287d45ffeph6OlbTU2Fsd01`: item 1, other keyboards, to `other-keyboards-audit.md`. It may have scratch
   tests in `src/__audit__/` while it runs and must delete them (check `git status` is clean when it reports).
   Port 5203.
-- `ses_dfe2813d0ffeNquf1IgNow84cr`: item 2, licences, notices, personal data in files and history, the name, to
-  `licence-audit.md`.
+- `ses_dfe21a33cffeE72FiCdiqmXdSX`: item 3, mid-write failures and bad input, to `failure-audit.md`. Scratch
+  tests in `src/__audit2__/`, deleted before it reports. Port 5204.
 
 When each reports: read the findings file, check firmware claims against `../vial_qmk`, tell the user, and give
-the fixes to a building agent once the user has chosen. Then items 3 to 5, two at a time.
+the fixes to a building agent once the user has chosen. Then items 4 and 5.
+
+**Item 2 is done** (`licence-audit.md`, by `ses_dfe2813d0ffeNquf1IgNow84cr`): nothing blocks going public. Pipette's
+code is 13,460 of 36,801 lines under `src/` without tests (37%); all licences are compatible; no personal data in
+the files; the name is fine for a free open-source app (other "Layerworks" are 3D-printing businesses and a
+Japanese WordPress company; nothing in keyboards). To build, together with item 5 (they share `vite.config.ts`
+and the About box):
+
+- A link to the source in `src/pages/settings/About.tsx` (github.com/phazei/layerworks, ideally the commit built).
+- The bundled libraries' licence notices (React, Lucide, xz-decompress, Tailwind's base CSS, kle-serial, LZMA-JS):
+  a licences file generated at build time, linked from About.
+- A copyright line and "no warranty" in About and the README; "not affiliated with Keychron, QMK, Vial or VIA";
+  a credit for Vial GUI (Pipette's code is ported from it).
+- `VENDOR.md`: Pipette as a whole is GPL-3.0-or-later (most file headers say GPL-2.0-or-later), and one vendored
+  file is MIT (`web/lzma-browser.ts`).
+- SPDX headers on 3 CSS and 3 config files; the test address `after@unlock.org` becomes an example.org one.
+
+Asked of the user: the name for the copyright line; whether the commit address in the history
+(`Adam <phazei@gmail.com>`, all 65 commits) may be public (changing it means rewriting history).
 
 1. **Other keyboards** (a read-only agent first): load a spread of public Vial definitions into the fake keyboard
    (no knob, no lighting, lighting that isn't VialRGB, not Keychron, odd matrix sizes, layout options, few or no
