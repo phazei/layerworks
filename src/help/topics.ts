@@ -51,6 +51,7 @@ const topics = {
       'Plug the keyboard in with its cable, or plug its Keychron Link receiver into the computer and set the keyboard’s switch to 2.4 GHz. Click Connect a keyboard… and pick it in the list the browser shows: the keyboard by its name, or “Keychron Link” for the receiver. Bluetooth can’t be used for this.',
       'Only one program can talk to the keyboard at a time. Close Vial, Keychron Launcher and other keyboard apps first, browser tabs included. A second Layerworks tab says the keyboard is open elsewhere and offers “Use it here”, which makes the other tab let go of it.',
       'It needs Chrome or Edge on a computer; other browsers can’t talk to keyboards. Once you have allowed it, this browser offers the keyboard straight away next time, as “Connect to” and its name. Through the receiver the keyboard’s card at the top left shows the battery too; on the cable the keyboard doesn’t report it. Disconnect, in that card, lets go of the keyboard so another app can use it.',
+      'Layerworks works with keyboards running Vial firmware. Keyboards with VIA firmware, Keychron’s own included, appear in the list too, but the app says so when they connect: they need Vial firmware first (Vial’s site lists the keyboards it is made for), and until then VIA or the maker’s app can change them.',
     ],
     example: 'The keyboard isn’t in the list, or won’t connect? Close the other keyboard apps and tabs, unplug it, plug it in again and try once more.',
     where: [{ label: 'Home, when no keyboard is connected', href: '#/' }],

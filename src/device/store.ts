@@ -30,6 +30,7 @@ import type {
   TapDanceEntry,
   UnlockStatus,
 } from '../vendor/pipette/shared/types/protocol'
+import { answersVial, NOT_VIAL } from './vial-firmware'
 import { keyboardName } from './keyboard-name'
 import { lightingKind } from './lighting-kind'
 import { buildCapabilities, type Capabilities, type LightingInfo } from './capabilities'
@@ -556,6 +557,8 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
   async function readKeyboard(transport: Transport): Promise<{ keyboard: KeyboardData; layer: LayerState | null }> {
     // A keyboard in the middle of an unlock answers almost nothing truthfully; reading it would give nonsense.
     if (parseUnlockStatus(await transport.request(statusRequest()))?.inProgress) throw new Error(STILL_UNLOCKING)
+    // Firmware without Vial (VIA, Keychron's own) is said plainly (./vial-firmware.ts), not as a failed definition.
+    if (!answersVial(await transport.request([0xfe, 0x00]))) throw new Error(NOT_VIAL)
     const probe = await runProbeSequence(async (data) => Array.from(await transport.request(data)), decompress)
     const viaProtocol = await protocol.getProtocolVersion()
     const counts = probe.vialProtocol >= VIAL_PROTOCOL_DYNAMIC ? await protocol.getDynamicEntryCount() : NO_ENTRIES

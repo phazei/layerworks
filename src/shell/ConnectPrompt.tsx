@@ -4,7 +4,8 @@
 
 import { useEffect, useState } from 'react'
 import { Keyboard, Plug, Sparkles } from 'lucide-react'
-import { grantedDevices, isWebHidSupported, useDevice } from '../device'
+import { grantedDevices, isWebHidSupported, NOT_VIAL, useDevice, VIAL_FIRMWARE_URL } from '../device'
+import { ExternalLink } from '../ui/display'
 import { Button, Spinner } from '../ui/controls'
 import { HelpButton, Notice } from '../ui/layout'
 import { describeRecord, useRestoreRecord } from './restore-record'
@@ -74,7 +75,14 @@ export function ConnectPrompt() {
             the demo keyboard.
           </Notice>
         )}
-        {error && <Notice tone="danger">Couldn’t connect: {error}</Notice>}
+        {error === NOT_VIAL ? (
+          // Compatibility: firmware without Vial (device/vial-firmware.ts); said with where to get Vial.
+          <Notice tone="danger">
+            {NOT_VIAL} <ExternalLink href={VIAL_FIRMWARE_URL}>Vial’s site</ExternalLink>
+          </Notice>
+        ) : (
+          error && <Notice tone="danger">Couldn’t connect: {error}</Notice>
+        )}
         {lost && !error && (
           <Notice>
             The keyboard was disconnected.

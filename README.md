@@ -1216,6 +1216,13 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   `keyboardName` (`device/keyboard-name.ts`), used by the store's load. Test: `device/__tests__/keyboard-name.test.ts`
   (on the demo Splinter too).
 
+- **Firmware without Vial** (VIA, Keychron's stock firmware). Such keyboards offer the same raw HID interface, so the
+  browser lists them, but answer Vial's commands "unknown command" (0xFF) or send them back. The app asks for the
+  Vial keyboard ID first and, without a Vial answer, says plainly that the keyboard runs VIA firmware, not Vial, with
+  a link to Vial's site (never "Failed to decompress keyboard definition"); the `connecting` help topic says so too.
+  Decided in `answersVial` (`device/vial-firmware.ts`), called first in the store's load. Tests:
+  `device/__tests__/vial-firmware.test.ts`, `shell/__tests__/ConnectPrompt.test.tsx`.
+
 - **No knob, or several.** The Test page says "the knob" or "each knob", "it" or "them". Decided in `severalKnobs`
   (`pages/test/knob.ts`). Test: `pages/test/__tests__/knob.test.ts`.
 

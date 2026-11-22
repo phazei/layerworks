@@ -11,6 +11,7 @@ export type { RequestOptions, Transport, TransportStats } from './transport'
 export type { Availability, Capabilities, Feature, LightingInfo, NkroMode } from './capabilities'
 export { offeredEffectCount } from './capabilities'
 export { lightingAsWritten, lightingKind } from './lighting-kind'
+export { NOT_VIAL, VIAL_FIRMWARE_URL } from './vial-firmware'
 export type { LightingKind } from './lighting-kind'
 export { LOAD_PARTS, slotKeycode } from './store'
 export type {
