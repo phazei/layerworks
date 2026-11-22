@@ -430,9 +430,10 @@ const topics = {
   },
   'left-out-keys': {
     title: 'Keys the app leaves out',
-    qmkName: 'Joystick, programmable buttons, MIDI, audio, haptic, steno, backlight, underglow, dynamic macros, swap hands, Unicode, leader key, autocorrect',
+    qmkName: 'Joystick, programmable buttons, MIDI, audio, haptic, steno, dynamic macros, swap hands, Unicode, leader key, autocorrect',
     body: [
-      'QMK has keys for hardware and features most keyboards’ firmware doesn’t include: joystick and programmable buttons, MIDI and music, sound, vibration, stenography, single-colour backlights and underglow strips, keys that record macros on the keyboard (QMK’s dynamic macros), swapping the halves of split keyboards, Unicode characters (emoji, accented letters). Pressed on a keyboard without the feature, they do nothing, so the Keys page leaves them out. The K15 Max’s firmware, Keychron’s and the Vial build alike, has none of them.',
+      'QMK has keys for hardware and features most keyboards’ firmware doesn’t include: joystick and programmable buttons, MIDI and music, sound, vibration, stenography, keys that record macros on the keyboard (QMK’s dynamic macros), swapping the halves of split keyboards, Unicode characters (emoji, accented letters). Pressed on a keyboard without the feature, they do nothing, and the app can’t tell which a firmware has, so the Keys page leaves them out.',
+      'Lighting keys follow what the keyboard says it has: backlight keys on a keyboard with a single-colour backlight, the underglow keys and their effects on one with an underglow strip, the RGB lighting keys on one with per-key RGB, and none on a keyboard without lighting.',
       'The leader key (a key that starts a sequence of letters standing for a command) and the Autocorrect switch aren’t offered either; whether a firmware has them depends on how it was built.',
       'If your firmware has one, type its QMK name under More options, Key code (PB_1, JS_0, MI_C …). A key that already holds one shows what kind of key it is.',
     ],

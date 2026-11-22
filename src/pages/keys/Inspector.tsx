@@ -12,6 +12,7 @@ import {
   KC_SAME_AS_BELOW,
   keycodeId,
   keyPalette,
+  lightingKeysFor,
   paletteFeatures,
   slotKeycode,
   useDevice,
@@ -106,11 +107,13 @@ export function Inspector({ keyboard, slot, names, base, justPut }: Props) {
   const settings = useDevice((s) => s.settings)
   const nkro = useDevice((s) => s.capabilities?.nkro ?? 'pending')
   const features = paletteFeatures(keyboard, settings, nkro)
+  // The lighting keys follow what the keyboard's definition says it has (one object per kind, so stable).
+  const lighting = lightingKeysFor(keyboard.definition.lighting)
   // The names follow the computer's layout (device/layout.ts).
   const legends = useLegendRevision()
   const palette = useMemo(
-    () => keyPalette({ combos: features.combos, keyOverrides: features.keyOverrides, autoShift: features.autoShift, nkro: features.nkro }),
-    [keyboard.uid, features.combos, features.keyOverrides, features.autoShift, features.nkro, legends],
+    () => keyPalette({ combos: features.combos, keyOverrides: features.keyOverrides, autoShift: features.autoShift, nkro: features.nkro, lighting }),
+    [keyboard.uid, features.combos, features.keyOverrides, features.autoShift, features.nkro, lighting, legends],
   )
   const paletteCodes = useMemo(() => new Set(palette.flatMap((group) => group.keys.map((key) => key.code))), [palette])
   const shortcutKeys = useMemo(

@@ -330,7 +330,13 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
 
   Every assignment is `deviceStore.assign`, so it shows in the picture at once and Undo takes it back; the
   selection stays. A knob's direction 0 is counter-clockwise (left), 1 clockwise (right), as vial-qmk stores
-  them. The palette's lighting keys are the shared `RGB_*` codes Keychron's keymaps use, not `RM_*`.
+  them. The palette's "Lighting controls" follow what the keyboard's definition says it has (`lightingKeysFor`,
+  from `definition.lighting`, also in the list and `{ "extends": … }` forms some definitions use; passed as
+  `PaletteFeatures.lighting` by the Keys page and the Shortcuts pickers): the shared `RGB_*` codes Keychron's keymaps
+  use (not `RM_*`; vial-qmk sends them to an RGB matrix and to underglow alike) for VialRGB and an RGB matrix, those
+  plus underglow's own effect keys (`RGB_M_*`) for `qmk_rgblight`, the backlight keys (`BL_*`) for `qmk_backlight`,
+  both for `qmk_backlight_rgblight`, and no group for `none` or no lighting at all. A name the app doesn't know
+  keeps the shared `RGB_*` keys.
 - **Settings** (`Settings.tsx`, `settings/`): theme; "Take the tour" and a link to Help (`settings/TourCard.tsx`);
   *Key names* (`settings/KeyLegends.tsx`): "Name keys by what my computer's layout types", on by default, with what
   was found ("the key a US keyboard has as Y types Z here", a US layout, or that the browser can't tell, then no
@@ -1085,6 +1091,10 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   worked out on layer 0, and "Follow the keyboard" isn't offered. Decided in `reportsLayer` and `NO_LAYER`
   (`shell/pressed-keys.ts`). Test: `shell/__tests__/Stage.test.tsx` ("the stage on a keyboard that doesn't report its
   layer").
+
+- **Backlight, underglow, an RGB matrix, or no lighting.** The palette's Lighting controls offer the keys that
+  keyboard's lighting answers to, and none without lighting. Decided in `lightingKeysFor` (`device/keycodes.ts`), from
+  the definition's `lighting`. Test: `device/__tests__/lighting-keys.test.ts`.
 
 ## Tests
 

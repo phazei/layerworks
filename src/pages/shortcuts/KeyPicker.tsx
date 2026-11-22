@@ -4,7 +4,7 @@
 // that place, and nothing else.
 
 import { useMemo, useState } from 'react'
-import { canTakeModifiers, groupsFor, paletteFeatures, readShortcut, shortcutKeycode, useDevice, type KeyUse } from '../../device'
+import { canTakeModifiers, groupsFor, lightingKeysFor, paletteFeatures, readShortcut, shortcutKeycode, useDevice, type KeyUse } from '../../device'
 import { useLegendRevision } from '../../device/layout'
 import { Button } from '../../ui/controls'
 import { KeyPalette } from '../keys/KeyPalette'
@@ -29,11 +29,12 @@ export function KeyPicker({ current, use, shortcuts, label = 'Key for this step'
   const features = paletteFeatures(keyboard, settings, nkroMode)
   // Built once the keyboard's tables are in.
   const { combos, keyOverrides, autoShift, nkro } = features
+  const lighting = keyboard ? lightingKeysFor(keyboard.definition.lighting) : undefined
   // The names follow the computer's layout (device/layout.ts).
   const legends = useLegendRevision()
   const groups = useMemo(
-    () => (keyboard ? groupsFor(use, { combos, keyOverrides, autoShift, nkro }) : []),
-    [keyboard, use, combos, keyOverrides, autoShift, nkro, legends],
+    () => (keyboard ? groupsFor(use, { combos, keyOverrides, autoShift, nkro, lighting }) : []),
+    [keyboard, use, combos, keyOverrides, autoShift, nkro, lighting, legends],
   )
   const now = readShortcut(current)
   const [mods, setMods] = useState(shortcuts ? (now?.mods ?? 0) : 0)

@@ -227,10 +227,78 @@ const PLAIN: Record<string, string> = {
   RM_VALD: 'Lights dimmer',
   RM_SPDU: 'Lighting effect faster',
   RM_SPDD: 'Lighting effect slower',
+  BL_TOGG: 'Backlight on or off',
+  BL_STEP: 'Backlight to the next brightness level',
+  BL_BRTG: 'Backlight breathing on or off',
+  BL_ON: 'Backlight on, full brightness',
+  BL_OFF: 'Backlight off',
+  BL_INC: 'Backlight brighter',
+  BL_DEC: 'Backlight dimmer',
+  RGB_M_P: 'Underglow effect: plain colour',
+  RGB_M_B: 'Underglow effect: breathing',
+  RGB_M_R: 'Underglow effect: rainbow',
+  RGB_M_SW: 'Underglow effect: swirl',
+  RGB_M_SN: 'Underglow effect: snake',
+  RGB_M_K: 'Underglow effect: Knight Rider',
+  RGB_M_X: 'Underglow effect: Christmas',
+  RGB_M_G: 'Underglow effect: gradient',
+  RGB_M_T: 'Underglow effect: test',
 }
 
-/** The lighting keys that work on an RGB matrix keyboard, without the underglow-only effect keys. */
+/**
+ * The lighting keys that work on an RGB matrix keyboard as well as on underglow (vial-qmk's process_underglow.c sends
+ * them to the RGB matrix too), without the underglow-only effect keys.
+ */
 const SHARED_LIGHTING = new Set(['RGB_TOG', 'RGB_MOD', 'RGB_RMOD', 'RGB_HUI', 'RGB_HUD', 'RGB_SAI', 'RGB_SAD', 'RGB_VAI', 'RGB_VAD', 'RGB_SPI', 'RGB_SPD'])
+/** Underglow's own effect keys (rgblight modes), which an RGB matrix ignores. */
+const UNDERGLOW_EFFECTS = ['RGB_M_P', 'RGB_M_B', 'RGB_M_R', 'RGB_M_SW', 'RGB_M_SN', 'RGB_M_K', 'RGB_M_X', 'RGB_M_G', 'RGB_M_T']
+
+/** Which kinds of lighting keys do something on a keyboard: QMK's backlight, underglow (rgblight), an RGB matrix. */
+export interface LightingKeys {
+  backlight: boolean
+  underglow: boolean
+  matrix: boolean
+}
+
+const LIGHTING_KEYS: Record<string, LightingKeys> = {
+  none: { backlight: false, underglow: false, matrix: false },
+  vialrgb: { backlight: false, underglow: false, matrix: true },
+  qmk_rgb_matrix: { backlight: false, underglow: false, matrix: true },
+  qmk_rgblight: { backlight: false, underglow: true, matrix: false },
+  qmk_backlight: { backlight: true, underglow: false, matrix: false },
+  qmk_backlight_rgblight: { backlight: true, underglow: true, matrix: false },
+}
+
+/**
+ * Compatibility: keyboards have a single-colour backlight, an underglow strip, an RGB matrix, a mix, or no lighting,
+ * and answer to different lighting keys (vial_qmk quantum/process_keycode/process_backlight.c, process_underglow.c,
+ * which also drives an RGB matrix with the shared RGB_ keys); the definition names what it has (VIA's "lighting").
+ *
+ * The lighting keys for a keyboard, from its definition's `lighting` (the store's `keyboard.definition.lighting`):
+ * a name such as "qmk_backlight", or, in a few definitions, a list or an object naming it (`["qmk_rgblight"]`,
+ * `{ "extends": "qmk_rgblight" }`). No lighting, or none named, is "none". undefined for a name the app doesn't
+ * know: then the palette offers the shared keys, as before it knew.
+ */
+export function lightingKeysFor(lighting: unknown): LightingKeys | undefined {
+  const named = Array.isArray(lighting)
+    ? lighting[0]
+    : lighting !== null && typeof lighting === 'object'
+      ? (lighting as Record<string, unknown>).extends
+      : lighting
+  if (named === undefined || named === null) return LIGHTING_KEYS.none
+  return typeof named === 'string' ? LIGHTING_KEYS[named] : undefined
+}
+
+/** The palette's lighting keys for what the keyboard has; without knowing, the shared RGB keys. */
+function lightingGroupKeys(lighting: LightingKeys | undefined): PaletteKey[] {
+  const shared = entries(tables.KEYCODES_LIGHTING_RGB.filter((k) => SHARED_LIGHTING.has(k.qmkId)))
+  if (!lighting) return shared
+  return [
+    ...(lighting.backlight ? entries(tables.KEYCODES_LIGHTING_BL) : []),
+    ...(lighting.underglow || lighting.matrix ? shared : []),
+    ...(lighting.underglow ? entries(pick(tables.KEYCODES_LIGHTING_RGB, UNDERGLOW_EFFECTS)) : []),
+  ]
+}
 
 // --- The keys of the extra groups ----------------------------------------------------------------------------------
 //
@@ -469,6 +537,8 @@ export interface PaletteFeatures {
    * (capabilities' `nkro`, 'automatic') or that is still being read: there they change nothing. Default true.
    */
   nkro?: boolean
+  /** Which lighting keys do something here (lightingKeysFor); left out, the shared RGB keys, as on most keyboards. */
+  lighting?: LightingKeys
 }
 
 const NKRO_KEYS = ['NK_ON', 'NK_OFF', 'NK_TOGG']
@@ -568,11 +638,11 @@ export const tapDanceTitle = (index: number): string => `Multi-tap key ${index}`
  * theirs through sendable.ts, which knows what the firmware runs in each place.
  */
 export function keyPalette(features?: PaletteFeatures): PaletteGroup[] {
-  const groups = everydayGroups()
+  const groups = everydayGroups(features?.lighting)
   return [...groups, ...(features ? extraGroups(features) : [])].filter((group) => group.keys.length > 0)
 }
 
-function everydayGroups(): PaletteGroup[] {
+function everydayGroups(lighting?: LightingKeys): PaletteGroup[] {
   const groups: PaletteGroup[] = [
     { id: 'letters', title: 'Letters', keys: entries(tables.KEYCODES_BASIC_LETTERS) },
     { id: 'numbers', title: 'Numbers and symbols', keys: entries([...tables.KEYCODES_BASIC_NUMBERS, ...tables.KEYCODES_BASIC_SYMBOLS]) },
@@ -583,8 +653,9 @@ function everydayGroups(): PaletteGroup[] {
     { id: 'media', title: 'Media and system', keys: entries([...tables.KEYCODES_SYSTEM_PLAYBACK, ...tables.KEYCODES_SYSTEM_CONTROL, ...tables.KEYCODES_SYSTEM_APP, ...tables.KEYCODES_SYSTEM_BROWSER]) },
     { id: 'numpad', title: 'Number pad', keys: entries(tables.KEYCODES_BASIC_NUMPAD) },
     { id: 'mouse', title: 'Mouse', keys: entries(tables.KEYCODES_SYSTEM_MOUSE) },
-    // The shared RGB_ codes: Keychron's keymaps use them, and the firmware sends them to the RGB matrix.
-    { id: 'lighting', title: 'Lighting controls', keys: entries(tables.KEYCODES_LIGHTING_RGB.filter((k) => SHARED_LIGHTING.has(k.qmkId))) },
+    // What the keyboard's lighting answers to: the shared RGB_ codes (Keychron's keymaps use them; the firmware sends
+    // them to underglow and the RGB matrix alike), backlight keys, underglow's own effects; none without lighting.
+    { id: 'lighting', title: 'Lighting controls', keys: lightingGroupKeys(lighting) },
     {
       id: 'keyboard',
       title: 'This keyboard',
