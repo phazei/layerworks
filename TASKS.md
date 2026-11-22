@@ -36,30 +36,20 @@ started, and `AGENTS.md` "Rules" says how agents must work (touched test files o
 loops or browsers left behind, the orchestrator checks for leftovers). One building agent at a time from here
 on, unless the user says otherwise.
 
-Left in the working tree, uncommitted, by `ses_dfd15b6c7ffeHrjHNi3Zt3VgJE` (typecheck and lint passed; no tests
-written, README not updated, the full suite not run, the scroll measurements only done for Home and Keys at
-1280 × 800): `src/shell/Shell.tsx` (the page area clips the parked help panel: the sideways-scrollbar fix),
-`src/shell/Sidebar.tsx` (the collapse button beside the logo), `src/ui/Tip.tsx` (one label at a time),
-`src/shell/DeviceCard.tsx` (the popover in the card's colour), and the narrow-width fixes in
-`src/pages/Shortcuts.tsx`, `src/pages/help/TopicList.tsx`, `src/shell/LayerStack.tsx`, `src/pages/Test.tsx`.
-`ses_dfe21a33cffeE72FiCdiqmXdSX` changed nothing; its unconfirmed lead on the flaky test: right after the
-download the test checks the "Saved … to your downloads" text without waiting for the page to re-render (the
-other possibility: the macros not loaded yet, so `backup.macros` is null).
+**In progress right now** (one agent): `ses_dfe21a33cffeE72FiCdiqmXdSX` on the flaky `Device.test.tsx` "saves a
+backup of everything to a file" (failed three times in full runs, fast, passes alone), by reading first; its lead:
+the test checks the "Saved … to your downloads" text without waiting for the re-render, or the macros are not
+loaded yet when the backup is taken (which would be a product bug). When it reports: the checks once, commit.
+Then item 6, the documents round, which waits for the user's answers (is the firmware project public; how many
+screenshots; do `TASKS.md` and `AGENTS.md` belong in the public repo).
 
-**What was in progress when paused** (two agents side by side):
-
-- `ses_dfd15b6c7ffeHrjHNi3Zt3VgJE`: follow-ups to its collapsing sidebar (`6acf624`; icons only under 1024 px or
-  by its button, the keyboard's card from one icon, usable down to 560 px). (1) **A sideways scrollbar where
-  there should be none**: the accessibility agent's DevTools screenshots (`%TEMP%\opencode\layerworks-audit\a11y\
-  r2-*.png`) show the page area scrolling sideways at about 1250 px and the expanded sidebar scrolling at 705 px
-  high; `pnpm shots` hides scrollbars. To be found, fixed and proved by measuring. (2) Pages at narrow widths:
-  Shortcuts when list and editor stack, Help's scroll position, many layers (vipad, 18), the Test page's lock
-  notice. (3) Its own small notes: two icon names at once, the popover's grey in the light theme, the "Collapse
-  sidebar" row's place. Its report ends with a table so each part is its own commit. Port 5207. For the user to
-  look at afterwards: 1024 px as the collapsing point; the icon's corner marks and orange for unlocked.
-- `ses_dfe21a33cffeE72FiCdiqmXdSX`: hunting the flaky `Device.test.tsx` "saves a backup of everything to a file"
-  (failed three times in full runs, fast, passes alone). Its files: that test, and `src/device/` if the cause is
-  there.
+- **The sidebar and the narrow pages are done** (`6acf624`, then `dce80cf` to `d21df00`, by
+  `ses_dfd15b6c7ffeHrjHNi3Zt3VgJE`; README "The screen"): icons only under 1024 px or by the button beside the
+  logo; the keyboard's card from one icon; usable down to 560 px, sideways scrolling below; the sideways
+  scrollbar the first version caused is gone (measured on six pages at four sizes, help closed, sliding and
+  open); Shortcuts in one column shows the list or the picked shortcut; many layers stay one scrolling row. For
+  the user to look at: 1024 px as the collapsing point; the icon's corner marks and orange for unlocked. Left:
+  the key picture is small under about 640 px on wide keyboards.
 - **The accessibility fixes are in** (seven commits, `6b5a423` to `ade89e1`, by
   `ses_dfd4e15edffeI6UpU02bmDT4JA`; README and the Help topic "Using the app without a mouse" describe them).
   Not checkable by an agent, for the user or a later tester: a real screen reader on the picture's key names;
