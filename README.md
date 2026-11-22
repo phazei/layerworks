@@ -1206,7 +1206,8 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
 
 - **Backlight, underglow, an RGB matrix, or no lighting.** The palette's Lighting controls offer the keys that
   keyboard's lighting answers to, and none without lighting. Decided in `lightingKeysFor` (`device/keycodes.ts`), from
-  the definition's `lighting`. Test: `device/__tests__/lighting-keys.test.ts`.
+  the definition's `lighting` and the firmware's VialRGB flag (read as one kind by `lightingKind`). Test:
+  `device/__tests__/lighting-keys.test.ts`.
 
 - **A definition whose `lighting` is an object or a list** (Corne and six others write `{ "extends": "qmk_rgblight" }`,
   two `["qmk_rgblight"]`; 89 leave it out). The store reads it as one of a few known kinds, the name it holds (none
@@ -1281,8 +1282,9 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   (`device/layout-options.ts`). Tests: `device/__tests__/layout-options.test.tsx`,
   `pages/__tests__/layout-counts.test.tsx`, `pages/keys/__tests__/LayoutCard.test.tsx` (on the demo GH80-3000).
 
-- **No knob, or several.** The Test page says "the knob" or "each knob", "it" or "them". Decided in `severalKnobs`
-  (`pages/test/knob.ts`). Test: `pages/test/__tests__/knob.test.ts`.
+- **No knob, or several.** The Test page says "the knob" or "each knob", "it" or "them", decided in `severalKnobs`
+  (`pages/test/knob.ts`); Keys says "one side of a knob", which reads right with any number. Tests:
+  `pages/test/__tests__/knob.test.ts`, `pages/keys/__tests__/knob-words.test.tsx`.
 
 - **Unlock keys other than Esc and Enter.** The unlock dialog names the keyboard's own keys; the `unlock` help topic
   gives the K15's Esc and Enter only as an example. Text only (`help/topics.ts`, `unlock`).
