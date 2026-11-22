@@ -56,7 +56,20 @@ with screenshots (see `AGENTS.md`) and notes on what to look at.
 The user's plan, in order: (1) list what is left from the spec: done and discussed, "Left from the spec" below;
 (2) build what the user picked from it: done and committed, waiting for the user to try it (the list under
 "To try on the real keyboard" starts with it); (3) audit where the project is against the spec and the
-documents; (4) update the files. Nothing is running in the background.
+documents, and audit the Help section for accuracy and completeness (the user: "so much has been built and it's
+important it be accurate and include everything"); (4) update the files. The Ripple plugin and everything
+ripple-related is deferred.
+
+**In progress right now** (two delegated agents, the limit):
+
+- `ses_dff426cefffed2tYLFp4yoUtN0`, read-only: the Help audit (every topic, glossary entry and tour step against
+  the app and the firmware; an inventory of the app against the topics; what search finds; links). Findings go
+  to `%TEMP%\opencode\layerworks-audit\help-audit.md`. When it reports: review the findings, ask the user what
+  needs deciding, then the fixes go to `ses_e1dbde8fdffe6vAbqPoj1rjpio` (built the Help guide and tour).
+- `ses_dff3fa2b0ffe6kjHrCoP9ijYcU`, read-only first: the spec audit (the whole of `../docs/spec/layerworks.md`
+  against `README.md` and the code, and the other documents against the code; findings to
+  `%TEMP%\opencode\layerworks-audit\spec-audit.md`). When it reports: review, ask the user what needs deciding,
+  then the same session rewrites the spec and the stale parts of the other documents.
 
 - Decided by the user: Tap or hold does **not** build a multi-tap key by itself (it would hide what is going on).
 - The user asked about two Launcher settings; neither is in the app and nothing was asked for. The USB polling
