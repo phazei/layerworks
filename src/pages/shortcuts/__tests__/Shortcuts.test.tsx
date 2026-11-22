@@ -188,7 +188,7 @@ describe('the editor', () => {
 
   it('saves by itself once the unlock it asked for completes', async () => {
     await show('#/shortcuts/macro/1')
-    fireEvent.change(steps().getByRole('textbox', { name: 'Text to type, step 1' }), { target: { value: 'after@unlock.org' } })
+    fireEvent.change(steps().getByRole('textbox', { name: 'Text to type, step 1' }), { target: { value: 'after-unlock@example.org' } })
     act(() => {
       demoKeyboard()!.setKey(ESC, true)
       demoKeyboard()!.setKey(ENTER, true)
@@ -201,7 +201,7 @@ describe('the editor', () => {
     } finally {
       vi.useRealTimers()
     }
-    await waitFor(() => expect(savedMacro(1)).toEqual([{ kind: 'text', text: 'after@unlock.org' }]))
+    await waitFor(() => expect(savedMacro(1)).toEqual([{ kind: 'text', text: 'after-unlock@example.org' }]))
     expect(screen.getByText('Saved to the keyboard')).toBeInTheDocument()
     expect(screen.queryByText('Not saved yet')).toBeNull()
   })

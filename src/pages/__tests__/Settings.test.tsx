@@ -103,7 +103,7 @@ describe('Settings with no keyboard', () => {
     expect(pipette).toHaveAttribute('href', 'https://github.com/darakuneko/pipette-desktop')
     expect(pipette).toHaveAttribute('target', '_blank')
     expect(screen.getByRole('link', { name: /^QMK/ })).toHaveAttribute('target', '_blank')
-    expect(screen.getByRole('link', { name: /^Vial/ })).toHaveAttribute('target', '_blank')
+    expect(screen.getByRole('link', { name: /^Vial(?! GUI)/ })).toHaveAttribute('target', '_blank')
     expect(screen.getByText('GPL-3.0-or-later')).toBeInTheDocument()
   })
 })

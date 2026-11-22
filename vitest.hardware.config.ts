@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import { defineConfig } from 'vitest/config'
 
 // Checks that need the real keyboard plugged in. Not part of `pnpm test`.

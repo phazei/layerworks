@@ -3,8 +3,8 @@
 //
 //   node scripts/screenshot.mjs /keys /lighting      (or: pnpm shots /keys /lighting)
 //
-// Builds, serves the build on port 5198, saves <page>-<theme>.png per path into %TEMP%\opencode\layerworks-shots,
-// and stops the server. Options (each adds to the file name when it changes what is shown):
+// Builds, serves the build on port 5198 (scripts/serve.mjs), saves <page>-<theme>.png per path into
+// %TEMP%\opencode\layerworks-shots, and stops the server. Options (each adds to the file name when it changes what is shown):
 //   --no-build        use the existing build
 //   --port=5197       another port, with its own build folder (.vite/shots-<port>), so two runs can go side by side
 //   --offline         without the demo keyboard (the not-connected state); files get an "-offline" suffix
@@ -12,6 +12,8 @@
 //   --size=1000x700   window size (default 1280x800)
 //   --query=help=layers  more URL options (see src/main.tsx), e.g. the help panel open at a topic
 //   --wait=4000       virtual milliseconds the page gets before the picture is taken
+//   --sub-path=/layerworks/  serves the build under that path, as GitHub Pages does; files get "-under-layerworks"
+// Files the page asked for and the server doesn't have are listed at the end ("missing ...").
 // EDGE=<path> overrides where msedge.exe is looked for.
 
 import { spawn, spawnSync } from 'node:child_process'
@@ -35,6 +37,7 @@ const themes = option('theme') ? [option('theme')] : ['dark', 'light']
 const [width, height] = (option('size') ?? '1280x800').split('x').map(Number)
 const wait = Number(option('wait') ?? 4000)
 const offline = flag('offline')
+const subPath = `/${(option('sub-path') ?? '').replace(/^\/+|\/+$/g, '')}/`.replace('//', '/')
 
 const outDir = join(process.env.TEMP ?? tmpdir(), 'opencode', 'layerworks-shots')
 mkdirSync(outDir, { recursive: true })
@@ -59,7 +62,7 @@ async function waitForServer(server) {
   for (let i = 0; i < 100; i++) {
     if (server.exitCode !== null) throw new Error('the preview server stopped')
     try {
-      if ((await fetch(`http://localhost:${PORT}/`)).ok) return
+      if ((await fetch(`http://localhost:${PORT}${subPath}`)).ok) return
     } catch {
       // not up yet
     }
@@ -98,10 +101,14 @@ function shoot(edge, url, file) {
 const edge = findEdge()
 if (!flag('no-build')) run(`pnpm vite build --outDir "${buildDir}" --emptyOutDir`)
 
-// Vite's own entry point, run by node directly, so stopping it stops the server (no shell in between).
-const server = spawn(process.execPath, [join(root, 'node_modules', 'vite', 'bin', 'vite.js'), 'preview', '--outDir', buildDir, '--port', String(PORT), '--strictPort'], {
+// A static server without a fallback page, run by node directly, so stopping it stops it (no shell in between).
+const server = spawn(process.execPath, [join(root, 'scripts', 'serve.mjs'), `--dir=${buildDir}`, `--port=${PORT}`, `--sub-path=${subPath}`], {
   cwd: root,
-  stdio: 'ignore',
+  stdio: ['ignore', 'pipe', 'inherit'],
+})
+const missing = new Set()
+server.stdout.setEncoding('utf8').on('data', (text) => {
+  for (const line of text.split('\n')) if (line.startsWith('missing ')) missing.add(line.slice(8).trim())
 })
 try {
   await waitForServer(server)
@@ -111,11 +118,17 @@ try {
       const extra = option('query')
       const query = `?${offline ? '' : 'demo&'}theme=${theme}${extra ? `&${extra}` : ''}`
       const size = option('size') ? `-${width}x${height}` : ''
-      const tag = extra ? `-${extra.replace(/[^\w-]+/g, '-')}` : ''
+      const tag = (extra ? `-${extra.replace(/[^\w-]+/g, '-')}` : '') + (subPath === '/' ? '' : `-under-${subPath.replace(/^\/|\/$/g, '').replace(/[^\w-]+/g, '-')}`)
       const file = join(outDir, `${slug}${offline ? '-offline' : ''}${size}${tag}-${theme}.png`)
-      shoot(edge, `http://localhost:${PORT}/${query}#/${path.replace(/^[#/]+/, '')}`, file)
+      shoot(edge, `http://localhost:${PORT}${subPath}${query}#/${path.replace(/^[#/]+/, '')}`, file)
       console.log(file)
     }
+  }
+  // Let the last lines from the server arrive.
+  await new Promise((resolve) => setTimeout(resolve, 200))
+  if (missing.size > 0) {
+    console.log(`The page asked for files the server doesn't have:\n  ${[...missing].join('\n  ')}`)
+    process.exitCode = 1
   }
 } finally {
   server.kill()

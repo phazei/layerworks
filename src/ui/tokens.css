@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
 /*
  * Design tokens: every colour, radius, shadow and timing the app uses is defined here, once. Components use the
  * Tailwind names mapped below (bg-card, text-muted, rounded-card ...) and never a literal value.

@@ -51,7 +51,7 @@ Example: `http://localhost:5199/?demo&theme=light#/keys`.
 | Command | |
 |---|---|
 | `pnpm typecheck` / `pnpm lint` / `pnpm test` | Must pass before every hand-over. `test` includes the vendored tests. |
-| `pnpm build` | Production build into `dist/` |
+| `pnpm build` | Production build into `dist/`, with `licences.txt` and `LICENSE.txt` beside the page (see "Hosting") |
 | `pnpm hardware` | Loads the real keyboard through the device layer, without a browser, and prints what it read. Reads only. Set `LINK=receiver` to go through the 2.4 GHz receiver (`$env:LINK='receiver'; pnpm hardware`). |
 | `pnpm vendor check` | Vendored files still match the recorded Pipette commit (see `VENDOR.md`) |
 | `pnpm shots /keys /home` | Screenshots on the demo keyboard, dark and light (see "Screenshots") |
@@ -706,6 +706,9 @@ therefore sit a little off in a screenshot when its target is in the middle of t
 
 `scripts/screenshot.mjs` builds, serves the build on port 5198, takes each page with headless Edge into
 `%TEMP%\opencode\layerworks-shots\` (`keys-dark.png`, `keys-offline-light.png`, ...) and stops the server.
+The server is `scripts/serve.mjs`: plain files, no fallback page, so a file the page asks for and the build doesn't
+have is listed at the end as missing (and the run fails). `--sub-path=/layerworks/` serves the build under that
+path, as GitHub Pages does (files get `-under-layerworks`).
 Every picture gets a fresh browser profile in a temporary folder, removed at the end, so nothing remembered in
 one shot (theme, "More options" open) shows in another. `EDGE=<path>` points it at another `msedge.exe`.
 
@@ -1048,6 +1051,31 @@ counting the writes sent; `start-over.test.ts` covers the lock lights, the keyma
 macros) and the restart for a firmware update (locked, through the receiver, unsupported, and ending disconnected);
 `vil.test.ts` also reads a real Vial save (Pipette's `bento-max.vil` fixture).
 
+## Hosting
+
+The page is published at https://phazei.github.io/layerworks/ by `.github/workflows/pages.yml`: on every push to
+`main` (and by hand from the Actions tab) it installs with the pnpm in `packageManager`, runs typecheck, lint and
+tests, builds, and deploys with GitHub's Pages actions. The repository must be public, with Settings → Pages →
+Source set to "GitHub Actions".
+
+- **Any path.** `base: './'` in `vite.config.ts` makes every address in the build relative, so the same `dist/`
+  works under `/layerworks/`, under a fork's name or at `/`; the routes are after the `#`. To try it as published:
+  `pnpm build`, then `node scripts/serve.mjs --sub-path=/layerworks/` (http://localhost:5198/layerworks/).
+- **Commit stamp.** The build records the commit it was built from (`GITHUB_SHA` in the workflow, else
+  `git rev-parse HEAD`, else "unknown"; a made-up hash in tests) as `BUILD_COMMIT` (`src/build-info.ts`). Settings,
+  About links to the source at that commit, and to the issues for reporting a problem (Help's start page too).
+- **Licences file.** `scripts/notices.ts`, a small Vite plugin, writes `dist/licences.txt` from what is really in
+  the bundle: the npm package of every bundled module, with its name, version and licence file. The texts it can't
+  find there (the vendored Pipette code and Vial GUI, kle-serial, LZMA-JS, and xz-decompress, which ships no
+  licence file) are in `scripts/layerworks-notices.ts` and `scripts/notices/`. A bundled package with no licence
+  text stops the build. The GPL's text goes beside it as `dist/LICENSE.txt`. About links both.
+- **Project facts** (copyright holder, source and issues addresses) are constants in `src/project.ts`, used by
+  About and the licences file.
+- Nothing is loaded from other servers (no fonts, analytics or CDNs). Every `phazei.github.io` project shares one
+  origin, so everything the app keeps in the browser is named `layerworks:…` (`src/ui/prefs.ts`).
+
 ## Licence
 
-GPL-3.0-or-later. See `LICENSE`, and `VENDOR.md` for the code that comes from Pipette.
+Copyright © 2026 phazei (`COPYRIGHT_HOLDER` in `src/project.ts`). GPL-3.0-or-later: free software, with no
+warranty. See `LICENSE`, and `VENDOR.md` for the code that comes from Pipette. Layerworks is an independent project,
+not affiliated with or endorsed by Keychron, QMK, Vial or VIA.

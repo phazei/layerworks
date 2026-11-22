@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
 /*
  * Motion for the effect previews (EffectPreview.tsx). Their colours are the data being previewed and are set
  * inline; this file only moves them. The previews are 32 px squares. Patterns that travel move a repeating

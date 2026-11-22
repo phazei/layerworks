@@ -8,7 +8,7 @@ licence headers, and their contents: **no vendored file is modified**.
 |---|---|
 | Source | https://github.com/tymon3310/pipette-desktop, branch `vial-keychron` |
 | Version | the commit in `vendor.json` (`source.commit`) |
-| Licence | GPL-3.0-or-later (files carry GPL-2.0-or-later or GPL-3.0-or-later headers) |
+| Licence | Pipette as a whole is GPL-3.0-or-later (its `LICENSE`, `package.json` and README). File headers: most say GPL-2.0-or-later, a few GPL-3.0-or-later, one MIT (`web/lzma-browser.ts`, based on LZMA-JS), some none |
 | File list | `vendor.json` (`files`, plus `extra` for test fixtures) |
 | Reference clone | `../pipette` (the `pipette/` folder of the Alice-Keyboard project) |
 
@@ -25,6 +25,13 @@ licence headers, and their contents: **no vendored file is modified**.
 - The upstream tests of those files (`__tests__/`), and the fixtures they read: three in
   `src/vendor/e2e-tauri/fixtures/`, and a real Vial save, `renderer/hooks/__tests__/fixtures/bento-max.vil`
   (where the tests' relative paths point; `src/device` tests read it too).
+
+Upstream's own origins: Pipette is built on [Vial GUI](https://github.com/vial-kb/vial-gui) (GPL-2.0-or-later);
+its keycode tables, KLE parser, protocol constants and Keychron code say "Ported from vial-gui" (the Keychron parts
+from tymon3310's version of it). The KLE parser is also based on
+[kle-serial](https://github.com/ijprest/kle-serial) (MIT, Ian Prest), and `web/lzma-browser.ts` on
+[LZMA-JS](https://github.com/LZMA-JS/LZMA-JS) (MIT, Nathan Rugg). Neither upstream file carries the MIT notice
+text; the build's licences file (`dist/licences.txt`, README "Hosting") does, with Pipette's and Vial GUI's credit.
 
 Not vendored: Pipette's web transport (`web/hid-transport.ts`; replaced by `src/device/transport.ts` and
 `src/device/webhid.ts`), its hooks, shell, dialogs and key picker.

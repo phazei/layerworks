@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The Help page with no topic open: where to start (the tour, or Getting started in order), and the groups of
-// topics as tiles, each leading to its first topic.
+// topics as tiles, each leading to its first topic; and where to report a problem.
 
-import { BookA, BookOpen, ChevronRight, Route } from 'lucide-react'
+import { BookA, BookOpen, Bug, ChevronRight, Route } from 'lucide-react'
 import { GLOSSARY_HREF, GUIDE, topicHref } from '../../help/guide'
 import { tour } from '../../help/tour'
+import { ISSUES_URL } from '../../project'
 import { Button } from '../../ui/controls'
+import { ExternalLink } from '../../ui/display'
 import { Card } from '../../ui/layout'
 
 function Tile({ href, title, description, count }: { href: string; title: string; description: string; count?: number }) {
@@ -66,6 +68,12 @@ export function Overview() {
         <p className="mt-3 flex items-center gap-1.5 text-[13px] text-muted">
           <BookA size={14} aria-hidden />
           Each topic links to the place in the app it is about, and most to the QMK, Vial or Keychron documentation for more depth.
+        </p>
+        <p className="mt-1.5 flex items-center gap-1.5 text-[13px] text-muted">
+          <Bug size={14} aria-hidden />
+          <span>
+            Something not working as described? <ExternalLink href={ISSUES_URL}>Report a problem</ExternalLink> on GitHub.
+          </span>
         </p>
       </Card>
     </div>
