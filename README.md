@@ -118,6 +118,7 @@ src/
     PaintSurface.tsx   press and drag across the picture's keys to paint them, one stroke at a time
   shell/             the frame around the pages
     Shell.tsx          the frame: sidebar, page title, stage, page, status line, help panel; picks the page
+    ErrorBoundary.tsx  what shows when the app or a page throws while drawing
     Sidebar.tsx        app name, device card, pages grouped main / plugins ("Extras") / app
     DeviceCard.tsx     the connected keyboard: name, cable or 2.4 GHz, battery, locked (unlock / lock), disconnect
     UnlockDialog.tsx   the unlock flow on screen; unlock-dialog.ts opens it (openUnlock)
@@ -182,6 +183,13 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
   more in the QMK documentation", "… the Vial manual", "… Keychron’s guide"; `help/docs-site.ts`). Under the text:
   related topics (they open in the panel) and "Open on the Help page".
 - **The first-run tour** (see "Help and the tour") is mounted once in the shell (`shell/Tour.tsx`).
+- **When something throws while drawing** (`shell/ErrorBoundary.tsx`): one boundary around the page area (the stage
+  and the page, in `Shell.tsx`) and one around the whole app (`main.tsx`). The page one shows "Something went wrong
+  on this page" in the page's place, with the sidebar and device card still working; another page or another keyboard
+  starts afresh (`resetKey`). Both say nothing was sent to the keyboard because of it, link "report a problem" to the
+  issues page (`ISSUES_URL`, `src/project.ts`), keep the error text behind "What went wrong", and offer Reload and
+  "Try again". Since a section remembered as open ("More options", "Technical details", pref `open:<id>`) can make a
+  page throw on every visit, "Try again" first closes every remembered section (`closeRememberedSections`).
 - **Theme**: dark by default; Settings offers dark, light and "Like the system". Stored with `prefs.ts`
   (`theme`); a small script in `index.html` applies it before the app loads, and a `<style>` there gives the page its
   colour (`--surface`, each theme's) before the stylesheet arrives, so a reload doesn't flash white.
@@ -1039,6 +1047,17 @@ pages / plugins → device store → vendored protocol code → transport (reque
 - **Capabilities** are rebuilt as parts arrive. `capabilities.check('macros')` returns whether it's available and,
   if not, a sentence saying why. `hasCommand` answers false for now: nothing registers detected commands yet (spec
   section 9).
+
+## Other keyboards
+
+The app is built on a Keychron K15 Max; these are the places where it adapts to keyboards that differ from it. Each
+item names the difference, what the app does, where that is decided (one place, marked "Compatibility:" in the
+code) and the test that covers it. Keep this list complete: an adaptation without a bullet here is a bug.
+
+- **A page that throws on another keyboard's data.** Definitions hold what the K15's doesn't (Corne's `lighting` is an
+  object). A page that throws shows "Something went wrong on this page" in its place, the rest of the app keeps
+  working, and "Try again" closes remembered sections first. Decided in `shell/ErrorBoundary.tsx` (around the page
+  area in `Shell.tsx`, around the app in `main.tsx`). Test: `shell/__tests__/ErrorBoundary.test.tsx`.
 
 ## Tests
 

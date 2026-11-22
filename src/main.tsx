@@ -20,6 +20,7 @@ import { openHelp } from './help/help-store'
 import { isHelpTopic } from './help/topics'
 import { armTour } from './help/tour'
 import './pages'
+import { ErrorBoundary } from './shell/ErrorBoundary'
 import { Shell } from './shell/Shell'
 import { watchKeyboardLayout } from './shell/keyboard-layout'
 import { connectDemo } from './shell/session'
@@ -62,6 +63,9 @@ if (unlock !== null) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Shell />
+    {/* Anything the shell's own page boundary doesn't catch: a notice instead of a blank window. */}
+    <ErrorBoundary whole>
+      <Shell />
+    </ErrorBoundary>
   </StrictMode>,
 )

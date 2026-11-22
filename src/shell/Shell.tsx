@@ -11,6 +11,7 @@ import { Card, HelpButton } from '../ui/layout'
 import { useAppliedTheme } from '../ui/theme'
 import { useElementSize } from '../ui/useElementSize'
 import { Connecting, ConnectPrompt } from './ConnectPrompt'
+import { ErrorBoundary } from './ErrorBoundary'
 import { HelpPanel } from './HelpPanel'
 import { usePath } from './router'
 import { Sidebar } from './Sidebar'
@@ -84,17 +85,21 @@ export function Shell() {
             </header>
           )}
           <div ref={shared} className="flex min-h-0 flex-1 flex-col">
-            {/* The stage ends in its resize handle, which takes the place of the gap under it. */}
-            {page?.stage && ready && <Stage keyboard={keyboard} selectable={page.stage === 'select'} space={space} />}
-            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-6">
-              {!page ? (
-                <NotFound />
-              ) : needsKeyboard ? (
-                status === 'connecting' ? <Connecting /> : <ConnectPrompt />
-              ) : (
-                Page && <Page />
-              )}
-            </div>
+            {/* A page (or its stage) that throws shows what happened here; the sidebar stays, and another page or
+                another keyboard starts afresh. */}
+            <ErrorBoundary resetKey={`${page?.path ?? ''}:${uid ?? ''}`}>
+              {/* The stage ends in its resize handle, which takes the place of the gap under it. */}
+              {page?.stage && ready && <Stage keyboard={keyboard} selectable={page.stage === 'select'} space={space} />}
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-6">
+                {!page ? (
+                  <NotFound />
+                ) : needsKeyboard ? (
+                  status === 'connecting' ? <Connecting /> : <ConnectPrompt />
+                ) : (
+                  Page && <Page />
+                )}
+              </div>
+            </ErrorBoundary>
           </div>
           <HelpPanel />
         </main>
