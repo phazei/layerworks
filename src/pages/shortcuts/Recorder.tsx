@@ -35,12 +35,27 @@ export function Recorder({ onRecorded }: Props) {
   }
   const stopRef = useRef(stop)
   stopRef.current = stop
+  // Recording takes the focus off the page (so keys don't land in a field); once it ends, the focus goes back to
+  // "Record what I type", so the keyboard carries on from where it was.
+  const recordButton = useRef<HTMLButtonElement>(null)
+  const wasRecording = useRef(false)
+  useEffect(() => {
+    if (wasRecording.current && !recording && (!document.activeElement || document.activeElement === document.body)) recordButton.current?.focus()
+    wasRecording.current = recording
+  }, [recording])
 
   useEffect(() => {
     if (!recording) return
     const record = (type: RecordedKey['type']) => (event: KeyboardEvent) => {
       // While recording, keys are for the macro: they don't type, scroll or press buttons here.
       event.preventDefault()
+      // Esc is the way out from the keyboard, so it is never recorded (an Esc step is added with "Tap a key"), and
+      // nothing else on the page acts on it (it would close the help or let go of a key).
+      if (event.code === 'Escape') {
+        event.stopPropagation()
+        if (type === 'down') stopRef.current()
+        return
+      }
       if (event.repeat) return
       const key = usageOf(event.code)
       if (key === undefined) {
@@ -67,6 +82,7 @@ export function Recorder({ onRecorded }: Props) {
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <span className="flex items-center gap-0.5">
           <Button
+            ref={recordButton}
             icon={<Circle size={13} aria-hidden className="fill-danger text-danger" />}
             onClick={() => {
               // Keys typed while recording mustn't land in a text field.
@@ -99,8 +115,9 @@ export function Recorder({ onRecorded }: Props) {
       </div>
       <p className="text-[13px] text-content">{preview.length ? summarize(preview, 8) : 'Nothing yet.'}</p>
       <p className="text-[13px] text-muted">
-        Click “Stop recording” with the mouse when done. Fn and layer keys, and shortcuts Windows or the browser keep
-        for themselves (Alt + Tab, Ctrl + W, the Windows key), can’t be recorded: add those with “Tap a key”.
+        Press Esc or click “Stop recording” when done; Esc itself isn’t recorded. Fn and layer keys, Esc, and shortcuts
+        Windows or the browser keep for themselves (Alt + Tab, Ctrl + W, the Windows key), can’t be recorded: add
+        those with “Tap a key”.
         {skipped > 0 && ` ${skipped} key${skipped === 1 ? '' : 's'} the app doesn’t know were left out.`}
       </p>
     </div>

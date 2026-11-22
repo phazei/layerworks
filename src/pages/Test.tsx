@@ -17,6 +17,8 @@ import { ProgressBar } from '../ui/ProgressBar'
 import { knobPlan, severalKnobs, type KnobPlan, type Visibility } from './test/knob'
 import { useSeenKeys } from './test/seen'
 import { useMatrix, type MatrixMode } from './test/useMatrix'
+import { Keyboard as KeyboardIcon } from 'lucide-react'
+import { keptOnTestPage } from './test/keep-keys'
 
 const NO_LAYER: LayerState = { base: 0, held: 0, active: 0 }
 const KNOB = 'knob:'
@@ -25,9 +27,7 @@ const KNOB = 'knob:'
 function useKeepKeysOnPage(): void {
   useEffect(() => {
     const keep = (event: KeyboardEvent) => {
-      const target = event.target instanceof Element ? event.target : null
-      if (event.ctrlKey || event.metaKey || target?.closest('dialog, input, textarea, select, [contenteditable]')) return
-      event.preventDefault()
+      if (keptOnTestPage(event)) event.preventDefault()
     }
     window.addEventListener('keydown', keep)
     window.addEventListener('keyup', keep)
@@ -248,6 +248,13 @@ function KeyTest({ keyboard }: { keyboard: KeyboardData }) {
               : `Click anywhere in this window to see the ${severalKnobs(keyboard) ? 'knobs' : 'knob'}: the browser only passes ${severalKnobs(keyboard) ? 'them' : 'it'} to the window in front.`}
           </p>
         )}
+        <p className="flex gap-2.5">
+          <KeyboardIcon size={16} aria-hidden className="mt-0.5 shrink-0" />
+          <span>
+            While this page is open, keys only light up here: they don’t scroll or reach the browser. Tab still moves
+            through the page, and Enter or Space presses the button it is on.
+          </span>
+        </p>
         <div className="-mb-1 flex items-center gap-1">
           How testing works
           <HelpButton topic="test-keys" />

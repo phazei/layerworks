@@ -482,6 +482,7 @@ const topics = {
     body: [
       'While recording, what you type becomes steps: letters and symbols become text, shortcuts such as Ctrl + C become one key step, and keys held across others become hold and let-go steps. Tick “Keep the pauses as waits” to keep how long you waited between keys.',
       'Only keys that reach the browser can be recorded: not Fn or layer keys, and not shortcuts Windows or the browser keep for themselves. Text is typed as on a US keyboard layout.',
+      'Press Esc (or click Stop recording) to stop. Esc is the way out, so it is never recorded: add an Esc step with “Tap a key”.',
     ],
     example: 'Record, type “Kind regards,”, tap Enter, type your name, stop.',
     docs: 'https://get.vial.today/manual/macros.html',

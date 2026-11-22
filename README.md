@@ -461,8 +461,11 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
   - the browser's key events (`usePressedKeys`), always: only keys that type something (letters, media and
     browser keys such as Volume Up: `keycodeOfEvent` in `shell/pressed-keys.ts`), only while the window is in
     front (the page says so when it isn't). While the page is open it keeps keys without Ctrl or Win from doing
-    their browser job (scrolling, Tab, F5 ...), outside dialogs and text fields; it can't stop media keys
-    changing the volume, and doesn't try;
+    their browser job (the arrows, Page Up / Down, Home, End, Space and Enter away from a control, Backspace, the
+    function keys, Alt, the menu key), outside dialogs and text fields; Tab and Shift + Tab still move the focus and
+    Enter or Space still press the focused button or link, so the page can be used and left from the keyboard
+    (`test/keep-keys.ts`, `keptOnTestPage`; a note on the page says so). Every key still counts as seen. It can't
+    stop media keys changing the volume, and doesn't try;
   - the keyboard's switch matrix (`device/useMatrix.ts`, shared with the Keys page's "Press a key", →
     `deviceStore.watchMatrix`, one poll loop for every watcher) while unlocked: every key,
     Fn included. It reads only while the page is shown and the tab is visible; through the receiver it pauses
@@ -612,7 +615,8 @@ A plugin with `matches` or `requires` only appears while a matching keyboard is 
     turned into steps by `stepsFromRecording`: a press and release is a tap, keys tapped with only modifiers held
     become shortcuts (Ctrl + C), runs of printable keys become text (US layout, as the firmware types it), anything
     else stays hold and let go; keys still held at the end are let go. "Keep the pauses as waits" keeps gaps over
-    150 ms. Stop with the mouse; leaving the window stops it too. Fn and layer keys, and shortcuts Windows or the
+    150 ms. Esc stops it (and is never recorded: an Esc step is added with "Tap a key"), as do Stop recording and
+    leaving the window; the focus then goes back to "Record what I type". Fn and layer keys, and shortcuts Windows or the
     browser keep (Alt + Tab, Ctrl + W, the Windows key), can't be recorded.
 
 ## Help and the tour
