@@ -75,7 +75,8 @@ function ModeNote({
   if (mode === 'off') {
     return (
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <p className="flex min-w-0 flex-1 gap-2.5">
+        {/* The text keeps 20rem beside the button; narrower, the button goes under it rather than squeeze it. */}
+        <p className="flex min-w-0 flex-[1_1_20rem] gap-2.5">
           <Lock size={16} aria-hidden className="mt-0.5 shrink-0" />
           <span>
             {tooBig
@@ -94,7 +95,7 @@ function ModeNote({
   if (mode === 'paused') {
     return (
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <p className="flex min-w-0 flex-1 gap-2.5">
+        <p className="flex min-w-0 flex-[1_1_20rem] gap-2.5">
           <Pause size={16} aria-hidden className="mt-0.5 shrink-0" />
           <span>
             Paused, so the keyboard can go to sleep: reading it over 2.4 GHz keeps it awake. Press any key to carry on.
