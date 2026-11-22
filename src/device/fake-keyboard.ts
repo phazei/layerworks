@@ -123,7 +123,10 @@ export interface FakeKeyboardConfig {
   firmwareKeymap?: number[][][]
   firmwareKnob?: [number, number][]
   firmwareKnobs?: [number, number][][]
-  /** A Vial build with VIAL_INSECURE: no bootloader jump (`0x0B` is an unknown command). */
+  /**
+   * A Vial build with VIAL_INSECURE: locking does nothing (give it `unlocked: true` and no `unlockKeys`, as it
+   * starts), and no bootloader jump (`0x0B` is an unknown command).
+   */
   insecure?: boolean
   /** Called when the keyboard takes the bootloader jump: it is about to leave USB (the demo drops the link). */
   onBootloaderJump?: () => void
@@ -398,7 +401,8 @@ export function fakeKeyboard(config: FakeKeyboardConfig): Responder {
         }
         return [config.unlocked ? 1 : 0, unlock.inProgress ? 1 : 0, unlock.counter]
       case 0x08:
-        config.unlocked = false
+        // vial.c's vial_lock: nothing in a VIAL_INSECURE build, which stays unlocked.
+        if (!config.insecure) config.unlocked = false
         return Array.from(request)
       case 0x09: {
         const from = request[2] | (request[3] << 8)

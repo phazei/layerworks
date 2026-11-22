@@ -38,6 +38,19 @@ export interface UnlockProgress {
 export const statusRequest = () => [VIAL, GET_STATUS]
 
 /**
+ * Compatibility: firmware built with VIAL_INSECURE never locks (vial_qmk quantum/vial.c: `vial_unlocked` starts at 1,
+ * `vial_lock` and the unlock count do nothing, and "get unlock status" names no keys; in vial-qmk only
+ * keyboards/vipad is built so). It reads as unlocked with no unlock keys, which a keyboard that can lock never does (it always names its
+ * keys). There the app offers neither Lock nor Unlock and says the firmware doesn't lock.
+ */
+/** Said where the lock state would be, for firmware that never locks. */
+export const NEVER_LOCKS = 'This firmware doesn’t lock: everything can be changed at any time, with no keys to hold first.'
+
+export function neverLocks(status: UnlockStatus | null): boolean {
+  return status !== null && status.unlocked && status.keys.length === 0
+}
+
+/**
  * Reads the reply to "get unlock status": unlocked, unlocking, then up to 15 (row, col) keys to hold. null for a
  * reply that isn't one (firmware without Vial answers 0xFF).
  */

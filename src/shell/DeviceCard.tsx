@@ -3,7 +3,7 @@
 
 import type { ReactNode } from 'react'
 import { BatteryFull, BatteryLow, BatteryMedium, Cable, Keyboard, Lock, LockOpen, Radio, Unplug } from 'lucide-react'
-import { deviceStore, useDevice } from '../device'
+import { deviceStore, neverLocks, useDevice } from '../device'
 import { Badge, Button, Spinner } from '../ui/controls'
 import { HelpButton } from '../ui/layout'
 import { demoKeyboard, disconnect } from './session'
@@ -79,9 +79,10 @@ export function DeviceCard() {
         {unlock && (
           <Fact icon={unlock.unlocked ? <LockOpen size={15} aria-hidden /> : <Lock size={15} aria-hidden />}>
             <span className="flex flex-1 items-center gap-0.5">
-              {unlocking ? 'Unlocking…' : unlock.unlocked ? 'Unlocked' : 'Locked'}
+              {/* Compatibility: firmware that never locks (device/unlock.ts, neverLocks) offers neither Lock nor Unlock. */}
+              {neverLocks(unlock) ? 'Never locks' : unlocking ? 'Unlocking…' : unlock.unlocked ? 'Unlocked' : 'Locked'}
               <HelpButton topic="unlock" />
-              {!unlocking && (
+              {!unlocking && !neverLocks(unlock) && (
                 <Button
                   size="sm"
                   variant="quiet"

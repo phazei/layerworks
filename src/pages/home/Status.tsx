@@ -2,7 +2,7 @@
 // The connected keyboard at a glance: how it is connected, battery, the layer that is on, firmware and lock.
 
 import { BatteryFull, BatteryLow, BatteryMedium, Cable, Cpu, Layers, Lock, LockOpen, Radio } from 'lucide-react'
-import { receiverName, useDevice, type LoadPart } from '../../device'
+import { NEVER_LOCKS, neverLocks, receiverName, useDevice, type LoadPart } from '../../device'
 import { readFirmware } from '../device/firmware'
 import { useConnectedLayerNames } from '../../shell/layer-names'
 import { openUnlock } from '../../shell/unlock-dialog'
@@ -79,12 +79,14 @@ export function Status() {
           hint={
             unlock === null
               ? undefined
-              : unlock.unlocked
+              : neverLocks(unlock)
+                ? NEVER_LOCKS
+                : unlock.unlocked
                 ? 'Everything can be changed until the keyboard restarts or you lock it.'
                 : `${lighting ? 'Keys and lighting change' : 'Keys change'} freely; a few powerful changes ask first.`
           }
         >
-          {unlock === null ? pending('unlock', loading, 'Unknown') : unlock.unlocked ? 'Unlocked' : 'Locked'}
+          {unlock === null ? pending('unlock', loading, 'Unknown') : neverLocks(unlock) ? 'Never locks' : unlock.unlocked ? 'Unlocked' : 'Locked'}
           {unlock?.unlocked === false && !unlocking && (
             // The device card has Lock; unlocking is offered here too, as it is the one thing to do about it.
             <Button size="sm" variant="quiet" className="-my-0.5 ml-1" icon={<LockOpen size={14} aria-hidden />} onClick={() => openUnlock()}>

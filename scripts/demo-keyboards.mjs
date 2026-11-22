@@ -49,6 +49,10 @@ const BOARDS = {
     path: 'keychron/q0/base',
     shows: 'a Keychron number pad: no Mac / Windows switch, no knob',
   },
+  vipad: {
+    path: 'vipad',
+    shows: 'firmware that never locks (VIAL_INSECURE), eighteen layers, two knobs, an RGB matrix the definition writes as an object',
+  },
   macropad: {
     path: 'ymdk/ymd09',
     shows: 'a 3 × 3 macropad: no knob, no slots for multi-tap keys, chords, replacements or repeat rules, no typing settings',
@@ -155,7 +159,7 @@ for (const [name, board] of Object.entries(BOARDS)) {
     uid,
     layers,
     unlockKeys: rows.map((row, i) => [row, cols[i]]),
-    insecure: /VIAL_INSECURE\s*=\s*yes/i.test(rules) || /#define\s+VIAL_INSECURE/.test(config),
+    insecure: rule(rules, 'VIAL_INSECURE') === true || /#define\s+VIAL_INSECURE/.test(config),
     // Without ENCODER_MAP_ENABLE (off unless switched on), Vial's knob commands go unanswered.
     knobMap: knobs.length > 0 ? on('ENCODER_MAP_ENABLE', 'encoder_map') === true : true,
     entries: {

@@ -36,7 +36,7 @@ afterEach(async () => {
 
 describe('the demo standing in for other keyboards (?demo-keyboard=)', () => {
   it('has the keyboards that show the differences', () => {
-    expect(DEMO_KEYBOARDS).toEqual(['cloud', 'corne', 'gh80', 'macropad', 'q0', 'q2', 'splinter'])
+    expect(DEMO_KEYBOARDS).toEqual(['cloud', 'corne', 'gh80', 'macropad', 'q0', 'q2', 'splinter', 'vipad'])
   })
 
   it.each(DEMO_KEYBOARDS)('loads %s as the app would read the real one', async (name) => {

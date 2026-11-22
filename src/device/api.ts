@@ -26,7 +26,7 @@ export type {
   Slot,
   UnlockResult,
 } from './store'
-export { UNLOCK_STEPS } from './unlock'
+export { NEVER_LOCKS, neverLocks, UNLOCK_STEPS } from './unlock'
 export type { UnlockProgress } from './unlock'
 export type { UnlockStatus } from '../vendor/pipette/shared/types/protocol'
 export { matrixKeys } from './matrix'

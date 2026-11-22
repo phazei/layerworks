@@ -3,7 +3,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { Cable, Cpu, Keyboard, Layers, Lock, LockOpen, Radio } from 'lucide-react'
-import { deviceStore, keyboardIdentity, lightingAsWritten, matrixKeys, offeredEffectCount, receiverName, useDevice, type TransportStats } from '../../device'
+import { deviceStore, keyboardIdentity, lightingAsWritten, matrixKeys, NEVER_LOCKS, neverLocks, offeredEffectCount, receiverName, useDevice, type TransportStats } from '../../device'
 import { Fact, Facts } from '../../ui/display'
 import { Card, Disclosure, HelpButton } from '../../ui/layout'
 import { readFirmware } from './firmware'
@@ -139,8 +139,9 @@ export function KeyboardInfo() {
             label="Protection"
             icon={unlock?.unlocked ? <LockOpen size={ICON} aria-hidden /> : <Lock size={ICON} aria-hidden />}
             help={<HelpButton topic="unlock" />}
+            hint={neverLocks(unlock) ? NEVER_LOCKS : undefined}
           >
-            {unlock === null ? pending('unlock') : unlock.unlocked ? 'Unlocked' : 'Locked'}
+            {unlock === null ? pending('unlock') : neverLocks(unlock) ? 'Never locks' : unlock.unlocked ? 'Unlocked' : 'Locked'}
           </Fact>
         </Facts>
 

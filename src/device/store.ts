@@ -39,7 +39,7 @@ import type { HidLink, LinkKind } from './link'
 import { FACTORY_RESET_PUSH, LAYER_PUSH, parseLayerReport, type LayerState } from './pushes'
 import { pollMatrix, type MatrixPoller } from './matrix'
 import { createTransport, TransportError, type Transport } from './transport'
-import { parseUnlockStatus, runUnlock, statusRequest, UnlockStopped, type UnlockProgress } from './unlock'
+import { neverLocks, parseUnlockStatus, runUnlock, statusRequest, UnlockStopped, type UnlockProgress } from './unlock'
 import {
   bootKeycode,
   countOf,
@@ -1146,7 +1146,8 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
   }
 
   async function lock(): Promise<void> {
-    if (!state.unlock?.unlocked) return
+    // Firmware that never locks (./unlock.ts) ignores the command; nothing to send.
+    if (!state.unlock?.unlocked || neverLocks(state.unlock)) return
     const sent = await write(
       () => protocol.lock(),
       () => (state.unlock ? { unlock: { ...state.unlock, unlocked: false } } : {}),
