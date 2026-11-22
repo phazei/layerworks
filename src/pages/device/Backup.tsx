@@ -17,6 +17,7 @@ import { storedLayerNames, storedMacroNames } from '../../shell/layer-names'
 import { Button, Spinner } from '../../ui/controls'
 import { downloadText } from '../../ui/files'
 import { Card, Disclosure, HelpButton, Notice } from '../../ui/layout'
+import { theKnobs } from './knob-words'
 import { Restore } from './Restore'
 
 /** Downloads a backup of the connected keyboard. Resolves with the file name. */
@@ -55,6 +56,7 @@ export function Backup() {
   const state = useDevice((s) => s)
   const [saved, setSaved] = useState<string | null>(null)
   const [savedVil, setSavedVil] = useState<string | null>(null)
+  const knobs = theKnobs(useDevice((s) => s.keyboard?.knobCount ?? 0))
   const missing = failed.length > 0 ? missingParts(state) : []
 
   return (
@@ -63,7 +65,7 @@ export function Backup() {
         <div className="flex flex-col gap-2">
           <h3 className="font-medium">Save everything on this keyboard to a file</h3>
           <p className="text-[13px] text-muted">
-            Every key on every layer, the knob, macros and the other shortcuts, typing settings (the key bounce filter and
+            Every key on every layer, {knobs && `${knobs}, `}macros and the other shortcuts, typing settings (the key bounce filter and
             Snap Click too), the lighting with key colours and mixed zones, the wireless timers, and the names you gave
             layers and macros. Saving only reads; nothing on the keyboard changes.
           </p>
@@ -110,7 +112,7 @@ export function Backup() {
       <Disclosure id="device-vial" label="Vial files">
         <div className="flex flex-col gap-2">
           <p className="flex items-center gap-1 text-[13px] text-muted">
-            A layout file for Vial, the app this firmware was made for. It has the keys, knob, macros, shortcuts and
+            A layout file for Vial, the app this firmware was made for. It has the keys, {knobs && `${knobs.replace('the ', '')}, `}macros, shortcuts and
             typing settings only: no lighting, Keychron settings, wireless timers, or layer and macro names.
             <HelpButton topic="vial-file" />
           </p>

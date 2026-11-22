@@ -1196,6 +1196,10 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   "both keys" for two, "all of them" for more (a firmware names up to 15). Decided in `holdUnlockKeys`
   (`shell/UnlockDialog.tsx`). Test: `shell/__tests__/unlock-keys.test.ts`.
 
+- **No knob, or several, on the Device page.** Backup and Restore texts say "the knob", "the knobs" or nothing.
+  Decided in `theKnobs` / `keysAndKnobs` (`pages/device/knob-words.tsx`). Test:
+  `pages/device/__tests__/knob-words.test.ts` ("the knob in Backup and Restore texts").
+
 ## Tests
 
 Unit tests sit in `__tests__/` beside the code. `src/device/fake-keyboard.ts` provides a `HidLink` with no

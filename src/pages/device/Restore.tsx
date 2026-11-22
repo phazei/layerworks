@@ -3,6 +3,7 @@
 // differences, and say what was written, skipped and failed. The one action in the app that overwrites a lot at
 // once, so it says exactly what before anything happens.
 
+import { KeysAndKnobs } from './knob-words'
 import { useEffect, useRef, useState } from 'react'
 import { CircleAlert, CircleCheck, FileUp, Lock, TriangleAlert } from 'lucide-react'
 import {
@@ -217,7 +218,7 @@ function Review({ step, onRestore, onCancel, onUnlocked }: ReviewProps) {
           ))}
         </ul>
         <p className="mt-3">
-          Undo can take back the keys and knob afterwards; the rest can’t be undone.
+          Undo can take back <KeysAndKnobs /> afterwards; the rest can’t be undone.
           {locked > 0 && !unlocked && ' The keyboard is locked, so what needs unlocking is left out.'}
         </p>
       </Dialog>
@@ -290,7 +291,7 @@ function Report({ step, onDone, onUnlocked }: { step: Extract<Step, { kind: 'don
         </Notice>
       )}
       {report.undoable && (
-        <p className="text-[13px] text-muted">Undo, in the bar at the bottom, puts the keys and knob back as they were.</p>
+        <p className="text-[13px] text-muted">Undo, in the bar at the bottom, puts <KeysAndKnobs /> back as they were.</p>
       )}
       <div>
         <Button onClick={onDone}>Done</Button>
