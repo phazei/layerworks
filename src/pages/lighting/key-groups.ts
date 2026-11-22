@@ -3,7 +3,7 @@
 // and the ready-made colour schemes ("starting points") built on them. Positions are "row,col"; only keys with a
 // light are included.
 
-import type { Hsv, KeyboardData } from '../../device'
+import { matrixKeys, visibleLayoutKeys, type Hsv, type KeyboardData } from '../../device'
 
 export interface KeyGroup {
   id: string
@@ -39,7 +39,10 @@ function keysOf(keyboard: KeyboardData, layer: number, leds: ReadonlyMap<string,
 }
 
 /** The groups this keyboard has keys for, then one per row of the key matrix. */
-export function keyGroups(keyboard: KeyboardData, layer: number, leds: ReadonlyMap<string, number>): KeyGroup[] {
+export function keyGroups(keyboard: KeyboardData, layer: number, allLeds: ReadonlyMap<string, number>): KeyGroup[] {
+  // Only keys of the chosen layout (device/layout-options.ts): an LED under an unchosen alternative isn't a key.
+  const present = new Set(matrixKeys(keyboard))
+  const leds = new Map([...allLeds].filter(([pos]) => present.has(pos)))
   const named = GROUPS.map((g) => ({ id: g.id, name: g.name, keys: keysOf(keyboard, layer, leds, g.has) })).filter((g) => g.keys.length > 0)
   const rows = new Map<number, string[]>()
   for (const pos of leds.keys()) {
@@ -79,7 +82,8 @@ export const STARTING_POINTS: StartingPoint[] = [
     name: 'Rainbow across',
     // Hue from the key's place left to right in the picture, red to purple.
     colours: (keyboard, _layer, leds, count) => {
-      const keys = keyboard.layout?.keys ?? []
+      // The keys of the chosen layout, where the picture draws them (device/layout-options.ts).
+      const keys = visibleLayoutKeys(keyboard)
       const xOf = new Map(keys.map((k) => [`${k.row},${k.col}`, k.x + k.width / 2]))
       const xs = [...leds.keys()].map((p) => xOf.get(p) ?? 0)
       const [min, max] = [Math.min(...xs), Math.max(...xs)]

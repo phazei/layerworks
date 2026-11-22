@@ -3,8 +3,8 @@
 // only answers while unlocked (locked, it sends the request back with every key up). Each read is a snapshot, so
 // a quick tap can fall between two; the Test page adds the browser's own key events for that.
 
-import { filterVisibleKeys, repositionLayoutKeys } from '../vendor/pipette/shared/kle/filter-keys'
 import { posKey } from '../vendor/pipette/shared/kle/pos-key'
+import { visibleLayoutKeys } from './layout-options'
 import type { LinkKind } from './link'
 import type { KeyboardData } from './store'
 import { TransportError, type Transport } from './transport'
@@ -46,11 +46,12 @@ export function parseMatrix(reply: Uint8Array, rows: number, cols: number): Set<
   return down
 }
 
-/** "row,col" of every physical key in the picture (not the knob's turns), each once. */
+/**
+ * "row,col" of every physical key in the picture (not the knob's turns), each once: the keys of the chosen layout only
+ * (./layout-options.ts), so a key that only an unchosen alternative has isn't counted.
+ */
 export function matrixKeys(keyboard: KeyboardData): string[] {
-  if (!keyboard.layout) return []
-  const options = new Map<number, number>()
-  const keys = filterVisibleKeys(repositionLayoutKeys(keyboard.layout.keys, options), options)
+  const keys = visibleLayoutKeys(keyboard)
   return [...new Set(keys.filter((key) => key.encoderIdx < 0).map((key) => posKey(key.row, key.col)))]
 }
 

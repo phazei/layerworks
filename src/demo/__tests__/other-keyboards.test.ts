@@ -47,7 +47,11 @@ describe('the demo standing in for other keyboards (?demo-keyboard=)', () => {
     expect(state.failed).toEqual([])
     expect(state.link).toMatchObject({ kind: 'cable', ...file.usb })
     expect(state.keyboard!.layers).toBe(file.firmware.layers)
-    expect(matrixKeys(state.keyboard!)).toHaveLength(file.keys.length)
+    // Every key of the chosen layout is one of the definition's; without layout options, all of them.
+    const keys = matrixKeys(state.keyboard!)
+    const all = new Set(file.keys.map(([row, col]) => `${row},${col}`))
+    expect(keys.every((pos) => all.has(pos))).toBe(true)
+    if (!state.keyboard!.layout!.keys.some((k) => k.layoutIndex >= 0)) expect(keys).toHaveLength(file.keys.length)
     // Knobs the firmware keeps to itself (no knob map) are counted apart.
     expect(state.keyboard!.knobCount + state.keyboard!.fixedKnobs).toBe(file.knobs.length)
     expect(state.keyboard!.fixedKnobs > 0).toBe(!file.firmware.knobMap)

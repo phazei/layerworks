@@ -1268,8 +1268,11 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   still picture and its painting, the unlock highlight) draws only the chosen layout: the vendored widget moves the
   chosen alternatives into the first one's place and leaves the others out, given the choices (`layoutOptions`).
   A stored value out of range for the labels, or a choice without keys, counts as the first choice, so a whole
-  keyboard is always drawn. Decided in `layoutChoices` and `visibleLayoutKeys` (`device/layout-options.ts`). Test:
-  `device/__tests__/layout-options.test.tsx` (on the demo GH80-3000).
+  keyboard is always drawn. Counts follow the same keys (`matrixKeys`): the Test page's "N of M keys seen" (so it can
+  reach "Every key works"), Device's "Keys", and Lighting's groups for colouring keys (no LED under an unchosen
+  alternative counts, and "Rainbow across" spreads over the keys drawn). Decided in `layoutChoices` and
+  `visibleLayoutKeys` (`device/layout-options.ts`). Tests: `device/__tests__/layout-options.test.tsx`,
+  `pages/__tests__/layout-counts.test.tsx` (on the demo GH80-3000).
 
 - **No knob, or several.** The Test page says "the knob" or "each knob", "it" or "them". Decided in `severalKnobs`
   (`pages/test/knob.ts`). Test: `pages/test/__tests__/knob.test.ts`.
