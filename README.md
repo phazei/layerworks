@@ -1200,6 +1200,11 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   Decided in `theKnobs` / `keysAndKnobs` (`pages/device/knob-words.tsx`). Test:
   `pages/device/__tests__/knob-words.test.ts` ("the knob in Backup and Restore texts").
 
+- **The firmware update key on keyboards not made by Keychron.** When the firmware lacks the restart command, the
+  Device page says to hold Esc on Keychron keyboards, and elsewhere the top-left key (QMK's bootmagic position) or
+  the keyboard's instructions. Decided in `updateKeyHint` (`pages/device/StartOver.tsx`). Test:
+  `pages/device/__tests__/update-key.test.ts` ("the key that reaches firmware update mode, by maker").
+
 ## Tests
 
 Unit tests sit in `__tests__/` beside the code. `src/device/fake-keyboard.ts` provides a `HidLink` with no

@@ -178,11 +178,21 @@ function ResetKeys({ asking: askFirst = false }: { asking?: boolean }) {
   )
 }
 
-const BOOTLOADER_PROBLEMS: Partial<Record<BootloaderResult, string>> = {
-  unsupported: 'This keyboard’s firmware doesn’t take this command. Hold its update key while plugging it in instead (Esc on most Keychron keyboards).',
-  failed: 'The keyboard didn’t answer. Try again, or hold its update key while plugging it in.',
-  locked: 'The keyboard needs to be unlocked first.',
-  'cable-only': 'Connect the keyboard with its cable first.',
+/**
+ * Which key to hold while plugging the keyboard in to reach firmware update mode. Compatibility: QMK's bootmagic
+ * checks one matrix position at power-up, row 0 / column 0 unless the keyboard sets BOOTMAGIC_ROW / _COLUMN
+ * (vial-qmk quantum/bootmagic/bootmagic.h for the defaults, bootmagic.c for the check); on Keychron keyboards that is Esc, elsewhere usually the top-left key.
+ */
+export function updateKeyHint(vendorId: number | undefined): string {
+  return vendorId === 0x3434 ? 'Esc' : 'on most keyboards the top-left key; the keyboard’s instructions say which'
+}
+
+const BOOTLOADER_PROBLEMS: Partial<Record<BootloaderResult, (vendorId: number | undefined) => string>> = {
+  unsupported: (vendorId) =>
+    `This keyboard’s firmware doesn’t take this command. Hold its update key while plugging it in instead (${updateKeyHint(vendorId)}).`,
+  failed: () => 'The keyboard didn’t answer. Try again, or hold its update key while plugging it in.',
+  locked: () => 'The keyboard needs to be unlocked first.',
+  'cable-only': () => 'Connect the keyboard with its cable first.',
 }
 
 function Bootloader({ asking: askFirst = false }: { asking?: boolean }) {
@@ -202,7 +212,7 @@ function Bootloader({ asking: askFirst = false }: { asking?: boolean }) {
       closeUnlock()
     }
     const result = await deviceStore.restartToBootloader()
-    if (result !== 'restarting') setProblem(BOOTLOADER_PROBLEMS[result] ?? null)
+    if (result !== 'restarting') setProblem(BOOTLOADER_PROBLEMS[result]?.(link?.vendorId) ?? null)
   }
 
   return (
