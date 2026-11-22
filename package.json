@@ -20,7 +20,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint src/ hardware/",
-    "test": "vitest run",
+    "test": "vitest run --maxWorkers=50%",
     "test:watch": "vitest",
     "vendor": "node scripts/vendor.mjs",
     "shots": "node scripts/screenshot.mjs",
