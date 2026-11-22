@@ -567,7 +567,8 @@ that every other topic is opened somewhere in the app and that every topic is in
 KC_TRNS, EEPROM, bootloader, N-key rollover …) to the app's name and topic.
 
 **The Help page** (`pages/Help.tsx`, `pages/help/`), offline as well: a list at the left (search, "Start here",
-the groups, the glossary) and the topic at the right, each column scrolling on its own; narrower than 42rem the
+the groups, the glossary; each group's title is a filled band (`bg-band`) that stays at the top of the list while
+its topics, slightly indented, scroll under it, and the open topic is scrolled into the list's view) and the topic at the right, each column scrolling on its own; narrower than 42rem the
 list and the topic take turns ("All topics" goes back). Addresses: `#/help` (the overview: "Take the tour", "Read
 Getting started", the groups as tiles), `#/help/<topic>`, `#/help/glossary`, and `?q=…` after any of them to start
 with a search. A topic shows its text, "Where this is in the app" as links, related topics, and the previous and

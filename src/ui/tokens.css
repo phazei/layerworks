@@ -15,6 +15,7 @@
   --raised-hover: #e6e8ec;
   --edge: #dfe2e7; /* borders and dividers */
   --edge-strong: #c3c8d0;
+  --band: #e9ebef; /* a heading band inside a card: apart from --raised (controls, hover) and --accent-soft */
 
   --content: #171a1f;
   --content-secondary: #5d6470;
@@ -75,6 +76,7 @@
   --raised-hover: #2a2e34;
   --edge: #2a2d33;
   --edge-strong: #3d424a;
+  --band: #0d0e10;
 
   --content: #e9ebee;
   --content-secondary: #9ba1ab;
@@ -122,6 +124,7 @@
   --color-raised-hover: var(--raised-hover);
   --color-edge: var(--edge);
   --color-edge-strong: var(--edge-strong);
+  --color-band: var(--band);
   --color-content: var(--content);
   --color-muted: var(--content-secondary);
   --color-accent: var(--accent);
