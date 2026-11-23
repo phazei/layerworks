@@ -13,7 +13,7 @@ export const VIAL_FIRMWARE_URL = 'https://get.vial.today/'
 /**
  * Compatibility: keyboards with VIA firmware (Keychron's stock firmware among them) offer the same raw HID interface
  * as Vial, so the browser lists them, but don't know Vial's commands: VIA answers them "unknown command", 0xFF in the
- * first byte (vial_qmk quantum/via.c, raw_hid_receive_kb; Keychron's keyboards/keychron/common/keychron_raw_hid.c
+ * first byte (vial-qmk quantum/via.c, raw_hid_receive_kb; Keychron's keyboards/keychron/common/keychron_raw_hid.c
  * does the same), and other firmware sends them back unchanged. A Vial keyboard answers "get keyboard ID" (0xFE
  * 0x00) with its protocol version, a small number, little-endian (quantum/vial.c, vial_get_keyboard_id). Decided
  * here, before anything else is read.

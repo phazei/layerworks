@@ -28,7 +28,7 @@ export function visibility(code: number): Visibility {
 }
 
 /**
- * Compatibility: keyboards have no knob, one (the K15 Max) or several (up to 8 in vial_qmk, e.g. keyboards/splitkb/elora);
+ * Compatibility: keyboards have no knob, one (the K15 Max) or several (up to 8 in vial-qmk, e.g. keyboards/splitkb/elora);
  * the definition's knob keys (KLE label "e") say how many (KeyboardData.knobCount). The Test page's sentences say
  * "the knob" or "each knob" by this.
  */

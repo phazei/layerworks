@@ -3,7 +3,7 @@
 // at the chosen speed where it uses that. A hint, not a simulation: the keyboard itself is the real preview.
 //
 // Each preview moves the way its effect moves on the keyboard, seen from above with the top row at the top. The
-// direction is worked out from the effect's maths in vial_qmk/quantum/rgb_matrix/animations/ (noted per case
+// direction is worked out from the effect's maths in vial-qmk quantum/rgb_matrix/animations/ (noted per case
 // below), with these conventions:
 // - LED coordinates: x grows to the right, y grows downwards (towards the typist); the centre is k_rgb_matrix_center.
 // - atan2_8(dy, dx) (lib/lib8tion/trig8.h) grows from +x towards +y, which with y downwards is clockwise.

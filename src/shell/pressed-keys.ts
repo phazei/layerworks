@@ -101,7 +101,7 @@ const typingInField = (target: EventTarget | null) =>
   target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
 
 /**
- * Compatibility: only Keychron's firmware reports its layer (the `0xA3` command and push, vial_qmk
+ * Compatibility: only Keychron's firmware reports its layer (the `0xA3` command and push, vial-qmk
  * keyboards/keychron/common/keychron_raw_hid.c); every other Vial keyboard answers "unknown command" (quantum/via.c,
  * raw_hid_receive_kb), and the store's `layer` is null. Whether there is a layer to follow is decided here.
  */

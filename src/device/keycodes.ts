@@ -271,7 +271,7 @@ const LIGHTING_KEYS: Record<LightingKind, LightingKeys | undefined> = {
 
 /**
  * Compatibility: keyboards have a single-colour backlight, an underglow strip, an RGB matrix, a mix, or no lighting,
- * and answer to different lighting keys (vial_qmk quantum/process_keycode/process_backlight.c, process_underglow.c,
+ * and answer to different lighting keys (vial-qmk quantum/process_keycode/process_backlight.c, process_underglow.c,
  * which also drives an RGB matrix with the shared RGB_ keys); the definition names what it has (VIA's "lighting").
  *
  * The lighting keys for a keyboard, from its definition's `lighting` (the store's `keyboard.definition.lighting`),

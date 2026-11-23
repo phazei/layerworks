@@ -14,7 +14,7 @@ const NONE: ReadonlyMap<number, number> = new Map()
 /**
  * Compatibility: many definitions (278 of vial-qmk's 857) draw alternatives for parts of the keyboard: a group per
  * label in `layouts.labels`, each key of a group marked with its group and choice (KLE label 8, "group,choice";
- * vial_qmk keyboards/<board>/keymaps/vial/vial.json, e.g. gh80_3000). The keyboard keeps which choice it has as one
+ * vial-qmk keyboards/<board>/keymaps/vial/vial.json, e.g. gh80_3000). The keyboard keeps which choice it has as one
  * number (VIA's layout options, quantum/via.c id_layout_options), the last label in the lowest bits. This is the
  * chosen choice of every group the keys use. A choice the labels don't allow, or that has no keys, counts as the
  * first (0) where it has keys, so a stored value out of range still draws a whole keyboard; a group without a label

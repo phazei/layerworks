@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Rebuilds src/device/keychron-layers.ts: what each layer of a Keychron (and Lemokey) keyboard is for, read from the
-// order of `enum layers` in the Vial keymaps of vial-qmk (../vial_qmk/keyboards/keychron/**/keymaps/vial/keymap.c).
+// order of `enum layers` in the Vial keymaps of vial-qmk (keyboards/keychron/**/keymaps/vial/keymap.c).
 // Run it after vial-qmk is updated:
 //
 //   node scripts/keychron-layers.mjs [path to vial-qmk]     (default: ../vial_qmk beside this repo)

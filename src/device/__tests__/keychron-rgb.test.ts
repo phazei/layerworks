@@ -79,7 +79,7 @@ describe('packets', () => {
   it('numbers zone effects as the K15 Max does', () => {
     const k15 = [0, 1, 2, 6, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 25, 29, 30, 31, 34, 38, 39, 41, 43, 48, 49]
     const { toZone, fromZone } = zoneEffectNumbers(k15)
-    // ../docs/research/k15-firmware-capabilities.md section 5.2
+    // The K15 Max's effects: vial-qmk keyboards/keychron/k15_max/ansi_encoder/rgb/keyboard.json
     expect(toZone.get(2)).toBe(1)
     expect(toZone.get(22)).toBe(13)
     expect(toZone.get(43)).toBe(15)

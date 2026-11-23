@@ -10,7 +10,7 @@ licence headers, and their contents: **no vendored file is modified**.
 | Version | the commit in `vendor.json` (`source.commit`) |
 | Licence | Pipette as a whole is GPL-3.0-or-later (its `LICENSE`, `package.json` and README). File headers: most say GPL-2.0-or-later, a few GPL-3.0-or-later, one MIT (`web/lzma-browser.ts`, based on LZMA-JS), some none |
 | File list | `vendor.json` (`files`, plus `extra` for test fixtures) |
-| Reference clone | `../pipette` (the `pipette/` folder of the Alice-Keyboard project) |
+| Reference clone | `../pipette`, a clone beside this repo (`clone` in `vendor.json`; change it to use another place) |
 
 ## What is vendored
 
@@ -31,7 +31,7 @@ its keycode tables, KLE parser, protocol constants and Keychron code say "Ported
 from tymon3310's version of it). The KLE parser is also based on
 [kle-serial](https://github.com/ijprest/kle-serial) (MIT, Ian Prest), and `web/lzma-browser.ts` on
 [LZMA-JS](https://github.com/LZMA-JS/LZMA-JS) (MIT, Nathan Rugg). Neither upstream file carries the MIT notice
-text; the build's licences file (`dist/licences.txt`, README "Hosting") does, with Pipette's and Vial GUI's credit.
+text; the build's licences file (`dist/licences.txt`, `docs/development.md` "Hosting") does, with Pipette's and Vial GUI's credit.
 
 Not vendored: Pipette's web transport (`web/hid-transport.ts`; replaced by `src/device/transport.ts` and
 `src/device/webhid.ts`), its hooks, shell, dialogs and key picker.
@@ -61,7 +61,7 @@ upstream instead (below).
 
 ## Working with the reference clone
 
-`../pipette` is a clone of the user's fork with three remotes: `origin` (the fork), `tymon` (tymon3310) and
+`../pipette` is a clone of the owner's fork with three remotes: `origin` (the fork), `tymon` (tymon3310) and
 `upstream` (darakuneko).
 
 ```

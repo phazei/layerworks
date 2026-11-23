@@ -2,7 +2,7 @@
 // What shows when part of the app throws while drawing, instead of a blank window.
 //
 // Compatibility: definitions from other keyboards hold what the K15 Max's doesn't (a `lighting` given as an object
-// in Corne's and six others' vial.json, vial_qmk keyboards/crkbd/keymaps/vial/vial.json), and a page that meets
+// in Corne's and six others' vial.json, vial-qmk keyboards/crkbd/keymaps/vial/vial.json), and a page that meets
 // something unexpected must not take the whole app down. The causes are fixed where they are found; this is the net.
 //
 // Two of them: one around the

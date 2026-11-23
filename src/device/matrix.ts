@@ -22,7 +22,7 @@ export const MATRIX_POLL_MS: Record<LinkKind, number> = { cable: 20, receiver: 6
 
 /**
  * Compatibility: VIA's switch-matrix read fills its one 32-byte reply only where `(cols / 8 + 1) * rows <= 28`
- * (integer division; vial_qmk quantum/via.c, id_switch_matrix_state); a bigger matrix gets its request back with
+ * (integer division; vial-qmk quantum/via.c, id_switch_matrix_state); a bigger matrix gets its request back with
  * nothing in it (e.g. era/sirind/klein_hs 10 × 16, bpiphany/frosty_flake 18 × 8, converter/adb_usb 16 × 8). There the
  * app never reads the matrix: the Test page and "Press a key" go by what the browser sees, and say why.
  */

@@ -42,7 +42,7 @@ describe('the settings catalogue', () => {
     expect(missing).toEqual([])
   })
 
-  it.skipIf(!existsSync(SOURCE))('knows every id in the firmware source (../vial_qmk, when it is there)', () => {
+  it.skipIf(!existsSync(SOURCE))('knows every id in the firmware source (vial-qmk in a vial_qmk folder beside the repo, when it is there)', () => {
     const source = readFileSync(SOURCE, 'utf8')
     const declared = [...source.matchAll(/DECLARE_(?:STATIC_)?(?:BIT)?SETTING(?:_NOTIFY)?\((\d+),/g)].map((m) => Number(m[1]))
     expect(declared.sort((a, b) => a - b)).toEqual(FIRMWARE_QSIDS)

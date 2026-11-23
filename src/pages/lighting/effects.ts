@@ -3,9 +3,9 @@
 // speed settings.
 //
 // Which settings an effect uses is read from the firmware, not guessed: the effect functions in
-// vial_qmk/quantum/rgb_matrix/animations/ (and their runners in animations/runners/), the VialRGB id list in
-// vial_qmk/quantum/vialrgb_effects.inc, and Keychron's per-key and mixed effects in
-// vial_qmk/keyboards/keychron/common/rgb/. Notes on the less obvious ones:
+// vial-qmk quantum/rgb_matrix/animations/ (and their runners in animations/runners/), the VialRGB id list in
+// vial-qmk quantum/vialrgb_effects.inc, and Keychron's per-key and mixed effects in
+// vial-qmk keyboards/keychron/common/rgb/. Notes on the less obvious ones:
 // - Every effect uses brightness (the value of the configured colour) except Direct Control, which is left out.
 // - The "rainbow" effects set the hue from the key's position and the time, or add a large position-dependent
 //   offset to it, so the chosen colour only shifts where the rainbow starts: treated as not using it.

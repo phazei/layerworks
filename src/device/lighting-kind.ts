@@ -25,7 +25,7 @@ export function lightingKind(lighting: unknown, firmwareVialRgb = false): Lighti
 }
 
 /**
- * Compatibility: firmware with VialRGB says so in byte 12 of its keyboard ID reply (vial_qmk quantum/vial.c,
+ * Compatibility: firmware with VialRGB says so in byte 12 of its keyboard ID reply (vial-qmk quantum/vial.c,
  * vial_get_keyboard_id: "so third-party apps don't have to query json"), and some definitions don't: keyboards/vipad
  * writes its lighting as `{ "extends": "qmk_rgb_matrix" }`, keyboards/rgbkb/mun2 as "none", both built with
  * VIALRGB_ENABLE. Where the firmware says so, the app reads and changes the lighting as VialRGB (`lightingKind`).

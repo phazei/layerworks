@@ -72,7 +72,7 @@ export function Nothing({ macros, others = true }: { macros: boolean; others?: b
 
 /**
  * Compatibility: firmware built without tap dance, combos, key overrides and alt repeat reports no slots for any of
- * them (vial_qmk quantum/vial.c, dynamic_vial_get_number_of_entries; e.g. keyboards/flehrad/bigswitch). True while
+ * them (vial-qmk quantum/vial.c, dynamic_vial_get_number_of_entries; e.g. keyboards/flehrad/bigswitch). True while
  * the counts aren't known yet.
  */
 function hasEntrySlots(caps: Capabilities | null): boolean {

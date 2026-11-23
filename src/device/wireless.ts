@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Keychron's wireless timers: how long the keyboard waits, on Bluetooth or 2.4 GHz, before turning its lights off
 // and before going to sleep. Read and written with `0xA7 0x0B/0x0C`; the firmware refuses a lights-off time under
-// 5 s or a sleep time under 60 s, and saves what it accepts (../docs/research/k15-firmware-capabilities.md 3.2).
+// 5 s or a sleep time under 60 s, and saves what it accepts (vial-qmk
+// keyboards/keychron/common/keychron_raw_hid.c, WIRELESS_LPM_SET).
 
 export interface WirelessTimers {
   /** Seconds without a key press before the lights go off. */

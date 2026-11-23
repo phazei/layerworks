@@ -185,8 +185,9 @@ export function keyLeds(ledMatrix: ReadonlyMap<string, number>, rows: number, co
  * mixed), the app uses VialRGB ids. This is that file's order as VialRGB ids; numbering the effects the keyboard
  * lists in this order gives the keyboard's numbers. Effects with no VialRGB id (Flower Blooming, Pixel Flow, the
  * Starlights, Riverflow) can't be seen in the keyboard's list: a firmware enabling one of them would shift the
- * numbers after it. The K15 Max enables none (../docs/research/k15-firmware-capabilities.md section 5.2 has its
- * table: Solid Color 1 ... Solid Splash 22, Direct 23, per-key 24, mixed 25).
+ * numbers after it. The K15 Max enables none (vial-qmk keyboards/keychron/k15_max/ansi_encoder/rgb/keyboard.json,
+ * in the order of quantum/rgb_matrix/animations/rgb_matrix_effects.inc: Solid Color 1 ... Solid Splash 22, Direct 23,
+ * per-key 24, mixed 25).
  */
 const QMK_ORDER = [
   2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,

@@ -4,7 +4,7 @@
 
 /**
  * Compatibility: a definition numbers each knob (its "n,0" / "n,1" keys with the "e" mark), and that number is what
- * Vial's knob commands carry (vial_qmk quantum/vial.c, vial_get_encoder / vial_set_encoder: msg[3] is the encoder
+ * Vial's knob commands carry (vial-qmk quantum/vial.c, vial_get_encoder / vial_set_encoder: msg[3] is the encoder
  * index, checked against NUM_ENCODERS in quantum/nvm/eeprom/nvm_dynamic_keymap.c). Most definitions number them 0, 1,
  * 2 …, but not all: mechlovin/adelais/rgb_led/rev3 draws its only knob as 3, argo_works/ishi/80/mk0_avr_extra as 8
  * (their keymaps' encoder_map has one knob, so the number is the definition's mistake, and the firmware answers Nothing
@@ -34,7 +34,7 @@ export function knobName(indices: readonly number[], knob: number): string {
 const GET_ENCODER = 0xfe03
 
 /**
- * Compatibility: Vial's knob commands exist only in firmware built with ENCODER_MAP_ENABLE (vial_qmk quantum/vial.c,
+ * Compatibility: Vial's knob commands exist only in firmware built with ENCODER_MAP_ENABLE (vial-qmk quantum/vial.c,
  * vial_get_encoder / vial_set_encoder under `#ifdef ENCODER_MAP_ENABLE`). Without it the firmware sends the request
  * back unchanged, so "get encoder (layer, knob)" reads as counter-clockwise 0xFE03 and clockwise `layer << 8 | knob`
  * (e.g. lazydesigners/cloud, 1upkeyboards/pi60, planck/rev7, whose definitions draw knobs). True when every knob

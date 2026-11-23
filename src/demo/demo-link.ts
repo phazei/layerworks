@@ -172,7 +172,8 @@ const DEMO_KEYCHRON = {
  * `?demo-wireless`: the K15 Max's Keychron commands as far as the demo answers them: default layer, Bluetooth,
  * 2.4 GHz, layer notices, debounce and Snap Click (`0xA2`), debounce, Snap Click and wireless timers in the misc
  * group (`0xA7 0x01`), with the firmware's default timers, 10 min and 2 h, and a battery level
- * (../docs/research/k15-firmware-capabilities.md section 3). Its version string is the real one's, with the date
+ * (vial-qmk keyboards/keychron/common/keychron_raw_hid.c; the timers' defaults in common/wireless/indicator.h). Its
+ * version string is the real one's, with the date
  * SKIP_VERSION leaves.
  */
 const K15_KEYCHRON = {
@@ -191,8 +192,8 @@ const K15_KEYCHRON = {
 /**
  * The QMK settings the K15 Max's Vial build reports (vial-qmk quantum/qmk_settings.c: 1-7, 9-17 with mouse keys
  * on, 18-27; 26 in all) with the values read from the real keyboard, which are its firmware defaults: QMK's timings
- * (tapping term 200 ms, combo 50 ms, Auto Shift 175 ms, one-shot 5 s and 5 taps) and the ripple keymap's mouse keys
- * (config.h). Also what the settings reset puts back.
+ * (tapping term 200 ms, combo 50 ms, Auto Shift 175 ms, one-shot 5 s and 5 taps) and the mouse keys of the
+ * owner's K15 Max keymap (its config.h). Also what the settings reset puts back.
  */
 const le = (width: number, value: number) => Array.from({ length: width }, (_, i) => (value >> (8 * i)) & 0xff)
 const K15_SETTINGS: Record<number, number[]> = {
@@ -206,15 +207,15 @@ const K15_QSIDS = Object.keys(K15_SETTINGS).map(Number)
 
 /**
  * The VialRGB effects the K15 Max's Vial build lists (Off left out): the animations its keyboard.json enables,
- * Solid Color, VialRGB Direct, and Keychron's Per-Key and Mixed RGB (../docs/research/k15-firmware-capabilities.md
- * section 5.2).
+ * Solid Color, VialRGB Direct, and Keychron's Per-Key and Mixed RGB (vial-qmk
+ * keyboards/keychron/k15_max/ansi_encoder/rgb/keyboard.json).
  */
 const K15_RGB_EFFECTS = [1, 2, 6, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 25, 29, 30, 31, 34, 38, 39, 41, 43, 48, 49]
 
-/** The firmware's defaults after a reset: Solid Splash in indigo (the ripple keymap's config.h). */
+/** The firmware's defaults after a reset: Solid Splash in indigo (the config.h of the owner's K15 Max keymap). */
 const K15_RGB = { mode: 41, speed: 128, hue: 184, sat: 255, val: 255 }
 
-/** The ripple keymap's VIAL_UNLOCK_COMBO_ROWS / _COLS: Esc and Enter. */
+/** VIAL_UNLOCK_COMBO_ROWS / _COLS of the owner's K15 Max keymap: Esc and Enter. */
 const K15_UNLOCK_KEYS: [number, number][] = [
   [0, 1],
   [3, 14],
@@ -222,7 +223,7 @@ const K15_UNLOCK_KEYS: [number, number][] = [
 
 const params = () => new URLSearchParams(typeof location === 'undefined' ? '' : location.search)
 
-/** `?demo-layout=<n>`: the demo keyboard's stored layout options value at start (VIA's number; see README). */
+/** `?demo-layout=<n>`: the demo keyboard's stored layout options value at start (VIA's number; see docs/development.md "Run it"). */
 function startLayout(): number | null {
   const value = Number(params().get('demo-layout') ?? NaN)
   return Number.isInteger(value) && value >= 0 ? value >>> 0 : null

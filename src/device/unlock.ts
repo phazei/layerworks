@@ -3,7 +3,7 @@
 // protected changes once the count reaches 0. While it counts, the keyboard ignores its keys and almost every
 // command, and nothing can cancel it; it only ends by finishing or by the keyboard restarting. So the flow holds
 // the whole request queue, polls from one loop only, and never polls sooner than the firmware allows
-// (../docs/research/spike-results.md finding 5; vial-qmk quantum/vial.c, vial_unlock_poll).
+// (vial-qmk quantum/vial.c, vial_unlock_poll: a poll sooner than 100 ms after the last step resets the count).
 
 import type { UnlockStatus } from '../vendor/pipette/shared/types/protocol'
 import type { LinkKind } from './link'
@@ -38,7 +38,7 @@ export interface UnlockProgress {
 export const statusRequest = () => [VIAL, GET_STATUS]
 
 /**
- * Compatibility: firmware built with VIAL_INSECURE never locks (vial_qmk quantum/vial.c: `vial_unlocked` starts at 1,
+ * Compatibility: firmware built with VIAL_INSECURE never locks (vial-qmk quantum/vial.c: `vial_unlocked` starts at 1,
  * `vial_lock` and the unlock count do nothing, and "get unlock status" names no keys; in vial-qmk only
  * keyboards/vipad is built so). It reads as unlocked with no unlock keys, which a keyboard that can lock never does (it always names its
  * keys). There the app offers neither Lock nor Unlock and says the firmware doesn't lock.

@@ -29,7 +29,7 @@ describe('a keyboard with VIA firmware, not Vial', () => {
   })
 
   it('is said plainly at connect, not as a definition that failed to unpack (VIA and Keychron’s stock firmware)', async () => {
-    // vial_qmk quantum/via.c: raw_hid_receive_kb puts 0xFF (id_unhandled) in the first byte and sends the rest back.
+    // vial-qmk quantum/via.c: raw_hid_receive_kb puts 0xFF (id_unhandled) in the first byte and sends the rest back.
     const { store, link } = await connectWith((request) => [0xff, ...Array.from(request.subarray(1))])
     expect(store.getState()).toMatchObject({ status: 'error', error: NOT_VIAL, keyboard: null })
     expect(link.closed).toBe(true)

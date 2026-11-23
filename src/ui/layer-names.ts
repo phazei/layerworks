@@ -20,7 +20,7 @@ function definitionId(value: unknown): number | null {
 
 /**
  * Compatibility: Keychron's keymaps order their layers four different ways, and number pads have no Mac / Windows
- * pair (vial_qmk keyboards/keychron/<board>/keymaps/vial/keymap.c, `enum layers`); the table comes from
+ * pair (vial-qmk keyboards/keychron/<board>/keymaps/vial/keymap.c, `enum layers`); the table comes from
  * scripts/keychron-layers.mjs. Every other keyboard's layers are "Layer n".
  *
  * What each layer is for, as far as the app knows, from the Keychron keymaps in vial-qmk (device/keychron-layers.ts,
