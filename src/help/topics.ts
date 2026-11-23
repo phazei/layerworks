@@ -103,7 +103,7 @@ const topics = {
   undo: {
     title: 'Undo and redo',
     body: [
-      'Undo, in the bar at the bottom, takes back the last change; Redo puts it back. It goes back one change at a time, across every page: keys and the knob, saved macros and shortcuts, typing settings, the key bounce filter and Snap Click, key colours and how they light up, zones and their effects, and the Caps Lock light. It remembers the last 100 changes.',
+      'Undo, in the bar at the bottom, takes back the last change; Redo puts it back. It goes back one change at a time, across every page: keys and the knob, saved macros and shortcuts, typing settings, the key bounce filter and Snap Click, key colours and how they light up, zones and their effects, and the Caps Lock light. It remembers the last 100 changes. Ctrl + Z and Ctrl + Y (Cmd on a Mac) do the same from anywhere outside a text field.',
       'Some changes can’t be undone: the lighting effect, brightness, speed and colour, the wireless timers, the macros, settings and lighting of a restored backup (its keys and knob can), resetting all typing settings, and Reset to defaults, which also empties Undo. The app asks before each of the last three. Undoing a macro, or a shortcut that holds the firmware-update key, needs the keyboard unlocked. A backup made first gets you back from anything.',
       'Undo remembers this visit only; it starts empty when the page is reloaded or the keyboard reconnects. The changes themselves stay on the keyboard.',
     ],
@@ -156,13 +156,14 @@ const topics = {
   'without-mouse': {
     title: 'Using the app without a mouse',
     body: [
-      'Tab and Shift + Tab move through every page; Enter or Space presses what has the focus, and Esc closes the help or lets go of the selected key. A “?” opens its explanation with the focus in it, and Esc gives the focus back to the “?”.',
+      'Tab and Shift + Tab move through every page; Enter or Space presses what has the focus, and Esc closes the help or lets go of the selected key. The first Tab shows “Skip to the page”, which jumps past the list of pages. A “?” opens its explanation with the focus in it, and Esc gives the focus back to the “?”.',
+      'Ctrl + Z undoes the last change on the keyboard and Ctrl + Y (or Ctrl + Shift + Z) redoes it, like Undo and Redo at the bottom; on a Mac use Cmd. In a text field they undo your typing instead, and on the Test page they are keys to test. Before a change that would leave a base layer with no Tab, Enter or Esc, the app asks first, since those are the keys you need here without a mouse.',
       'The keyboard picture is one stop: the arrow keys move between its keys by where they are drawn, Home and End go to the first and last, and Enter or Space picks the key, as a click would. The key you are on has a ring of its own; the selected key is filled. Knob directions are among the keys, except on a knob the firmware keeps (“Fixed”). On the Lighting page Enter paints the key or moves it into the zone; in a key chord it adds or takes out the key.',
       'Three places take keys for themselves, as they must when you may be typing on the very keyboard you are changing. The Test page keeps keys from the browser so they don’t scroll or reload the page, but Tab still moves and Enter or Space still presses a button. “Press a key” takes the next key, and Esc stops it. Recording a macro takes everything you type, and Esc stops recording (Esc itself isn’t recorded).',
     ],
     example: 'Keys page: Tab to the picture, arrow to Caps Lock, Enter, then pick Esc in the list.',
     where: [{ label: 'Keys page', href: '#/keys' }],
-    related: ['assign-key', 'press-key', 'test-keys', 'macro-record'],
+    related: ['assign-key', 'press-key', 'test-keys', 'macro-record', 'undo'],
   },
 
   // ---- Keys and layers ----

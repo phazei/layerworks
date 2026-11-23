@@ -4,7 +4,7 @@
 
 import type { SelectHTMLAttributes } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { cx } from './controls'
+import { cx, FIELD_FOCUS } from './controls'
 
 interface SelectProps<T extends string | number> extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'> {
   value: T
@@ -24,7 +24,8 @@ export function Select<T extends string | number>({ value, options, onChange, cl
         }}
         className={cx(
           'h-8 w-full min-w-0 cursor-pointer appearance-none rounded-control border border-control-edge bg-raised pr-8 pl-2.5 text-content',
-          'focus:border-accent focus:outline-none disabled:cursor-default disabled:opacity-50',
+          FIELD_FOCUS,
+          'disabled:cursor-default disabled:opacity-50',
         )}
         {...rest}
       >

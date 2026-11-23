@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// A short label beside a control that shows only an icon: on pointing and on keyboard focus, gone again on leaving,
-// on blur and on Esc. It repeats the control's own accessible name for the eyes, so screen readers don't hear it
-// (aria-hidden); the control must carry the name itself. The app's stand-in for a `title` tooltip, which the app
+// A short label beside a control that shows only an icon (or that has a keyboard shortcut): on pointing and on
+// keyboard focus, gone again on leaving, on blur and on Esc. It repeats what the control says itself for the eyes, so
+// screen readers don't hear it (aria-hidden); the control must carry the name (and `aria-keyshortcuts`) itself. The app's stand-in for a `title` tooltip, which the app
 // doesn't use (AGENTS.md). Drawn in the window's own layer (fixed, through a portal), so a scrolling or clipping
 // parent doesn't cut it off.
 
@@ -14,6 +14,8 @@ interface TipProps {
   label: string
   /** Shows nothing while false (the label is on screen already). */
   enabled?: boolean
+  /** Where the label shows: at the control's right (the default), or above it, for controls at the window's foot. */
+  side?: 'right' | 'above'
   children: ReactNode
   className?: string
 }
@@ -35,7 +37,7 @@ if (typeof window !== 'undefined') {
 let hideShown: (() => void) | null = null
 
 /** Shows `label` at the right of the wrapped control while it is pointed at or focused from the keyboard. */
-export function Tip({ label, enabled = true, children, className }: TipProps) {
+export function Tip({ label, enabled = true, side = 'right', children, className }: TipProps) {
   const wrapper = useRef<HTMLDivElement>(null)
   const tip = useRef<HTMLDivElement>(null)
   const [hovered, setHovered] = useState(false)
@@ -53,9 +55,15 @@ export function Tip({ label, enabled = true, children, className }: TipProps) {
     const rect = target?.getBoundingClientRect()
     if (!rect) return
     const height = tip.current?.offsetHeight ?? 0
+    if (side === 'above') {
+      const width = tip.current?.offsetWidth ?? 0
+      const left = Math.max(MARGIN, Math.min(window.innerWidth - width - MARGIN, rect.left + rect.width / 2 - width / 2))
+      setPlace({ top: Math.max(MARGIN, rect.top - height - MARGIN), left })
+      return
+    }
     const top = Math.max(MARGIN, Math.min(window.innerHeight - height - MARGIN, rect.top + rect.height / 2 - height / 2))
     setPlace({ top, left: rect.right + GAP })
-  }, [shown, label])
+  }, [shown, label, side])
 
   // One label at a time: showing this one hides any other, which stays hidden until pointed at or focused again.
   useEffect(() => {

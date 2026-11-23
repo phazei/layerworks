@@ -38,7 +38,7 @@ on, unless the user says otherwise.
 
 **Nothing is running.** Next, one fresh agent at a time (the user, 2026-11-22: no session over 400K tokens is
 ever reused; `AGENTS.md` "A fresh agent by default"; the sessions that built the app are all past that and are
-retired): the accessibility bullet below, then the odd knob numbers (a compatibility item: its own commit).
+retired): the odd knob numbers (a compatibility item: its own commit), then whatever the user reports.
 
 The user (2026-11-22): "stop asking about release things. we're just fixing stuff now."
 So: no more questions about the release; work the lists below ("Small things from review") and the user's bug
@@ -224,10 +224,10 @@ sized for one delegated agent; one runs at a time.
 - `src/pages/test/useMatrix.ts` only re-exports `src/device/useMatrix.ts`; the Test page can import the device one.
 - A knob whose definition gives it a number other than 0, 1, 2 … (adelais rev3, ishi 80: a mistake in those
   definitions) would be mislabelled or skipped.
-- Accessibility polish left from the audit (`accessibility-audit.md`): a skip link past the sidebar; a focus ring
-  on text fields; no Ctrl + Z for Undo, and no warning when Tab, Enter or Esc leave the base layer of the
-  keyboard being used to navigate; heading order; a quieter status line for screen readers. Not wanted (the
-  user): 200 % zoom and Windows high-contrast themes. Never checked: a real screen reader, Firefox, touch.
+- Accessibility: left from the audit (`accessibility-audit.md`) is only a second skip link, past the stage. Not
+  wanted (the user): 200 % zoom and Windows high-contrast themes. Never checked: a real screen reader, Firefox,
+  touch. For the user to try: Tab once on any page ("Skip to the page"), Ctrl + Z and Ctrl + Y, and taking the
+  last Esc, Tab or Enter off the base layer (it asks first).
 - Backlight and underglow keyboards get their lighting keys but no Lighting page (VIA's lighting commands).
 - The build warns that the main chunk is over 500 kB; split the vendored keycode tables or the pages when it
   matters.

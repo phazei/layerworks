@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Changes that can leave a keyboard hard to use: the firmware-update key, the key that wipes the keyboard's memory,
-// a base layer left with hardly any letters, layers nothing reaches any more, a layer turned on with no key to turn
+// a base layer left with hardly any letters or without its last Tab, Enter or Esc, layers nothing reaches any more, a layer turned on with no key to turn
 // it off. Compared before and after a change (a restore plan, or one key), so only what the change itself causes is
 // said, not a setup the person already chose.
 
@@ -10,7 +10,7 @@ import type { KeyboardData } from './store'
 
 /** One thing a change would do that needs saying before it is written. */
 export interface Risk {
-  kind: 'boot' | 'wipe' | 'letters' | 'unreachable' | 'stuck'
+  kind: 'boot' | 'wipe' | 'letters' | 'navigation' | 'unreachable' | 'stuck'
   /** The sentence, with layers named by `layerName`. */
   text: string
 }
@@ -36,9 +36,25 @@ function layerOp(code: number): { layer: number; stays: boolean } | null {
   return { layer: target.layer, stays: /^(TG|TO|DF|PDF)\(/.test(keycodeId(code)) }
 }
 
+/** The basic key a code types: itself, or the tap of a tap-or-hold key (mod-tap, layer-tap). */
+const tapKey = (code: number) => (code <= 0xff ? code : (readModTap(code)?.key ?? readLayerTap(code)?.key ?? 0))
+
 const isLetter = (code: number) => {
-  const key = code <= 0xff ? code : (readModTap(code)?.key ?? readLayerTap(code)?.key ?? 0)
+  const key = tapKey(code)
   return key >= LETTER_A && key <= LETTER_Z
+}
+
+/**
+ * The keys needed to use a computer (and this app) without a mouse, each with the codes that count as it: the
+ * numpad's Enter is an Enter, and Grave Escape (Esc unless Shift or GUI is held) is an Esc.
+ */
+function navigationKeys(): { name: string; codes: number[] }[] {
+  const gesc = parseKeycode('QK_GRAVE_ESCAPE')
+  return [
+    { name: 'Tab', codes: [0x2b] },
+    { name: 'Enter', codes: [0x28, 0x58] },
+    { name: 'Esc', codes: gesc === null ? [0x29] : [0x29, gesc] },
+  ]
 }
 
 type Keymap = Record<string, number>
@@ -121,6 +137,17 @@ export function keymapRisks(
     const letters = (map: Keymap) => layerKeys(map, base).filter(isLetter).length
     if (letters(before) >= FEW_LETTERS && letters(after) < FEW_LETTERS) {
       risks.push({ kind: 'letters', text: `${layerName(base)} would have hardly any letter keys left, so the keyboard could barely type there.` })
+    }
+    // The last Tab, Enter or Esc going: a tap-or-hold key whose tap is that key still counts as having it.
+    const has = (map: Keymap, codes: number[]) => layerKeys(map, base).some((code) => codes.includes(code) || codes.includes(tapKey(code)))
+    const gone = navigationKeys()
+      .filter(({ codes }) => has(before, codes) && !has(after, codes))
+      .map(({ name }) => name)
+    if (gone.length > 0) {
+      risks.push({
+        kind: 'navigation',
+        text: `${layerName(base)} would have no ${list(gone).replace(/ and (?=[^ ]+$)/, ' or ')} key left, which you need to use this app and most of a computer without a mouse.`,
+      })
     }
     const was = reachable(before, base, kb.layers)
     const now = reachable(after, base, kb.layers)

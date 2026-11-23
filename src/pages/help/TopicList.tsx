@@ -55,9 +55,9 @@ export function TopicList({ view }: { view: HelpView }) {
         <div key={group.id}>
           {/* A filled band the width of the list, so a group's title can't be taken for one more topic; it stays at
               the top of the list while its topics scroll under it. */}
-          <h3 className="sticky top-0 z-10 mb-1.5 rounded-control bg-band px-2.5 py-1.5 text-xs font-semibold text-content">
+          <h2 className="sticky top-0 z-10 mb-1.5 rounded-control bg-band px-2.5 py-1.5 text-xs font-semibold text-content">
             {group.title}
-          </h3>
+          </h2>
           <ul className="flex flex-col gap-px pl-2">
             {group.topics.map((id) => (
               <Item key={id} href={topicHref(id)} current={isTopic(id)}>

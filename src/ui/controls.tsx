@@ -8,6 +8,12 @@ export function cx(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(' ')
 }
 
+/**
+ * How a field (text, number, search, drop-down) looks while it has the focus: its border turns accent, and the focus
+ * ring every control has (styles.css) shows around it too. Fields must not add `outline-none`.
+ */
+export const FIELD_FOCUS = 'focus:border-accent'
+
 type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger'
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
@@ -225,7 +231,7 @@ export function TextInput({ className, ...rest }: InputHTMLAttributes<HTMLInputE
       type="text"
       className={cx(
         'h-8 min-w-0 rounded-control border border-control-edge bg-raised px-2.5 text-content placeholder:text-muted',
-        'focus:border-accent focus:outline-none',
+        FIELD_FOCUS,
         className,
       )}
       {...rest}
@@ -303,7 +309,8 @@ export function SearchField({ value, onChange, className, ...rest }: SearchField
         }}
         className={cx(
           'h-8 w-full min-w-0 rounded-pill border border-control-edge bg-raised pr-3 pl-8 text-content placeholder:text-muted',
-          'focus:border-accent focus:outline-none [&::-webkit-search-cancel-button]:hidden',
+          FIELD_FOCUS,
+          '[&::-webkit-search-cancel-button]:hidden',
         )}
         {...rest}
       />

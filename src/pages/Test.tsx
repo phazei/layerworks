@@ -11,6 +11,7 @@ import type { PageDef } from '../plugins/api'
 import { useConnectedLayerNames } from '../shell/layer-names'
 import { knobDirections, useKnobTurns, usePressedKeys } from '../shell/pressed-keys'
 import { openUnlock } from '../shell/unlock-dialog'
+import { holdUndoKeys } from '../shell/undo-keys'
 import { Button } from '../ui/controls'
 import { KeyboardPicture } from '../ui/KeyboardPicture'
 import { Card, HelpButton } from '../ui/layout'
@@ -35,7 +36,10 @@ function useKeepKeysOnPage(): void {
     }
     window.addEventListener('keydown', keep)
     window.addEventListener('keyup', keep)
+    // Ctrl + Z is a key press to test here, not an undo.
+    const release = holdUndoKeys()
     return () => {
+      release()
       window.removeEventListener('keydown', keep)
       window.removeEventListener('keyup', keep)
     }

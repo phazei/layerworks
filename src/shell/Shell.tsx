@@ -9,6 +9,7 @@ import { useLegendRevision } from '../device/layout'
 import { activePages, type PageDef } from '../plugins/api'
 import { Card, HelpButton } from '../ui/layout'
 import { useAppliedTheme } from '../ui/theme'
+import { SkipLink } from '../ui/SkipLink'
 import { useElementSize } from '../ui/useElementSize'
 import { Connecting, ConnectPrompt } from './ConnectPrompt'
 import { ErrorBoundary } from './ErrorBoundary'
@@ -23,6 +24,8 @@ import { Tour } from './Tour'
 import { UnlockDialog } from './UnlockDialog'
 
 const HOME = 'home'
+/** The page area's id, where the skip link moves the focus. */
+const PAGE_AREA_ID = 'page'
 
 /** The page a path shows: "/keys" → keys, "/" → home. Anything after the first segment is the page's own. */
 export function findPage(pages: PageDef[], path: string): PageDef | null {
@@ -73,6 +76,7 @@ export function Shell() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface text-content">
+      <SkipLink target={PAGE_AREA_ID}>Skip to the page</SkipLink>
       <Sidebar pages={pages} current={page} />
       {/* Narrower than the pages can be laid out (31rem, 496 px: a window of 560 px beside the sidebar's icons),
           the page area keeps that width and scrolls sideways as a whole, status line included, so nothing overlaps or
@@ -81,7 +85,13 @@ export function Shell() {
         <div className="flex h-full min-w-124 flex-col">
           {/* Clipped, not scrollable: the help panel waits beyond its right edge, and must not count as width to
               scroll to (it would give the page area a sideways scrollbar as wide as the panel). */}
-          <main data-page-area="" className="relative flex min-h-0 flex-1 flex-col overflow-clip">
+          {/* Focusable from the skip link only; the next Tab goes to the page's first control. */}
+          <main
+            id={PAGE_AREA_ID}
+            tabIndex={-1}
+            data-page-area=""
+            className="relative flex min-h-0 flex-1 flex-col overflow-clip outline-none"
+          >
             {page && (
               <header className="flex shrink-0 items-center gap-1 px-6 pt-5 pb-4">
                 <h1 className="text-xl font-semibold tracking-tight">{page.title}</h1>

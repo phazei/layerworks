@@ -210,7 +210,18 @@ scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
   macros have unsaved changes"), as a link to
   the work: pages declare it with `setUnsaved(id, { label, group, href, keyboard })` (`shell/unsaved.ts`), the
   Shortcuts drafts for theirs. Beside it: the parts still being read in the background, or the ones that could not
-  be read. Undo and redo call `deviceStore.undo` / `redo`.
+  be read. Screen readers hear only what needs them: a failed change at once (`aria-live="assertive"`), work not
+  saved and parts not read politely (`aria-live="polite"`), from hidden regions that stay in the page; the routine "Saving…" /
+  "Saved on the keyboard", which flips on every change and every step of a slider, is left to the eye. Undo and redo
+  call `deviceStore.undo` / `redo`; so do Ctrl + Z and Ctrl + Y or Ctrl + Shift + Z (Cmd on a Mac;
+  `shell/undo-keys.ts`), shown on the buttons by a `Tip` and `aria-keyshortcuts`. The shortcuts do nothing while
+  focus is in a field (its own undo), while a dialog is open, when the key press was already taken (`preventDefault`
+  by "Press a key" or macro recording), and on the Test page, which holds them off (`holdUndoKeys`).
+- **The skip link** "Skip to the page" (`ui/SkipLink.tsx`) is the first Tab stop, seen only while focused; it moves
+  the focus to the page area (`main#page`, `tabIndex={-1}`), past the sidebar.
+- **Headings:** each page has one `h1`, its title, and sections under it that go down one level at a time; the
+  sidebar's group titles are `h2` before it (`shell/__tests__/headings.test.tsx` walks every page). Text fields,
+  search boxes and drop-downs show the focus ring every control has (`FIELD_FOCUS` in `ui/controls.tsx`).
 - **The help panel** slides in over the right edge of the page (not over the status line) when anything calls
   `openHelp(topic)`, usually a `HelpButton`. A `HelpButton` toggles (`toggleHelp`): pressed again while its topic
   is shown, it closes the panel; another "?" switches topic. It carries `aria-expanded` and `aria-controls`
@@ -1115,7 +1126,8 @@ there, before anything is written (keycodes 16-bit, lighting speed and colour by
   lowered to it. `describePlan` puts the plan in words, one line per part.
 - **The review** (`pages/device/Restore.tsx`) shows `describePlan`'s lines, then a red box with what the plan would
   newly cause (`planRisks` → `device/risks.ts`, `keymapRisks`: the firmware update key, the memory-wiping key
-  `QK_CLEAR_EEPROM`, a base layer left with fewer than 10 letters, a layer that no key on a base layer reaches any
+  `QK_CLEAR_EEPROM`, a base layer left with fewer than 10 letters, a base layer losing its last Tab, Enter or Esc (a
+  tap-or-hold key with that tap, the numpad's Enter and Grave Escape count), a layer that no key on a base layer reaches any
   more, a layer turned on and left on with no key to leave it), and "Show the changes (n)", a `Disclosure` listing
   every key, knob turn, macro (its steps in a line) and entry that changes (`planItems`). The Keys inspector asks
   with the same `keymapRisks` before a single change that would cause one of them.

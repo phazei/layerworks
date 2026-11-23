@@ -8,6 +8,7 @@ import { deviceStore } from '../../device'
 import { connectDemo, disconnect } from '../session'
 import { Shell } from '../Shell'
 import { stage } from '../stage-store'
+import { setUnsaved } from '../unsaved'
 
 async function go(path: string): Promise<void> {
   await act(async () => {
@@ -108,6 +109,16 @@ describe('the shell on the demo keyboard', () => {
     expect(within(status).getByRole('button', { name: 'Redo' })).toBeDisabled()
   })
 
+  it('announces unsaved work, not the routine "Saving…" and "Saved"', async () => {
+    const { container } = render(<Shell />)
+    const live = () => [...container.querySelectorAll('footer [aria-live], footer [role="status"]')].map((region) => region.textContent).join('|')
+    await act(() => deviceStore.assign({ kind: 'key', layer: 0, row: 0, col: 1 }, 0x04))
+    expect(live()).not.toMatch(/Sav/)
+    act(() => setUnsaved('shell-test', { label: 'Macro 3', group: 'macros' }))
+    expect(container.querySelector('footer [aria-live="polite"]')).toHaveTextContent('Macro 3 has changes not yet saved to the keyboard')
+    act(() => setUnsaved('shell-test', null))
+  })
+
   it('enables undo after a change and undoes it', async () => {
     render(<Shell />)
     const slot = { kind: 'key', layer: 0, row: 0, col: 1 } as const
@@ -117,6 +128,17 @@ describe('the shell on the demo keyboard', () => {
     expect(undo).toBeEnabled()
     await act(async () => undo.click())
     await waitFor(() => expect(deviceStore.getState().keyboard!.keymap['0,0,1']).toBe(before))
+  })
+
+  it.each([false, true])('starts with a link past the sidebar to the page (sidebar collapsed: %s)', async (collapsed) => {
+    await go('#/keys')
+    const { container } = render(<Shell />)
+    if (collapsed) act(() => screen.getByRole('button', { name: 'Collapse sidebar' }).click())
+    const skip = screen.getByRole('link', { name: 'Skip to the page' })
+    expect(container.querySelector('a[href], button, input, [tabindex="0"]')).toBe(skip)
+    act(() => skip.click())
+    expect(document.activeElement).toBe(screen.getByRole('main'))
+    if (collapsed) act(() => screen.getByRole('button', { name: 'Expand sidebar' }).click())
   })
 
   it('opens the help panel from a "?" and closes it again', async () => {

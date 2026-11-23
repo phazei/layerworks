@@ -166,6 +166,8 @@ export function MacroEditor({ index }: { index: number }) {
 
   return (
     <Card>
+      {/* The name is a field here; this heading heads the editor's sections in a screen reader's outline. */}
+      <h2 className="sr-only">{macroName}</h2>
       <div className="flex flex-col gap-5">
         <header className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
