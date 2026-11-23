@@ -27,6 +27,7 @@ the other keyboards it can be), hosting and the licence.
   - [vial-qmk, the firmware source](development.md#vial-qmk-the-firmware-source)
 - [Tests](development.md#tests)
 - [Screenshots](development.md#screenshots)
+  - [The README's pictures](development.md#the-readmes-pictures)
 - [Demo keyboard](development.md#demo-keyboard)
   - [Typing on the demo, and what it answers](development.md#typing-on-the-demo-and-what-it-answers)
   - [The demo's example macros and shortcuts](development.md#the-demos-example-macros-and-shortcuts)

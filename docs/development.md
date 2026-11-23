@@ -18,6 +18,7 @@ is published and licensed.
   - [vial-qmk, the firmware source](#vial-qmk-the-firmware-source)
 - [Tests](#tests)
 - [Screenshots](#screenshots)
+  - [The README's pictures](#the-readmes-pictures)
 - [Demo keyboard](#demo-keyboard)
   - [Typing on the demo, and what it answers](#typing-on-the-demo-and-what-it-answers)
   - [The demo's example macros and shortcuts](#the-demos-example-macros-and-shortcuts)
@@ -269,6 +270,22 @@ have is listed at the end as missing (and the run fails). `--sub-path=/layerwork
 path, as GitHub Pages does (files get `-under-layerworks`).
 Every picture gets a fresh browser profile in a temporary folder, removed at the end, so nothing remembered in
 one shot (theme, "More options" open) shows in another. `EDGE=<path>` points it at another `msedge.exe`.
+
+### The README's pictures
+
+`README.md` shows pictures from `docs/images/`, taken on the demo keyboard in the dark theme at 1280 × 800 and
+copied there from the screenshot folder. Take them again when a page they show changes its look:
+
+| Picture | Taken with |
+|---|---|
+| `keys.png` | `pnpm shots --theme=dark "--query=select=3,2" /keys` |
+| `keys-tap-or-hold.png` | `pnpm shots --theme=dark "--query=select=3,1&choice=tapHold" /keys` |
+| `macro.png`, `multi-tap.png` | `pnpm shots --theme=dark /shortcuts/macro/3 /shortcuts/multi-tap/2` |
+| `lighting.png`, `typing-feel.png`, `help.png` | `pnpm shots --theme=dark /lighting /typing /help` |
+| `lighting-key-by-key.png` | `pnpm shots --theme=dark --size=1280x1500 "--query=demo-effect=48" /lighting`, cut to the "Key colours" card |
+| `lighting-mixed-zones.png` | the same with `demo-effect=49`, cut to the "Mixed zones" card |
+
+In PowerShell an option with a comma or an `&` in it must be quoted whole, as above, or it is split.
 
 ## Demo keyboard
 
