@@ -5,9 +5,11 @@ extras where the keyboard has them. React, TypeScript, Tailwind, Vite; it talks 
 has run on one real keyboard, a Keychron K15 Max; everything else is tried on a built-in demo keyboard.
 
 - **What it is, for people:** `README.md`.
-- **How it works inside:** `docs/` (`docs/README.md` is the index). Read the part about what you change before
-  changing it, and update it with the change: the documents describe how things are, in the present tense, with
-  no history.
+- **How it works inside:** `docs/`. `docs/README.md` is the map of every document and section: find the heading
+  there (or search `docs/` for `^#{2,4} `) and read only that section; the documents are long. Read the part
+  about what you change before changing it, and update it with the change: the documents describe how things
+  are, in the present tense, with no history. After adding or renaming a heading, run `pnpm docs:index`; a test
+  fails when an index is stale or a reference names a section that isn't there.
 - **The design and why:** `docs/spec.md`. Read the relevant section before building anything new.
 - **Code copied from Pipette:** `VENDOR.md`. Never edit files under `src/vendor/` except as it describes.
 
@@ -21,6 +23,7 @@ has run on one real keyboard, a Keychron K15 Max; everything else is tried on a 
 | `pnpm shots /keys /lighting` | Screenshots of pages on the demo keyboard |
 | `pnpm hardware` | Reads a real keyboard without a browser and prints what it found. Reads only |
 | `pnpm vendor check` | The vendored files still match the recorded Pipette commit |
+| `pnpm docs:index` | Rewrites the contents lists in `docs/` from the headings |
 
 Details and the URL options: `docs/development.md`.
 
@@ -76,7 +79,7 @@ If the script leaves a server behind (it was killed half-way):
 - **Compatibility items** (anything that exists because a keyboard differs from the K15 Max) are recognisable as
   such: decided in one named place (a `capabilities` field or a small named function, never scattered
   `vendorId` tests), with a comment "Compatibility: <which keyboards, what the firmware does>, <where in the
-  firmware source>", a test named by the difference it covers, and a bullet in `docs/other-keyboards.md`, which
+  firmware source>", a test named by the difference it covers, and an entry in `docs/other-keyboards.md`, which
   is the index of them. Each one is its own commit (`fix(compat): …` / `feat(compat): …`).
 - Everything that talks to the keyboard goes through the transport's queue. Never call `sendReport` or add an
   `inputreport` listener anywhere but `src/device/webhid.ts`.

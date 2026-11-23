@@ -3,12 +3,50 @@
 How the app talks to the keyboard, unlocks it and changes it, and how each kind of setting is read, written,
 undone and backed up.
 
+<!-- contents:start -->
+**Contents**
+
+- [How it talks to the keyboard](#how-it-talks-to-the-keyboard)
+  - [Requests, replies and pushes](#requests-replies-and-pushes)
+  - [2.4 GHz, one tab per keyboard, browser storage](#24-ghz-one-tab-per-keyboard-browser-storage)
+  - [Staged loading and capabilities](#staged-loading-and-capabilities)
+- [Unlocking](#unlocking)
+  - [The unlock flow in the store](#the-unlock-flow-in-the-store)
+  - [The unlock dialog](#the-unlock-dialog)
+- [Changing things on the keyboard](#changing-things-on-the-keyboard)
+  - [Assign, undo and failed writes](#assign-undo-and-failed-writes)
+  - [Factory reset, a lost keyboard, lighting saves](#factory-reset-a-lost-keyboard-lighting-saves)
+  - [The store's other changes](#the-stores-other-changes)
+  - [Keymap reset and the restart for a firmware update](#keymap-reset-and-the-restart-for-a-firmware-update)
+- [Key colours and zones](#key-colours-and-zones)
+  - [Writing key colours and zones](#writing-key-colours-and-zones)
+  - [The colour and zone editors](#the-colour-and-zone-editors)
+  - [Lock lights, and restoring Keychron lighting](#lock-lights-and-restoring-keychron-lighting)
+- [Typing settings](#typing-settings)
+  - [Settings catalogue, values, writing and reset](#settings-catalogue-values-writing-and-reset)
+  - [Key bounce filter and Snap Click commands](#key-bounce-filter-and-snap-click-commands)
+  - [N-key rollover](#n-key-rollover)
+- [Key names and the computer's layout](#key-names-and-the-computers-layout)
+- [Macros](#macros)
+  - [Macro steps, saving and problems](#macro-steps-saving-and-problems)
+  - [Write order, uses and macro names](#write-order-uses-and-macro-names)
+- [Tap dance, combos, key overrides, alt repeat](#tap-dance-combos-key-overrides-alt-repeat)
+- [Backups](#backups)
+  - [The backup file](#the-backup-file)
+  - [Restore: checks and the plan](#restore-checks-and-the-plan)
+  - [Restore: the review before writing](#restore-the-review-before-writing)
+  - [Restore: writing the plan](#restore-writing-the-plan)
+  - [Vial files (.vil)](#vial-files-vil)
+<!-- contents:end -->
+
 ## How it talks to the keyboard
 
 ```
 pages / plugins → device store → vendored protocol code → transport (request queue) → HidLink
                       ↑ layer changes ←──────────────────── unsolicited reports
 ```
+
+### Requests, replies and pushes
 
 - **One queue.** Every request goes through `Transport.request`, one at a time. The vendored protocol functions
   use it too (the store injects it), so nothing can overlap. `Transport.exclusive(job)` gives one job the queue
@@ -29,6 +67,9 @@ pages / plugins → device store → vendored protocol code → transport (reque
   `0xA3` itself on the cable, or a Vial knob read (whose reply can look the same). Keychron's factory-reset notice
   (`FACTORY_RESET_PUSH`) is known too. Further shapes can be listened for through `deviceStore.transport.onPush`;
   `PluginDef.pushes` is declared but not yet handed to the transport (spec section 9).
+
+### 2.4 GHz, one tab per keyboard, browser storage
+
 - **2.4 GHz.** Requests and replies are XOR-ed with `0x28`; pushes and the receiver's own notices (`0xBC`,
   `0xE2`) are not. Timeouts are short (300 ms) with up to 6 sends, because packets get lost now and then.
 - **One Layerworks tab per keyboard** (`shell/session.ts`). WebHID lets every tab open the keyboard and gives every
@@ -40,6 +81,9 @@ pages / plugins → device store → vendored protocol code → transport (reque
 - **Browser storage** (`ui/prefs.ts`): a stored value is used only when it has its name's shape (`SHAPES`: layer and
   macro names are lists of strings, key colours hue and saturation bytes) or, for other names, the fallback's kind;
   anything else counts as absent. Every `phazei.github.io` project shares this storage.
+
+### Staged loading and capabilities
+
 - **Loading is staged.** Definition, keymap and knob come first, so the picture appears quickly; macros, entries,
   settings, lighting, lock state and Keychron state follow in the background (`DeviceState.loading`). A part that
   fails is listed in `DeviceState.failed` and the rest still loads.
@@ -54,6 +98,8 @@ means holding the keyboard's unlock keys (Esc and Enter on the K15 Max; the keyb
 50 steps. While it counts, the keyboard doesn't type, answers almost no command, and can't be cancelled; it ends
 by finishing or by restarting (unplugging, or moving the connection switch). Once unlocked it stays so until it
 restarts or changes connection mode.
+
+### The unlock flow in the store
 
 - `deviceStore.unlock()` runs `device/unlock.ts`: through `Transport.exclusive`, which holds the request queue for
   the whole flow, so nothing else is sent (requests asked for meanwhile wait, with no timeout running, and go out
@@ -73,6 +119,9 @@ restarts or changes connection mode.
   while locked: the sign for a page to offer unlocking.
 - A keyboard found counting at connect (an app closed mid-unlock) isn't read: the store reports `STILL_UNLOCKING`,
   which says to replug it.
+
+### The unlock dialog
+
 - **On screen** (`shell/UnlockDialog.tsx`, opened by `openUnlock(reason)` from `shell/unlock-dialog.ts`; mounted
   once in the shell): first what unlocking is for, the keys to hold marked on a small picture, and that the
   keyboard won't type and nothing can stop it once started; then the count as a bar ("Keep holding…", "The count
@@ -85,6 +134,8 @@ restarts or changes connection mode.
   macro and entry save bars await it and save by themselves; the restore review works its plan out again.
 
 ## Changing things on the keyboard
+
+### Assign, undo and failed writes
 
 - `deviceStore.assign(slot, keycode)` writes one key or knob direction, then updates the store. `undo()` and
   `redo()` write the previous or next value back. `DeviceState.writing` counts changes on their way;
@@ -101,6 +152,9 @@ restarts or changes connection mode.
   undo step); not done, it keeps no undo step. With three requests in a row unanswered it doesn't try, and the
   message adds that the app couldn't check. Messages: `NOT_ANSWERING` (through the receiver: asleep, switched off or
   out of range, press a key; on the cable: check it is plugged in).
+
+### Factory reset, a lost keyboard, lighting saves
+
 - **Keychron's factory reset** (Fn + J + Z) sends `[0xA7, 0x11, 0 …]` (`state_notify.c`); the store then reads the
   whole keyboard again on the same link and forgets undo (`FACTORY_RESET_PUSH`).
 - **Losing the keyboard** (unplugged, receiver pulled, not `disconnect()`) leaves `DeviceState.lost` set until the next
@@ -116,6 +170,9 @@ restarts or changes connection mode.
 - `deviceStore.refreshLighting()` reads the effect and its values again (one request). The keyboard's own lighting
   keys change them without telling anyone; the Lighting page calls it when it opens, when the window gets the focus
   back and when a held layer is let go (the lighting keys sit on the Fn layers).
+
+### The store's other changes
+
 - `deviceStore.lock()` locks the keyboard (see "Unlocking").
 - `deviceStore.restore(plan, onProgress)` writes a restore plan (see "Backups") as one change in the queue.
 - `deviceStore.saveMacro(index, steps)` saves one macro (see "Macros"). Undo and redo take a saved macro back and
@@ -132,6 +189,9 @@ restarts or changes connection mode.
 - `deviceStore.setKeyColours(colours, undoKey)`, `setKeyStyle(style)`, `setZones(regions, undoKey)` and
   `setZoneEffects(zone, effects)` change Keychron's key colours and zones (see "Key colours and zones");
   `setLockLights(change)` the lock lights.
+
+### Keymap reset and the restart for a firmware update
+
 - `deviceStore.resetKeymap({ macros })` sends VIA's keymap reset (`0x06`; quantum/via.c → `dynamic_keymap_reset` in
   quantum/dynamic_keymap.c): every layer's keys and the knob from the keymap built into the firmware,
   `qmk_settings_reset`, and every tap dance (with the firmware's tapping term), combo, key override (every layer,
@@ -158,6 +218,8 @@ and columns the keyboard has; the vendored read asks for 8 rows, and the store r
 has more, see [other-keyboards.md "Other keyboards"](other-keyboards.md#other-keyboards)), the colour of every LED, the per-key
 style, the zone of every LED and each zone's effect slots.
 
+### Writing key colours and zones
+
 - **Writing**: every command changes the running copy, shown on the next frame; `0xA8 0x02` saves all of it at
   once with `eeprom_update_block`, which only writes bytes that changed. The store therefore sends changes as they
   are made and saves 1.5 s after the last one, like the main lighting. Colours go nine LEDs to a packet, zones 28,
@@ -174,6 +236,9 @@ style, the zone of every LED and each zone's effect slots.
   Color 1 ... Solid Splash 22, Direct 23, per-key 24, mixed 25), and a zone takes any below mixed except Direct.
 - While mixed lighting runs, each zone puts its colour and speed in the keyboard's running settings every frame;
   `refreshLighting` keeps the store's colour and speed then, so the next effect gets the user's.
+
+### The colour and zone editors
+
 - **The editors** draw the keyboard with `KeyboardPicture`'s `fills` (a colour per key; labels dark or light by
   the colour's luminance, `isLightColour`) and `outlines` (zones), inside `ui/PaintSurface.tsx`, which turns a press
   and drag over keys into one stroke. Key colours: ready colours, recent colours, colour and vividness
@@ -185,6 +250,9 @@ style, the zone of every LED and each zone's effect slots.
   (`lighting/zone-marks.tsx`), with the same mark beside its name, so zones differ by more than colour (orange and
   green look alike to someone who can't tell red from green). The colours are data, the same in both themes except
   that the light theme takes a darker shade (`light-dark()`), so each outline is 3:1 against the keys in both.
+
+### Lock lights, and restoring Keychron lighting
+
 - **Lock lights** (`0xA8 0x03` / `0x04`, `os_indicator_config_t`, read at load into `rgb.osIndicatorConfig`): which
   lock lights the keyboard has (bits Num, Caps, Scroll, Compose, Kana; the K15 Max has only Caps Lock), an off bit
   each, and one colour for all (hue, saturation, brightness; the firmware raises a brightness under 128 to 128). A
@@ -200,6 +268,8 @@ style, the zone of every LED and each zone's effect slots.
 Vial's "QMK Settings" are numbered (`qsid`) and the keyboard lists the ones its firmware has: 26 on the K15 Max
 (1-7, 9-17 because mouse keys are on, 18-27; vial-qmk `quantum/qmk_settings.c`). The store reads them at load
 (`DeviceState.settings`, each as the bytes the keyboard sent).
+
+### Settings catalogue, values, writing and reset
 
 - **The catalogue** (`device/settings.ts`): `SETTING_FIELDS` has one entry per control, for every id vial-qmk
   declares plus 8 (the tap-hold bits of older vial-qmk): a stable `key`, the `qsid`, the friendly name, QMK's name,
@@ -219,6 +289,9 @@ Vial's "QMK Settings" are numbered (`qsid`) and the keyboard lists the ones its 
 - **Reset**: `deviceStore.resetSettings()` sends Vial's `0xFE 0x0C` (`qmk_settings_reset`), then reads every
   setting again, since only the keyboard knows its defaults. It also clears the swapped and disabled keys and N-key
   rollover (Magic's bits), and is not undoable. Keychron's bounce filter and Snap Click are not part of it.
+
+### Key bounce filter and Snap Click commands
+
 - **Key bounce filter** (`setDebounce`, Keychron `0xA7 0x06`): a type (`DEBOUNCE_TYPES` in
   `device/keychron-typing.ts`, Keychron's numbering 0-6) and a time in ms (0-255; the asymmetric type keeps at most
   127). Saved by the keyboard at once.
@@ -226,6 +299,9 @@ Vial's "QMK Settings" are numbered (`qsid`) and the keyboard lists the ones its 
   table): 20 slots on the K15 Max, each a rule (`SNAP_CLICK_RULES`: 1 last pressed wins once, 2 last pressed wins, 3
   first key wins, 4 second key wins, 5 cancel out; 0 an empty slot) and two plain keys (8-bit keycodes).
   `snapClickProblem` refuses a pair the firmware would (a rule without both keys) and one with the same key twice.
+
+### N-key rollover
+
 - N-key rollover: the app's switch is Magic's bit 7 (QMK setting 21, and the `NK_*` keys), which sets
   `keymap_config.nkro`. Firmware built with Keychron's adaptive N-key rollover (`APDAPTIVE_NKRO_ENABLE`, in
   `keychron_common.mk`, so the K15 Max) never reads that bit when it builds reports (`tmk_core/protocol/report.c`,
@@ -274,6 +350,8 @@ type MacroStep =
   | { kind: 'wait'; ms: number }            // up to 65 024 ms
 ```
 
+### Macro steps, saving and problems
+
 - The bytes are vial-gui's, through the vendored `macro.ts`: Vial protocol 2 and later prefix each action with 1,
   have waits and 16-bit keys; protocol 1 has neither (`stepProblem` says so for those steps).
 - `readMacros(buffer, protocol, count)` gives every macro's steps; `encodeMacro` / `decodeMacro` one macro's bytes.
@@ -285,6 +363,9 @@ type MacroStep =
 - `DeviceStore.saveMacro(index, steps)` resolves `'saved'`, `'unchanged'`, `'locked'` (nothing sent: via.c ignores
   macro writes until unlocked), `'too-big'`, `'invalid'` or `'failed'`. It writes only the 28-byte pieces of the
   buffer that change, through the store's change queue, and is one undo step.
+
+### Write order, uses and macro names
+
 - **Write order** (`sendMacroBuffer`, used by saves, undo and restore alike): the buffer's last byte is set to 0xFF
   first, then the changed pieces go out, then the last byte gets its real value (0). vial-qmk plays no macro while
   that byte isn't 0 (`dynamic_keymap_macro_send`), so a write that stops part-way leaves macros that don't run, not
@@ -323,6 +404,8 @@ vendored types (vial.h's structs), which `device/entries.ts` builds on:
 
 ## Backups
 
+### The backup file
+
 One JSON file, `<keyboard-name>-<date>.layerworks.json` (`device/backup.ts`):
 
 ```
@@ -349,6 +432,8 @@ every part and throws a `BackupError` that says what is wrong ("The backup file 
 keymap."); a higher `version` is refused with "made by a newer version of Layerworks". Every value is range-checked
 there, before anything is written (keycodes 16-bit, lighting speed and colour bytes).
 
+### Restore: checks and the plan
+
 **Restore** (`device/restore.ts`, `DeviceStore.restore`):
 
 - `readKeyboardFile` tells a backup from a Vial file and turns either into `KeyboardContents`.
@@ -365,6 +450,9 @@ there, before anything is written (keycodes 16-bit, lighting speed and colour by
   and macro memory in which a macro runs another macro, a multi-tap key or a repeat key (`macroRunningShortcut`: a
   macro running itself recurses in vial-qmk until the keyboard locks up). Brightness above the keyboard's maximum is
   lowered to it. `describePlan` puts the plan in words, one line per part.
+
+### Restore: the review before writing
+
 - **The review** (`pages/device/Restore.tsx`) shows `describePlan`'s lines, then a red box with what the plan would
   newly cause (`planRisks` → `device/risks.ts`, `keymapRisks`: the firmware update key, the memory-wiping key
   `QK_CLEAR_EEPROM`, a base layer left with fewer than 10 letters, a base layer losing its last Tab, Enter or Esc (a
@@ -379,6 +467,9 @@ there, before anything is written (keycodes 16-bit, lighting speed and colour by
   confirmation listed, otherwise the review says the keyboard changed meanwhile. What needs unlocking is named as it
   is (`unlockWhat`): the macros, the firmware update key (on keys, knob turns or shortcuts), or both, in the notice,
   in the unlock dialog's reason and in the report's "left out" line.
+
+### Restore: writing the plan
+
 - `DeviceStore.restore` writes the plan through the store's change queue, part by part. Every write is tried; one
   that fails is reported (in plain words, the technical message under "Details") and the rest go on (each write
   stands alone, and restoring again retries only what still differs). If the keyboard goes away it stops and says
@@ -391,6 +482,8 @@ there, before anything is written (keycodes 16-bit, lighting speed and colour by
   Lighting is saved at once. All key and knob writes become one undo step; macros, entries, settings, lighting and
   timers are not undoable. Layer and macro names are written by the page afterwards (they live in the browser,
   `setLayerNames`, `setMacroNames`).
+
+### Vial files (.vil)
 
 **Vial files** (`device/vil.ts`): `exportVil` writes vial-gui's format (keys and knob by QMK name, macros as
 action lists, settings as numbers, the uid as a bare number) through Pipette's vendored `vil-compat.ts`;

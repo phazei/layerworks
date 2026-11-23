@@ -3,6 +3,29 @@
 How to run, check and screenshot Layerworks, how the source is laid out, the demo keyboard, and how the page
 is published and licensed.
 
+<!-- contents:start -->
+**Contents**
+
+- [Run it](#run-it)
+  - [URL options](#url-options)
+  - [Commands](#commands)
+- [Layout](#layout)
+  - [src/device](#srcdevice)
+  - [src/demo and src/ui](#srcdemo-and-srcui)
+  - [src/shell](#srcshell)
+  - [src/pages, src/plugins and src/help](#srcpages-srcplugins-and-srchelp)
+  - [hardware and scripts](#hardware-and-scripts)
+  - [vial-qmk, the firmware source](#vial-qmk-the-firmware-source)
+- [Tests](#tests)
+- [Screenshots](#screenshots)
+- [Demo keyboard](#demo-keyboard)
+  - [Typing on the demo, and what it answers](#typing-on-the-demo-and-what-it-answers)
+  - [The demo's example macros and shortcuts](#the-demos-example-macros-and-shortcuts)
+  - [Other keyboards in the demo](#other-keyboards-in-the-demo)
+- [Hosting](#hosting)
+- [Licence](#licence)
+<!-- contents:end -->
+
 ## Run it
 
 ```
@@ -13,6 +36,8 @@ pnpm dev          # http://localhost:5199
 Click **Connect a keyboard…** and pick the keyboard (cable) or the Keychron Link receiver (2.4 GHz). Only one
 program can hold the keyboard at a time, so close Vial, Pipette or Launcher tabs first. **Try the demo keyboard**
 works without one.
+
+### URL options
 
 Options in the URL, before the `#`. Those that would change a keyboard, arm a click, or show made-up content on it
 (`?put-on-key=`, `?press-key`, `?macro-draft`, `?device-more`, `?restore-sample`, `?unlock=start`) are honoured
@@ -51,6 +76,8 @@ The `?demo-…` options act on the demo keyboard only by nature.
 
 Example: `http://localhost:5199/?demo&theme=light#/keys`.
 
+### Commands
+
 | Command | |
 |---|---|
 | `pnpm typecheck` / `pnpm lint` / `pnpm test` | Must pass before every commit. `test` includes the vendored tests; `pnpm test <file>` runs one file. These three, `pnpm build` and `pnpm shots` go through `scripts/calm.mjs`: on Windows they and everything they start (test workers, the build's threads, headless Edge) are held to a quarter of the computer's cores, four at most, at below-normal priority, so a run never takes the whole computer (`LAYERWORKS_CORES=6` changes the number; the publishing workflow is not held). The tests' workers are the same number however they are started (`maxWorkers` in `vite.config.ts`). Anything else heavy runs as `node scripts/calm.mjs <command>`. The full suite takes about 70 s this way. |
@@ -58,8 +85,11 @@ Example: `http://localhost:5199/?demo&theme=light#/keys`.
 | `pnpm hardware` | Loads the real keyboard through the device layer, without a browser, and prints what it read. Reads only. Set `LINK=receiver` to go through the 2.4 GHz receiver (`$env:LINK='receiver'; pnpm hardware`). |
 | `pnpm vendor check` | Vendored files still match the recorded Pipette commit (see `VENDOR.md`) |
 | `pnpm shots /keys /home` | Screenshots on the demo keyboard, dark and light (see "Screenshots") |
+| `pnpm docs:index` | Rewrites the contents list at the top of each document in `docs/` and the map of every document's headings in `docs/README.md`, from the headings themselves (`scripts/docs-index.mjs`). Run it after adding, renaming or removing a heading: `scripts/__tests__/docs-index.test.ts` fails while an index is out of date, and also when a link or a quoted reference to a document's section (`docs/keyboard.md` "Macros") names a file or heading that doesn't exist. |
 
 ## Layout
+
+### src/device
 
 ```
 src/
@@ -93,6 +123,11 @@ src/
     firmware.ts        Keychron's firmware version string in words (readFirmware; Home and Device)
     useDevice.ts       the app's store and its React hook
     api.ts, index.ts   the public surface; pages, plugins and the shell import from here
+```
+
+### src/demo and src/ui
+
+```
   demo/              the demo keyboard: a K15 Max inside the page (k15-max.json, demo-link.ts), or another keyboard
                      (?demo-keyboard=, other-keyboards.ts, keyboards/*.json)
   ui/                design tokens and shared components
@@ -128,6 +163,11 @@ src/
     colour.ts          lighting colours (QMK hue and saturation) as CSS, names, tracks, light or dark
     ColourChooser.tsx  ready colours, recent ones, colour and vividness sliders
     PaintSurface.tsx   press and drag across the picture's keys to paint them, one stroke at a time
+```
+
+### src/shell
+
+```
   shell/             the frame around the pages
     Shell.tsx          the frame: sidebar, page title, stage, page, status line, help panel; picks the page
     ErrorBoundary.tsx  what shows when the app or a page throws while drawing
@@ -150,6 +190,11 @@ src/
     stage-store.ts     which layer and key the keyboard stage shows
     keyboard-layout.ts reads the computer's keyboard layout from the browser, for the key legends
     pressed-keys.ts    held keys, from the browser's key events
+```
+
+### src/pages, src/plugins and src/help
+
+```
   pages/             the built-in sections, one file each, registered as the "core" plugin (index.ts);
                      a page's own parts in a folder beside it (home/, keys/, settings/, help/, lighting/, test/,
                      device/, shortcuts/, typing/)
@@ -160,6 +205,11 @@ src/
                      panel's topic), tour.ts (the tour's steps and state)
   vendor/pipette/    code copied from Pipette, unmodified (VENDOR.md)
   main.tsx           registers the pages, reads the URL options, renders the shell
+```
+
+### hardware and scripts
+
+```
 hardware/            checks against the real keyboard (pnpm hardware)
 scripts/vendor.mjs      keeps src/vendor in step with the Pipette clone
 scripts/calm.mjs        runs a command on a few cores at low priority (the checks, the build and the screenshots)
@@ -168,6 +218,8 @@ scripts/demo-keyboards.mjs  rebuilds src/demo/keyboards/*.json, the other keyboa
 scripts/keychron-layers.mjs  rebuilds src/device/keychron-layers.ts from the Keychron keymaps in vial-qmk
 scripts/screenshot.mjs  screenshots on the demo keyboard (pnpm shots)
 ```
+
+### vial-qmk, the firmware source
 
 The firmware source the app is written against, and which code comments and these documents cite as "vial-qmk"
 with a path inside it (`quantum/vial.c`), is https://github.com/tymon3310/vial-qmk, branch
@@ -231,6 +283,8 @@ Splash in indigo (`?demo-effect=` picks another; 48 and 49 open the key colour a
 keeps its own small list (`RGB_EFFECTS`). Its Keychron lighting is the K15 Max's as its firmware starts out: the
 real LED map, red Esc and Enter, blue letters, yellow around them, W A S D in zone 2.
 
+### Typing on the demo, and what it answers
+
 The keys of whatever keyboard is typed on stand in for the demo's switches: each browser key event presses the
 demo key that sends the same key on its base layer, so holding Esc and Enter unlocks it, and once unlocked the Test
 page sees those keys through the matrix too. It starts locked (`?demo-unlocked` for unlocked); `?demo-press=`
@@ -250,6 +304,8 @@ from the real keyboard), adaptive N-key rollover as the K15 Max answers `0xA7 0x
 feel shows no switch for it), and Snap Click (20 slots, one example pair: A and D, the last one pressed wins);
 `?demo-wireless` connects it through the receiver with those and the K15 Max's wireless features, timers (10 min,
 2 h), a battery of 76 % and the real firmware string (`v1.1.2 1970-01-01-00:00:00`).
+
+### The demo's example macros and shortcuts
 
 Its macro buffer has three examples (`DEMO_MACROS` in `demo-link.ts`) in M1 – M3, M0 left empty: an e-mail
 address, Ctrl + A then Ctrl + C, and Win + R, wait, "notepad", Enter. The K15's keys printed M1 – M5 are QMK's

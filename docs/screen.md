@@ -3,6 +3,27 @@
 The parts of the app's window: the shell around the pages, how pages and plugins are registered, the keyboard
 stage with its selection, and the help panel and the tour.
 
+<!-- contents:start -->
+**Contents**
+
+- [The screen](#the-screen)
+  - [The sidebar](#the-sidebar)
+  - [Connect prompt and status line](#connect-prompt-and-status-line)
+  - [Skip link and headings](#skip-link-and-headings)
+  - [Help panel, tour and errors on screen](#help-panel-tour-and-errors-on-screen)
+  - [Theme and window sizes](#theme-and-window-sizes)
+- [Pages and plugins](#pages-and-plugins)
+- [The keyboard stage and selection](#the-keyboard-stage-and-selection)
+  - [Layer shown and selection](#layer-shown-and-selection)
+  - [The picture without a mouse](#the-picture-without-a-mouse)
+  - [Stage reset, key labels and default layer names](#stage-reset-key-labels-and-default-layer-names)
+  - [Stage height](#stage-height)
+- [Help and the tour](#help-and-the-tour)
+  - [Help topics and the guide](#help-topics-and-the-guide)
+  - [The Help page](#the-help-page)
+  - [The tour](#the-tour)
+<!-- contents:end -->
+
 ## The screen
 
 ```
@@ -17,6 +38,8 @@ stage with its selection, and the help panel and the tour.
 | Settings   |  Saved on the keyboard (?)        Undo  Redo  |  ← status line, while connected
 +------------+-----------------------------------------------+
 ```
+
+### The sidebar
 
 - **The sidebar** shows each page's icon and name, or the icons only (`shell/Sidebar.tsx`, `sidebar-collapse.ts`).
   A window narrower than 1024 px shows the icons only; the button beside the logo (under its mark with icons only;
@@ -33,6 +56,9 @@ stage with its selection, and the help panel and the tour.
   keyboard, locked"). It opens the full card beside it (`ui/Popover.tsx`), so Unlock… and Disconnect are two clicks
   away. Esc closes it and puts the focus back on the icon (Unlock… does the same before its dialog opens); a click
   outside or the focus leaving closes it. With no keyboard, the icon is a dashed plug that links to Home's connect prompt.
+
+### Connect prompt and status line
+
 - **Pages that need a keyboard** show the connect prompt instead while none is connected, and "Reading the
   keyboard…" while one connects. Pages with `offline: true` (Home, Help, Settings) always show.
 - **The status line** says "Saved on the keyboard", "Saving…" while `DeviceState.writing` is above 0, or the
@@ -48,11 +74,17 @@ stage with its selection, and the help panel and the tour.
   `shell/undo-keys.ts`), shown on the buttons by a `Tip` and `aria-keyshortcuts`. The shortcuts do nothing while
   focus is in a field (its own undo), while a dialog is open, when the key press was already taken (`preventDefault`
   by "Press a key" or macro recording), and on the Test page, which holds them off (`holdUndoKeys`).
+
+### Skip link and headings
+
 - **The skip link** "Skip to the page" (`ui/SkipLink.tsx`) is the first Tab stop, seen only while focused; it moves
   the focus to the page area (`main#page`, `tabIndex={-1}`), past the sidebar.
 - **Headings:** each page has one `h1`, its title, and sections under it that go down one level at a time; the
   sidebar's group titles are `h2` before it (`shell/__tests__/headings.test.tsx` walks every page). Text fields,
   search boxes and drop-downs show the focus ring every control has (`FIELD_FOCUS` in `ui/controls.tsx`).
+
+### Help panel, tour and errors on screen
+
 - **The help panel** slides in over the right edge of the page (not over the status line) when anything calls
   `openHelp(topic)`, usually a `HelpButton`. A `HelpButton` toggles (`toggleHelp`): pressed again while its topic
   is shown, it closes the panel; another "?" switches topic. It carries `aria-expanded` and `aria-controls`
@@ -69,6 +101,9 @@ stage with its selection, and the help panel and the tour.
   issues page (`ISSUES_URL`, `src/project.ts`), keep the error text behind "What went wrong", and offer Reload and
   "Try again". Since a section remembered as open ("More options", "Technical details", pref `open:<id>`) can make a
   page throw on every visit, "Try again" first closes every remembered section (`closeRememberedSections`).
+
+### Theme and window sizes
+
 - **Theme**: dark by default; Settings offers dark, light and "Like the system". Stored with `prefs.ts`
   (`theme`); a small script in `index.html` applies it before the app loads, and a `<style>` there gives the page its
   colour (`--surface`, each theme's) before the stylesheet arrives, so a reload doesn't flash white. Small text and
@@ -121,6 +156,8 @@ Pages with `stage` get the stage above them: the layer stack and the keyboard pi
 shown pressed (`usePressedKeys`). Its state lives in `src/shell/stage-store.ts`, outside React, so moving between
 stage pages keeps the layer and selection:
 
+### Layer shown and selection
+
 - `useStage()` → `{ follow, layer, selection }`. `shownLayer(state, liveLayer, layerCount)` is the layer the
   picture shows: the keyboard's active layer while following, otherwise the one picked.
 - Clicking a layer shows it and turns following off; the toggle turns it back on. The toggle is only there where the
@@ -129,6 +166,9 @@ stage pages keeps the layer and selection:
   renames a layer (`renameLayer`); the names live in the browser per keyboard (`layer-names.ts`).
 - `stage: 'select'` makes keys and knob directions clickable. A click sets `selection` (a key's row and column,
   or a knob and direction, without the layer); Esc clears it.
+
+### The picture without a mouse
+
 - **Without a mouse** (`ui/usePictureKeys.tsx`, `ui/picture-keys.ts`): wherever the picture has an `onSelect` (the
   Keys stage, a key chord's picture, Lighting's key colours and zones) it is one Tab stop, a list box. The arrow keys
   move to the nearest key that lies that way by where the keys are drawn (each key's middle, rotation and the chosen
@@ -144,6 +184,9 @@ stage pages keeps the layer and selection:
   `describeKey` adds to a key's name (its colour, its zone). A picture without `onSelect` takes no Tab stop. A page reads `useStage().selection` and turns it
   into a slot with `toSlot(selection, shownLayer(...))` for `deviceStore.assign`. On `stage: 'view'` pages the
   picture is not clickable and no selection is drawn, but the selection is kept for when the user comes back.
+
+### Stage reset, key labels and default layer names
+
 - A different keyboard connecting (or none) resets the stage.
 - **Labels**: the picture (`ui/KeyboardPicture.tsx`, everywhere it is drawn) uses the keycode tables' labels, except
   where those are only QMK's names (`ui/picture-labels.ts`): a macro reads "Macro 1" (M1), a multi-tap key
@@ -166,6 +209,9 @@ stage pages keeps the layer and selection:
   as the owner's own K15 Max keymap, has its own Vial ID), then, on the cable only, by the link's USB IDs (a few
   definitions, Keychron's R series, carry none; a receiver's IDs are its own). A model whose keymaps disagree is
   left out. Layers past the table's (the fifth of the owner's K15 Max keymap) are "Layer n". 313 keymaps, 310 models.
+
+### Stage height
+
 - **Height** (`stage-size.ts`, applied as CSS in `Stage.tsx`): the stage shares the main area between the page
   title and the status line with the page. Left alone it is as tall as the picture wants at this width (the picture
   shrinks with the width and never grows past its own drawing size), at most half of that shared space, but never
@@ -181,6 +227,8 @@ stage pages keeps the layer and selection:
   the stage, like the Keys inspector, take the rest and follow the handle as it moves.
 
 ## Help and the tour
+
+### Help topics and the guide
 
 **Topics** (`help/topics.ts`): each has a title, QMK's name, one to three paragraphs, an example, a documentation
 link, `where` (the places in the app it is about, as addresses: `#/keys`, `#/shortcuts/chord/1`, `#/typing/tapHold`;
@@ -198,6 +246,8 @@ card's explains it (the tap-or-hold settings past the everyday one, `typing-hold
 (`help/glossary.ts`) maps the words other apps and guides use (QMK, Vial, VIA, keycode, tap dance, combo,
 KC_TRNS, EEPROM, bootloader, N-key rollover …) to the app's name and topic.
 
+### The Help page
+
 **The Help page** (`pages/Help.tsx`, `pages/help/`), offline as well: a list at the left (search, "Start here",
 the groups, the glossary; each group's title is a filled band (`bg-band`) that stays at the top of the list while
 its topics, slightly indented, scroll under it, and the open topic is scrolled into the list's view) and the topic at the right, each column scrolling on its own; narrower than 42rem the
@@ -214,6 +264,8 @@ tap", "modtap"); codes with any number ("TD(1)" finds "TD(0)"); and words of thr
 words, plurals included ("mac" finds "Mac", not "macro"). Each result shows its group and the passage where the words are, marked
 (`help/Highlight.tsx`), and the topic opened from it is marked too. Nothing found: suggestions to click and the
 glossary.
+
+### The tour
 
 **The tour** (`help/tour.ts`, `shell/Tour.tsx`, `ui/Spotlight.tsx`): six steps, each on a page and pointing at a
 `data-tour` marker: the stage (`stage`, Home), the Keys page under it (`keys-page`), the status line (`status`), the

@@ -24,6 +24,7 @@
     "test:watch": "vitest",
     "vendor": "node scripts/vendor.mjs",
     "shots": "node scripts/calm.mjs node scripts/screenshot.mjs",
+    "docs:index": "node scripts/calm.mjs node scripts/docs-index.mjs",
     "hardware": "vitest run --config vitest.hardware.config.ts"
   },
   "dependencies": {

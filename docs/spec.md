@@ -10,6 +10,34 @@ Name: **Layerworks** (repo `layerworks`). Nothing else in keyboards carries the 
 The choices here rest on research notes that are not part of this repo: a survey of what the existing apps offer,
 a study of what Pipette code can be reused, and measurements on a K15 Max.
 
+<!-- contents:start -->
+**Contents**
+
+- [1. Goal](#1-goal)
+- [2. Non-goals](#2-non-goals)
+- [3. Decisions already made](#3-decisions-already-made)
+- [4. Repository](#4-repository)
+- [5. Structure of the screen](#5-structure-of-the-screen)
+- [6. Architecture](#6-architecture)
+- [7. Sections](#7-sections)
+  - [Home](#home)
+  - [Keys](#keys)
+  - [Shortcuts & macros](#shortcuts--macros)
+  - [Lighting](#lighting)
+  - [Typing feel](#typing-feel)
+  - [Test](#test)
+  - [Device](#device)
+  - [Help](#help)
+  - [Settings (app)](#settings-app)
+- [8. Live display](#8-live-display)
+- [9. Plugins](#9-plugins)
+- [10. Firmware extensions (separate work, in the owner's own K15 Max firmware)](#10-firmware-extensions-separate-work-in-the-owners-own-k15-max-firmware)
+- [11. Look](#11-look)
+- [12. Phases](#12-phases)
+- [13. Verification](#13-verification)
+- [14. Open questions](#14-open-questions)
+<!-- contents:end -->
+
 ## 1. Goal
 
 A configurator for keyboards running Vial firmware that:
