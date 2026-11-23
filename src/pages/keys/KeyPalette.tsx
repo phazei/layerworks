@@ -4,7 +4,7 @@
 // they do (shortcut-keys.ts), so the Shortcuts page's pickers get them too. Groups marked `more` wait under a
 // closed "More keys" fold at the end, except while searching, which looks everywhere.
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import type { PaletteGroup, PaletteKey } from '../../device'
 import type { HelpTopicId } from '../../help/topics'
 import { SearchField } from '../../ui/controls'
@@ -60,9 +60,10 @@ interface Props {
   /** Said after "No key matches …" when a search finds nothing: where else to look, if this page has somewhere. */
   noMatch?: string
   /**
-   * The height that can be seen under the stage in a short window (Keys page): the key list is at least that minus
-   * what sits above it here (the search row, a note), so once the search box is scrolled to the top the list
-   * reaches the bottom. Without it, the list takes what is left, at least min-h-36.
+   * The height the palette takes where the card around it is one column (Keys page, keys/visible-height.ts): the
+   * key list is at least that minus what sits above it here (the search row, a note), so scrolled into place the
+   * palette fills what can be seen under the stage. In two columns (the card's own width, from 42rem) and without
+   * it, the list takes what is left, at least min-h-36.
    */
   fill?: number
 }
@@ -167,8 +168,8 @@ export function KeyPalette({ groups, current, picked, onPick, hint, label, tools
         aria-label={label}
         onMouseLeave={() => setPointed(null)}
         // A zero basis, so the tiles never decide the height: the box takes what is left, at least min-h.
-        className="relative min-h-36 shrink grow basis-0 overflow-y-auto rounded-control border border-edge px-3 pb-3"
-        style={fill === undefined ? undefined : { minHeight: `max(9rem, ${fill - above}px)` }}
+        className="relative min-h-[var(--fill,9rem)] shrink grow basis-0 overflow-y-auto rounded-control border border-edge px-3 pb-3 @2xl:min-h-36"
+        style={fill === undefined ? undefined : ({ '--fill': `max(9rem, ${fill - above}px)` } as CSSProperties)}
       >
         {shown.length === 0 && (
           <p className="pt-3 text-[13px] text-muted">

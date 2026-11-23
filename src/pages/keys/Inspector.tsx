@@ -80,7 +80,7 @@ interface Props {
   base: number
   /** A shortcut just put on this key from its editor ("Put it on a key…"), and what the key held before. */
   justPut?: { name: string; before: number }
-  /** In a short window, the height that can be seen under the stage: the key list reaches down to it (visible-height.ts). */
+  /** The height the palette takes in one column: what can be seen under the stage less the room around it (visible-height.ts). */
   paletteFill?: number
 }
 

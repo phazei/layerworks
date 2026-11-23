@@ -1,32 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// How tall the Keys page's editing area is in a short window. The stage stays put above the page, which scrolls under
-// it, so what can be seen under the picture is the page area's own height (the shell's scroller). Where that is
-// plenty, the editing area just fills it and nothing scrolls. In a short window it is at least that height plus the
-// card's padding, so that once the palette's search box is scrolled to the top of that area the key list below it
-// reaches the bottom: the page scrolls by the card's padding and its own, no more.
+// How tall the Keys page's palette is where the inspector is one column. The stage stays put above the page, which
+// scrolls under it, so what can be seen under the picture is the page area's own height (the shell's scroller). In
+// two columns the card fills exactly that and the key list takes what is left in it. In one column the card is as
+// tall as its contents, and the list would be as short as it may be: there the palette (its search row and the key
+// list under it) takes the visible height less the room around it, so scrolled into place it fills what can be seen.
 
 import { useLayoutEffect, useState } from 'react'
 
-/** Below this much visible height (in rem) the window counts as short. */
-export const SHORT_REM = 22
-/** The card's padding, top and bottom together (p-5), in rem. */
-const CARD_PADDING_REM = 2.5
-/** The least height of the editing area however short the window, in rem (room for a few rows of keys). */
-const FLOOR_REM = 12
+/**
+ * The room kept around the palette, in rem: the card's padding, top and bottom (p-5), and the page's own under the
+ * card (pb-6). It is what the two-column layout leaves around it too.
+ */
+const AROUND_REM = 4
 
-export interface EditingHeight {
-  /** The window is short: the editing area and the key list take the visible height, not just what is left. */
-  short: boolean
-  /** The editing area's least height, in px; null when it simply fills the space under the stage. */
-  min: number | null
-  /** What can be seen under the stage, in px, for the key list to reach down to; null when not short. */
-  visible: number | null
-}
-
-/** From the height that can be seen under the stage (`visible`, px) and the root font size (`rem`, px). */
-export function editingHeight(visible: number, rem = 16): EditingHeight {
-  if (!(visible > 0) || visible >= SHORT_REM * rem) return { short: false, min: null, visible: null }
-  return { short: true, min: Math.max(visible + CARD_PADDING_REM * rem, FLOOR_REM * rem), visible }
+/**
+ * The height the palette takes in one column (search row and key list together), in px, from the height that can be
+ * seen under the stage (`visible`, px) and the root font size (`rem`, px); null while that isn't measured.
+ */
+export function paletteHeight(visible: number, rem = 16): number | null {
+  return visible > 0 ? Math.max(0, visible - AROUND_REM * rem) : null
 }
 
 /**

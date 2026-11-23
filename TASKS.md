@@ -211,9 +211,10 @@ sized for one delegated agent; one runs at a time.
   sent; turning the lights on sends the values the page shows. (A zone slot's play time can't be set while it is
   the zone's only effect, and that is right: the time is the time to the next effect.)
 - For the user to look at: the Keys page with More options open (it scrolled into empty space; fixed), the key
-  list in a short window (under 22rem of page area it takes the visible height, so the page scrolls a little to
-  bring it into place), and shortcut summaries, which now use the picture's short names ("Esc", "Bksp",
-  "LShift" in a macro's steps).
+  list in a narrow window (in one column the palette takes the visible height less 64 px, the room around it;
+  in two columns the card just fills the space and the page doesn't scroll; the user asked for "about 60" and
+  will say whether it is enough), and shortcut summaries, which now use the picture's short names ("Esc", "Bksp", "LShift" in a
+  macro's steps).
 - Accessibility: nothing is left from the audit (`accessibility-audit.md`). Not wanted (the user): 200 % zoom,
   Windows high-contrast themes, a second skip link past the stage (the picture is one Tab stop already), a "?"
   on the stage's resize handle. Never checked: a real screen reader, Firefox, touch. For the user to try: Tab

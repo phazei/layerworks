@@ -301,14 +301,14 @@ title is the one before the app starts.
   page says so. Armed from a shortcut's "Put it on a key…" (see Shortcuts & macros, the macro editor), it says
   which shortcut the next click puts on a key instead, and the clicked key gets it. The inspector (`keys/Inspector.tsx`) is two columns from 42rem (a container query), so in a small
   window the palette starts at the top of the card; one column when narrower. With two columns the card fills
-  exactly the space under the stage (placed absolutely in a wrapper, at least 15rem tall; in a short window, under
-  22rem of page area, at least that height plus the card's padding, and the "A key" list at least that height less
-  what sits above it, so scrolled into place it reaches the bottom: `keys/visible-height.ts`), so nothing in it makes
+  exactly the space under the stage (placed absolutely in a wrapper, at least 15rem tall), so nothing in it makes
   the page taller: the palette scrolls in its box, and the left column (question, choice, More options) and a
   tall choice scroll on their own. Both columns are `relative`, and so is a `Checkbox`'s label: its hidden input
   is placed absolutely, and inside a box that isn't positioned it would escape the box's clipping and give the
   page empty room to scroll into (it did, with More options open). With one column the card is as tall as its contents and the page scrolls,
-  More options last. It asks "What should this key do?", says which layer it is on and, above the base layer,
+  More options last; there the palette, search row and "A key" list together, takes the height that can be seen
+  under the stage less 4rem (the room the two-column layout leaves around it: `keys/visible-height.ts`), so
+  scrolled into place it fills what can be seen. It asks "What should this key do?", says which layer it is on and, above the base layer,
   whether
   the key has its own assignment or falls through, and to what (`keys/describe.ts`, `fallThrough`: from a layer
   above the keyboard's base layer to the base layer, then layer 0; from any other layer straight to layer 0;
