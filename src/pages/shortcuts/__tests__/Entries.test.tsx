@@ -88,6 +88,35 @@ describe('key chords', () => {
     expect(screen.getByRole('list', { name: 'Keys in the chord' })).toHaveTextContent('J+K')
   })
 
+  it('keeps edits made while a save is on its way, as unsaved', async () => {
+    await show('#/shortcuts/chord/4')
+    await click('Try: J and K together send Esc')
+    // The save waits until let go: it has started and not finished.
+    let letGo!: () => void
+    const held = new Promise<void>((resolve) => (letGo = resolve))
+    const save = deviceStore.saveEntry
+    const spy = vi.spyOn(deviceStore, 'saveEntry').mockImplementation(async (kind, index, entry) => {
+      await held
+      return save(kind, index, entry)
+    })
+    try {
+      await click('Save to keyboard')
+      expect(spy).toHaveBeenCalledOnce()
+      await click('Take K out of the chord')
+      await act(async () => {
+        letGo()
+        await spy.mock.results[0].value
+      })
+    } finally {
+      spy.mockRestore()
+    }
+
+    expect(entries().combo[3]).toMatchObject({ key1: 0x0d, key2: 0x0e, key3: 0, output: 0x29 })
+    expect(screen.getByRole('list', { name: 'Keys in the chord' })).not.toHaveTextContent('K')
+    expect(screen.getByText('Not saved yet')).toBeInTheDocument()
+    expect(within(section('Key chords')).getByRole('link', { name: /Key chord 4/ })).toHaveTextContent('Not saved')
+  })
+
   it('keeps an unsaved chord across pages', async () => {
     await show('#/shortcuts/chord/2')
     await click('Take F out of the chord')

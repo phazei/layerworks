@@ -38,7 +38,7 @@ import {
   storedMacroNames,
   useConnectedLayerNames,
   useStoredMacroNames,
-} from '../../shell/layer-names'
+} from '../../ui/layer-names'
 import { describeRecord, setRestoreRecord, useRestoreRecord } from '../../shell/restore-record'
 import { screenshotOption } from '../../shell/session'
 import { openUnlock } from '../../shell/unlock-dialog'

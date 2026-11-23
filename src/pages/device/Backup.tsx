@@ -13,7 +13,7 @@ import {
   useDevice,
   VIL_EXTENSION,
 } from '../../device'
-import { storedLayerNames, storedMacroNames } from '../../shell/layer-names'
+import { storedLayerNames, storedMacroNames } from '../../ui/layer-names'
 import { Button, Spinner } from '../../ui/controls'
 import { downloadText } from '../../ui/files'
 import { Card, Disclosure, HelpButton, Notice } from '../../ui/layout'

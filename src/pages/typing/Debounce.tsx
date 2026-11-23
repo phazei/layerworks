@@ -13,6 +13,7 @@ import {
 import { OptionButton, Slider } from '../../ui/controls'
 import { Card, Disclosure } from '../../ui/layout'
 import { useLatestQueue } from '../../ui/latest'
+import { jumpTarget } from '../../ui/reveal'
 import { groupAnchor } from './GroupCard'
 import { SettingName } from './SettingRow'
 
@@ -50,7 +51,7 @@ export function Debounce() {
   )
 
   return (
-    <div id={groupAnchor('debounce')} className="scroll-mt-4">
+    <div {...jumpTarget(groupAnchor('debounce'))}>
       <Card
         title={<SettingName name="Key bounce filter" qmkName="Debounce" />}
         description="How long the keyboard waits to be sure a key press is real, so one press never types twice."

@@ -4,7 +4,7 @@
 
 import { Keyboard } from 'lucide-react'
 import { keycodeShortName, keycodeUses, useDevice, type Slot } from '../../device'
-import { useConnectedLayerNames } from '../../shell/layer-names'
+import { useConnectedLayerNames } from '../../ui/layer-names'
 import { navigate } from '../../shell/router'
 import { stage } from '../../shell/stage-store'
 import { armKey } from '../keys/arming'

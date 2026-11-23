@@ -73,6 +73,7 @@
 
   --motion-fast: 120ms;
   --motion: 200ms;
+  --motion-flash: 350ms; /* one pulse of a section just gone to (ui/reveal.ts, which waits for two) */
 }
 
 .dark {

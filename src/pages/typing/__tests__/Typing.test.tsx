@@ -5,7 +5,8 @@ import { clearPrefs } from '../../../ui/prefs'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '../..'
-import { deviceStore } from '../../../device'
+import { deviceStore, SETTING_GROUP_INFO } from '../../../device'
+import { FLASH_MS } from '../../../ui/reveal'
 import { FakeLink, fakeKeyboard, fakeKeyboardConfig, type FakeKeyboardConfig, type FakeKeychron } from '../../../device/fake-keyboard'
 import { definePlugin, removePlugin } from '../../../plugins/api'
 import { Shell } from '../../../shell/Shell'
@@ -201,6 +202,32 @@ describe('the Typing feel page', () => {
     await settled()
     await waitFor(() => expect(screen.getByRole('slider', { name: /Time to press them all/ })).toHaveValue('50'))
     expect(config.settingValues?.[2]).toEqual([50, 0])
+  })
+
+  it('takes the focus to the group picked in the side list and flashes it, every time it is picked', async () => {
+    await open()
+    const nav = screen.getByRole('navigation', { name: 'Typing settings' })
+    const pick = () => fireEvent.click(within(nav).getByRole('button', { name: SETTING_GROUP_INFO.chords.title }))
+    const group = document.getElementById('typing-chords')!
+    vi.useFakeTimers()
+    try {
+      act(pick)
+      // Already in view (nothing scrolls in jsdom): marked once the scrolling would have started and didn't.
+      expect(document.activeElement).toBe(group)
+      expect(group).not.toHaveAttribute('data-flash')
+      act(() => vi.advanceTimersByTime(150))
+      expect(group).toHaveAttribute('data-flash')
+      act(() => vi.advanceTimersByTime(FLASH_MS))
+      expect(group).not.toHaveAttribute('data-flash')
+
+      // The same group again: marked again.
+      act(pick)
+      act(() => vi.advanceTimersByTime(150))
+      expect(group).toHaveAttribute('data-flash')
+      expect(document.activeElement).toBe(group)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   describe('N-key rollover', () => {

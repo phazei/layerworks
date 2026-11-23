@@ -2,8 +2,9 @@
 // Typing feel: the QMK settings the keyboard reports (tap or hold, key chords, Auto Shift, one-shot keys, mouse
 // keys, swapped keys, the Esc / ` key), grouped by what a person wants, with Keychron's key bounce filter and Snap
 // Click where the keyboard has them, and plugin panels for this section. Full height, no keyboard picture. A search
-// narrows the cards; on a wide page a list of the groups stays beside them. Changes go to the keyboard as they are
-// made, the newest first while a slider is dragged (ui/latest.ts); the keyboard keeps them itself.
+// narrows the cards; on a wide page a list of the groups stays beside them, and the group picked there is scrolled to,
+// takes the focus and flashes (ui/reveal.ts). Changes go to the keyboard as they are made, the newest first while a
+// slider is dragged (ui/latest.ts); the keyboard keeps them itself.
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Gauge } from 'lucide-react'
@@ -22,6 +23,7 @@ import { activePanels, type PageDef } from '../plugins/api'
 import { usePath } from '../shell/router'
 import { SearchField, Spinner } from '../ui/controls'
 import { useLatestQueue } from '../ui/latest'
+import { revealSection } from '../ui/reveal'
 import { Card, Notice } from '../ui/layout'
 import { Debounce, DEBOUNCE_SEARCH } from './typing/Debounce'
 import { GroupCard, groupAnchor } from './typing/GroupCard'
@@ -149,7 +151,7 @@ function TypingPage() {
             <button
               key={section.id}
               type="button"
-              onClick={() => document.getElementById(groupAnchor(section.id))?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => revealSection(document.getElementById(groupAnchor(section.id)))}
               className="cursor-pointer rounded-control px-2.5 py-1.5 text-left text-[13px] text-muted transition-colors duration-(--motion-fast) hover:bg-raised hover:text-content"
             >
               {section.title}

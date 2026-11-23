@@ -2,9 +2,8 @@
 // The connected keyboard at a glance: how it is connected, battery, the layer that is on, firmware and lock.
 
 import { BatteryFull, BatteryLow, BatteryMedium, Cable, Cpu, Layers, Lock, LockOpen, Radio } from 'lucide-react'
-import { NEVER_LOCKS, neverLocks, receiverName, useDevice, type LoadPart } from '../../device'
-import { readFirmware } from '../device/firmware'
-import { useConnectedLayerNames } from '../../shell/layer-names'
+import { NEVER_LOCKS, neverLocks, readFirmware, receiverName, useDevice, type LoadPart } from '../../device'
+import { useConnectedLayerNames } from '../../ui/layer-names'
 import { openUnlock } from '../../shell/unlock-dialog'
 import { Button } from '../../ui/controls'
 import { Fact, Facts } from '../../ui/display'

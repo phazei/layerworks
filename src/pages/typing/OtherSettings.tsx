@@ -3,6 +3,7 @@
 // without knowing a setting's size and meaning a written value could do anything.
 
 import { Card } from '../../ui/layout'
+import { jumpTarget } from '../../ui/reveal'
 import { groupAnchor } from './GroupCard'
 
 const hex = (byte: number) => byte.toString(16).padStart(2, '0')
@@ -10,7 +11,7 @@ const hex = (byte: number) => byte.toString(16).padStart(2, '0')
 export function OtherSettings({ settings }: { settings: [number, readonly number[]][] }) {
   if (settings.length === 0) return null
   return (
-    <div id={groupAnchor('other')} className="scroll-mt-4">
+    <div {...jumpTarget(groupAnchor('other'))}>
       <Card
         title="Other settings"
         description="The keyboard has these too, but this app doesn’t know what they do yet, so it only shows them."

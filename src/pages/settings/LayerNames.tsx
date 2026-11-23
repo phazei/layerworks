@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Names for every layer of the connected keyboard: rename, or go back to the default. The same names the layer
-// stack shows; they live in this browser (shell/layer-names).
+// stack shows; they live in this browser (ui/layer-names).
 
 import { RotateCcw } from 'lucide-react'
 import { useDevice } from '../../device'
-import { defaultLayerName, knownLayerNames, renameLayer, useLayerNames } from '../../shell/layer-names'
+import { defaultLayerName, knownLayerNames, renameLayer, useLayerNames } from '../../ui/layer-names'
 import { IconButton, TextInput } from '../../ui/controls'
 import { Card } from '../../ui/layout'
 

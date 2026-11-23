@@ -9,7 +9,7 @@ import { cx } from './controls'
 import { knobPictureText, pictureLabel, type PictureLabel } from './picture-labels'
 // The one place ui reaches into the shell: layer names live in the browser per keyboard, and every picture names
 // layer keys by them.
-import { useConnectedLayerNames } from '../shell/layer-names'
+import { useConnectedLayerNames } from './layer-names'
 import { keycodeId, layoutChoices, posKey, type KeyboardData, type KleKey } from '../device/api'
 import { useLegendRevision } from '../device/layout'
 import { usePictureKeys } from './usePictureKeys'
@@ -65,7 +65,7 @@ interface Props {
    * their line as well as their colour (empty for solid); `round` gives the line round ends (dots).
    */
   outlines?: ReadonlyMap<string, PictureOutline>
-  /** The layers' names, for layer keys ("Hold" over "Fn2"). Default: the connected keyboard's (shell/layer-names.ts). */
+  /** The layers' names, for layer keys ("Hold" over "Fn2"). Default: the connected keyboard's (./layer-names.ts). */
   layerNames?: readonly string[]
 }
 

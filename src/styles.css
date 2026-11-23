@@ -39,6 +39,27 @@ body {
   }
 }
 
+/* A section just gone to (ui/reveal.ts): two soft pulses of an accent ring, then exactly as it was. Before and after
+   the pulses the element's own shadow. With reduced motion, a still ring while it is marked. */
+@keyframes lw-flash {
+  25%,
+  75% {
+    box-shadow: 0 0 0 3px var(--accent);
+  }
+  50% {
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+[data-flash] {
+  animation: lw-flash calc(var(--motion-flash) * 2) ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-flash] {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--accent);
+  }
+}
+
 /* The range input behind ui/controls Slider. The track colour is set inline (it shows the filled part). */
 .lw-slider {
   appearance: none;

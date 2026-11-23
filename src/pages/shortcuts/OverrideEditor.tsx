@@ -2,7 +2,7 @@
 // A shortcut replacement (key override): a key pressed with certain modifiers held sends something else.
 
 import { ALL_LAYERS, OVERRIDE_DEFAULT_OPTIONS, OVERRIDE_OPTIONS, useDevice, type KeyOverrideEntry } from '../../device'
-import { useConnectedLayerNames } from '../../shell/layer-names'
+import { useConnectedLayerNames } from '../../ui/layer-names'
 import { Checkbox, Toggle } from '../../ui/controls'
 import { Disclosure, HelpButton } from '../../ui/layout'
 import { EntryFrame, KeyField, ModsField, useEntryDraft } from './EntryEditor'

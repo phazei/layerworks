@@ -10,7 +10,7 @@ import { closeHelp, HELP_PANEL_ID, openHelp, useHelpTopic } from '../help/help-s
 import { QmkName, TopicBody } from '../help/TopicBody'
 import { HELP_TOPICS, type HelpTopicId } from '../help/topics'
 import { cx, IconButton } from '../ui/controls'
-import { useConnectedLayerNames } from './layer-names'
+import { useConnectedLayerNames } from '../ui/layer-names'
 
 export function HelpPanel() {
   const topicId = useHelpTopic()

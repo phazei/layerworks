@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '../..'
 import { createBackup, deviceStore, readMacros } from '../../../device'
-import { setMacroNames, storedLayerNames, storedMacroNames } from '../../../shell/layer-names'
+import { setMacroNames, storedLayerNames, storedMacroNames } from '../../../ui/layer-names'
 import { connectDemo, demoKeyboard, disconnect } from '../../../shell/session'
 import { Shell } from '../../../shell/Shell'
 import { stage } from '../../../shell/stage-store'
@@ -229,6 +229,36 @@ describe('the editor', () => {
 
     await act(() => deviceStore.undo())
     expect(savedMacro(1)).toEqual([{ kind: 'text', text: 'hello@example.com' }])
+  })
+
+  it('keeps edits made while a save is on its way, as unsaved', async () => {
+    await show('#/shortcuts/macro/1', { unlocked: true })
+    const field = () => steps().getByRole('textbox', { name: 'Text to type, step 1' })
+    fireEvent.change(field(), { target: { value: 'first@example.org' } })
+    // The save waits until let go: it has started and not finished.
+    let letGo!: () => void
+    const held = new Promise<void>((resolve) => (letGo = resolve))
+    const save = deviceStore.saveMacro
+    const spy = vi.spyOn(deviceStore, 'saveMacro').mockImplementation(async (index, sent) => {
+      await held
+      return save(index, sent)
+    })
+    try {
+      await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Save to keyboard' })))
+      expect(spy).toHaveBeenCalledOnce()
+      fireEvent.change(field(), { target: { value: 'second@example.org' } })
+      await act(async () => {
+        letGo()
+        await spy.mock.results[0].value
+      })
+    } finally {
+      spy.mockRestore()
+    }
+
+    expect(savedMacro(1)).toEqual([{ kind: 'text', text: 'first@example.org' }])
+    expect(field()).toHaveValue('second@example.org')
+    expect(screen.getAllByText('Not saved yet')[0]).toBeInTheDocument()
+    expect(within(macroList()).getAllByRole('link')[0]).toHaveTextContent('Not saved')
   })
 
   it('names a macro, in the list and in the backup', async () => {

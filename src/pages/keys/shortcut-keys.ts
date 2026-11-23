@@ -16,7 +16,7 @@ import {
   type KeyboardData,
   type PaletteGroup,
 } from '../../device'
-import { useStoredMacroNames } from '../../shell/layer-names'
+import { useStoredMacroNames } from '../../ui/layer-names'
 import { summarize, summarizeEntry } from '../shortcuts/describe'
 import { shortcutHref, shortcutKindHref } from '../shortcuts/route'
 

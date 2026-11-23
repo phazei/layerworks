@@ -23,7 +23,7 @@ import {
   type KeyboardData,
 } from '../../device'
 import { navigate } from '../../shell/router'
-import { defaultMacroName, useStoredMacroNames } from '../../shell/layer-names'
+import { defaultMacroName, useStoredMacroNames } from '../../ui/layer-names'
 import { Badge, Button, cx } from '../../ui/controls'
 import { Card, Disclosure, HelpButton } from '../../ui/layout'
 import { ProgressBar } from '../../ui/ProgressBar'

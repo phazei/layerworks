@@ -18,7 +18,7 @@ import {
   type MacroSaveResult,
   type MacroStep,
 } from '../../device'
-import { defaultMacroName, renameMacro, useStoredMacroNames } from '../../shell/layer-names'
+import { defaultMacroName, renameMacro, useStoredMacroNames } from '../../ui/layer-names'
 import { screenshotOption } from '../../shell/session'
 import { openUnlock } from '../../shell/unlock-dialog'
 import { Button, cx, TextInput } from '../../ui/controls'

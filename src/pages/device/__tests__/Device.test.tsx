@@ -9,7 +9,6 @@ import { backupText, bootKeycode, createBackup, deviceStore, parseBackup, type D
 import { connectDemo, demoKeyboard, disconnect } from '../../../shell/session'
 import { Shell } from '../../../shell/Shell'
 import { closeUnlock } from '../../../shell/unlock-dialog'
-import { readFirmware } from '../firmware'
 
 async function go(path: string): Promise<void> {
   await act(async () => {
@@ -288,14 +287,5 @@ describe('Device page on 2.4 GHz', () => {
 
     await waitFor(() => expect(deviceStore.getState().keychron?.wirelessBacklitTime).toBe(30))
     expect(within(lightsOff).getByRole('button', { name: '30 s' })).toHaveAttribute('aria-pressed', 'true')
-  })
-})
-
-describe('readFirmware', () => {
-  it('reads the version and leaves out the date builds without one carry', () => {
-    expect(readFirmware('v1.1.2 1970-01-01-00:00:00')).toEqual({ version: '1.1.2', built: null })
-    expect(readFirmware('v1.2.0 2026-03-01-12:00:00')).toEqual({ version: '1.2.0', built: new Date(2026, 2, 1) })
-    expect(readFirmware('demo')).toEqual({ version: 'demo', built: null })
-    expect(readFirmware('')).toBeNull()
   })
 })

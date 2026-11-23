@@ -7,7 +7,7 @@ import { Pencil } from 'lucide-react'
 import type { KeyboardData, LayerState } from '../device'
 import { cx, IconButton, TextInput, Toggle } from '../ui/controls'
 import { HelpButton } from '../ui/layout'
-import { renameLayer } from './layer-names'
+import { renameLayer } from '../ui/layer-names'
 import { reportsLayer } from './pressed-keys'
 import { stage, type StageState } from './stage-store'
 

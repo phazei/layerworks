@@ -21,6 +21,7 @@ import { Button, IconButton, OptionButton } from '../../ui/controls'
 import { KeyCapture } from '../../ui/KeyCapture'
 import { KeyCap } from '../../ui/KeyTile'
 import { Card } from '../../ui/layout'
+import { jumpTarget } from '../../ui/reveal'
 import { Select } from '../../ui/Select'
 import { groupAnchor } from './GroupCard'
 import { SettingName } from './SettingRow'
@@ -119,7 +120,7 @@ export function SnapClick() {
   }
 
   return (
-    <div id={groupAnchor('snap-click')} className="scroll-mt-4">
+    <div {...jumpTarget(groupAnchor('snap-click'))}>
       <Card
         title={<SettingName name="Snap Click" qmkName="SOCD" />}
         description="For games: when two opposite keys are held together, which one counts, so a change of direction is instant."

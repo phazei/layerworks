@@ -5,6 +5,7 @@
 import type { ReactNode } from 'react'
 import { SETTING_GROUP_INFO, type SettingField, type SettingGroupId, type SettingValues } from '../../device'
 import { Card, Disclosure } from '../../ui/layout'
+import { jumpTarget } from '../../ui/reveal'
 import { GROUP_HELP } from './help'
 import { SettingName, SettingRow } from './SettingRow'
 
@@ -35,7 +36,7 @@ export function GroupCard({ group, fields, values, onChange, flat, extra }: Prop
   const advanced = flat ? [] : fields.filter((f) => f.advanced)
 
   return (
-    <div id={groupAnchor(group)} className="scroll-mt-4">
+    <div {...jumpTarget(groupAnchor(group))}>
       <Card title={<SettingName name={info.title} qmkName={info.qmkName} />} description={info.description} help={GROUP_HELP[group]}>
         {everyday.length > 0 ? rows(everyday) : rows(advanced)}
         {extra}

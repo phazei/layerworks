@@ -5,7 +5,7 @@
 import { useMemo } from 'react'
 import { X } from 'lucide-react'
 import { chordKeys, keycodeTitle, useDevice, withChordKeys, type ComboEntry } from '../../device'
-import { useConnectedLayerNames } from '../../shell/layer-names'
+import { useConnectedLayerNames } from '../../ui/layer-names'
 import { Button } from '../../ui/controls'
 import { Disclosure } from '../../ui/layout'
 import { KeyboardPicture, type PictureSelection } from '../../ui/KeyboardPicture'

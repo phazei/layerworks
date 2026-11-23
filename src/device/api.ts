@@ -13,6 +13,8 @@ export { FIXED_KNOBS, offeredEffectCount } from './capabilities'
 export { knobName } from './knob-map'
 export { lightingAsWritten, lightingKind } from './lighting-kind'
 export { NOT_VIAL, VIAL_FIRMWARE_URL } from './vial-firmware'
+export { readFirmware } from './firmware'
+export type { FirmwareVersion } from './firmware'
 export type { LightingKind } from './lighting-kind'
 export { LOAD_PARTS, slotKeycode } from './store'
 export type {

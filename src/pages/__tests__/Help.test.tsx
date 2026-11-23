@@ -9,7 +9,7 @@ import { GUIDE } from '../../help/guide'
 import { tour } from '../../help/tour'
 import { connectDemo, disconnect } from '../../shell/session'
 import { Shell } from '../../shell/Shell'
-import { renameLayer } from '../../shell/layer-names'
+import { renameLayer } from '../../ui/layer-names'
 import { deviceStore } from '../../device'
 import { clearPrefs } from '../../ui/prefs'
 

@@ -5,7 +5,7 @@
 
 import { useSyncExternalStore } from 'react'
 import type { AnyEntry, EntryKind, MacroStep } from '../../device'
-import { storedMacroNames } from '../../shell/layer-names'
+import { storedMacroNames } from '../../ui/layer-names'
 import { setUnsaved } from '../../shell/unsaved'
 import { shortcutHref, slotNumber } from './route'
 

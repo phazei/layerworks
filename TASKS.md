@@ -207,28 +207,20 @@ sized for one delegated agent; one runs at a time.
 
 ### Small things from review
 
-- Shortcuts: no test for "edits made while a save is running are kept".
-- Help: no "?" on the stage's resize handle.
-- `src/ui/KeyboardPicture.tsx` imports the layer names from `src/shell/layer-names.ts`, the one place `ui`
-  reaches into the shell; move the names store down (`src/device` or `src/ui`) when it is next touched.
-- Typing feel: clicking a group in the side list scrolls to it but doesn't move keyboard focus there.
-- Lighting: a zone slot's play time can't be set while it is the zone's only effect (harmless). Read back while
-  the lights are off, the keyboard can report the saved colour rather than the last one sent; turning the lights
-  on sends the values the page shows.
+- Lighting: read back while the lights are off, the keyboard can report the saved colour rather than the last one
+  sent; turning the lights on sends the values the page shows. (A zone slot's play time can't be set while it is
+  the zone's only effect, and that is right: the time is the time to the next effect.)
 - For the user to look at: the Keys page with More options open (it scrolled into empty space; fixed), the key
   list in a short window (under 22rem of page area it takes the visible height, so the page scrolls a little to
   bring it into place), and shortcut summaries, which now use the picture's short names ("Esc", "Bksp",
   "LShift" in a macro's steps).
-- `readFirmware` lives in `src/pages/device/firmware.ts` and Home imports it from there; move it to `src/device`
-  when something else needs it.
-- `src/pages/test/useMatrix.ts` only re-exports `src/device/useMatrix.ts`; the Test page can import the device one.
-- Accessibility: left from the audit (`accessibility-audit.md`) is only a second skip link, past the stage. Not
-  wanted (the user): 200 % zoom and Windows high-contrast themes. Never checked: a real screen reader, Firefox,
-  touch. For the user to try: Tab once on any page ("Skip to the page"), Ctrl + Z and Ctrl + Y, and taking the
-  last Esc, Tab or Enter off the base layer (it asks first).
+- Accessibility: nothing is left from the audit (`accessibility-audit.md`). Not wanted (the user): 200 % zoom,
+  Windows high-contrast themes, a second skip link past the stage (the picture is one Tab stop already), a "?"
+  on the stage's resize handle. Never checked: a real screen reader, Firefox, touch. For the user to try: Tab
+  once on any page ("Skip to the page"), Ctrl + Z and Ctrl + Y, and taking the last Esc, Tab or Enter off the
+  base layer (it asks first).
 - Backlight and underglow keyboards get their lighting keys but no Lighting page (VIA's lighting commands).
-- The build warns that the main chunk is over 500 kB; split the vendored keycode tables or the pages when it
-  matters.
+- Not wanted (the user): splitting the main bundle (the build warns above 500 kB; it would matter at 2 MB).
 
 ## Later
 

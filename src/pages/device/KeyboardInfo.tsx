@@ -3,10 +3,9 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { Cable, Cpu, Keyboard, Layers, Lock, LockOpen, Radio } from 'lucide-react'
-import { deviceStore, keyboardIdentity, lightingAsWritten, matrixKeys, NEVER_LOCKS, neverLocks, offeredEffectCount, receiverName, useDevice, type TransportStats } from '../../device'
+import { deviceStore, keyboardIdentity, lightingAsWritten, matrixKeys, NEVER_LOCKS, neverLocks, offeredEffectCount, readFirmware, receiverName, useDevice, type TransportStats } from '../../device'
 import { Fact, Facts } from '../../ui/display'
 import { Card, Disclosure, HelpButton } from '../../ui/layout'
-import { readFirmware } from './firmware'
 
 const ICON = 15
 const KEYCHRON_VENDOR = 0x3434
