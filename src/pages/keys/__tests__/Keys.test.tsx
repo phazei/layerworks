@@ -222,7 +222,7 @@ describe('the Keys page', () => {
     act(() => renameMacro(deviceStore.getState().keyboard!.uid, 1, 'Email'))
     await openKeys(A_KEY)
     await waitFor(() => expect(within(palette()).getByRole('button', { name: 'Email: Types “hello@example.com”' })).toHaveTextContent('Email'))
-    expect(within(palette()).getByRole('button', { name: 'Multi-tap key 1: Tap: Escape · Double tap: Caps Lock' })).toHaveTextContent('Multi- tap 1')
+    expect(within(palette()).getByRole('button', { name: 'Multi-tap key 1: Tap: Esc · Double tap: Caps Lock' })).toHaveTextContent('Multi- tap 1')
     expect(within(palette()).getByRole('button', { name: /^Multi-tap key 5: empty/ })).toBeInTheDocument()
 
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search keys' }), { target: { value: 'email' } })

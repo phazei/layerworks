@@ -288,9 +288,13 @@ title is the one before the app starts.
   page says so. Armed from a shortcut's "Put it on a key…" (see Shortcuts & macros, the macro editor), it says
   which shortcut the next click puts on a key instead, and the clicked key gets it. The inspector (`keys/Inspector.tsx`) is two columns from 42rem (a container query), so in a small
   window the palette starts at the top of the card; one column when narrower. With two columns the card fills
-  exactly the space under the stage (placed absolutely in a wrapper, at least 15rem tall), so nothing in it makes
+  exactly the space under the stage (placed absolutely in a wrapper, at least 15rem tall; in a short window, under
+  22rem of page area, at least that height plus the card's padding, and the "A key" list at least that height less
+  what sits above it, so scrolled into place it reaches the bottom: `keys/visible-height.ts`), so nothing in it makes
   the page taller: the palette scrolls in its box, and the left column (question, choice, More options) and a
-  tall choice scroll on their own. With one column the card is as tall as its contents and the page scrolls,
+  tall choice scroll on their own. Both columns are `relative`, and so is a `Checkbox`'s label: its hidden input
+  is placed absolutely, and inside a box that isn't positioned it would escape the box's clipping and give the
+  page empty room to scroll into (it did, with More options open). With one column the card is as tall as its contents and the page scrolls,
   More options last. It asks "What should this key do?", says which layer it is on and, above the base layer,
   whether
   the key has its own assignment or falls through, and to what (`keys/describe.ts`, `fallThrough`: from a layer
@@ -573,11 +577,14 @@ title is the one before the app starts.
     only the slots in use, being edited or open, so 80 slots stay a short list: each with its title ("Macro 1" or
     the user's name, "Key chord 3"), QMK's name where it has one (M1, TD(1)), "Not saved" while it has a draft, how
     many keys run it (macros, multi-tap keys), and a one-line summary (`shortcuts/describe.ts`: "Types
-    “hello@example.com”", "J + K together → Escape", "Shift + Backspace → Delete", "Tap: Escape · Double tap: Caps
-    Lock", "After Ctrl + Z → Ctrl + Y", "(off)" for one turned off). Macros also show their shared space as a bar
+    “hello@example.com”", "J + K together → Esc", "Shift + Bksp → Del", "Tap: Esc · Double tap: Caps
+    Lock", "After Ctrl + Z → Ctrl + Y", "(off)" for one turned off). Keys in summaries (and in macro steps' words and
+    "Runs when you press") are named by `keycodeShortName` (`device/keycodes.ts`): the picture's short names, following
+    the layout chosen for key names, the plain legend of a two-legend key ("`", not "~ `"), modifiers in words.
+    An editor's header gives QMK's name for one entry (`KINDS[kind].qmkOne`: "Combo", "Key override"). Macros also show their shared space as a bar
     ("Room for about 863 more characters · 63 of 926 bytes used").
   - *The other editors* (`shortcuts/EntryEditor.tsx` with `ChordEditor`, `OverrideEditor`, `TapDanceEditor`,
-    `RepeatEditor`): a title ("Key chord 3", "Combos"), saved or "Not saved yet" with Save to keyboard, Revert and
+    `RepeatEditor`): a title ("Key chord 3", "Combo"), saved or "Not saved yet" with Save to keyboard, Revert and
     what stands in the way (`entryProblem`; "Unlock to save…" only when it holds QK_BOOT where the firmware checks,
     and it saves by itself once the unlock completes;
     `shortcuts/SaveBar.tsx`, shared with the macro editor; edits made while a save is on its way stay a draft),
@@ -998,7 +1005,7 @@ Every name of a key comes from `device/keycodes.ts` (`legendOf`, used by `keycod
 ("Ctrl + Y", "Tap: Z · Hold: Ctrl", the shortcut summaries and macro steps) follow it. QMK names (`KC_Y`) don't.
 The rule for what the browser doesn't tell: on a layout other than US a key shows only its unshifted character (a
 letter as a capital), and the keys QMK stores as Shift + a key read "Shift + 1", not a symbol. AltGr characters
-appear nowhere and dead keys show as plain characters. Keys the map leaves out keep their US names. A palette tile keeps its US legend (`usLabel`) and description for the search. The Shell,
+appear nowhere and dead keys show as plain characters. Keys the map leaves out keep their US names. The palette's search matches what is shown (label and words, under the chosen layout) and QMK's names, never the US legend of a key shown otherwise: on German "y" finds only the key shown as Y, on French "!" doesn't find Shift + 1. The Shell,
 the pictures and the palettes re-render on a change (`useLegendRevision`). Text in a macro is still typed as on a
 US layout (vial-qmk's `send_string` looks characters up in a US table, `quantum/send_string/send_string.c`).
 

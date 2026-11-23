@@ -260,7 +260,7 @@ describe('the editor', () => {
 describe('summarize', () => {
   it('says what a macro does in one line', () => {
     expect(summarize([])).toBe('Empty')
-    expect(summarize([{ kind: 'wait', ms: 200 }, { kind: 'down', key: 0xe1 }])).toBe('Waits 0.2 s, holds Left Shift')
+    expect(summarize([{ kind: 'wait', ms: 200 }, { kind: 'down', key: 0xe1 }])).toBe('Waits 0.2 s, holds LShift')
   })
 })
 

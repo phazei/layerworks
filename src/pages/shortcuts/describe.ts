@@ -3,7 +3,7 @@
 
 import {
   chordKeys,
-  keycodeTitle,
+  keycodeShortName,
   modsText,
   REPEAT_OPTIONS,
   type AltRepeatKeyEntry,
@@ -27,11 +27,11 @@ export function stepWords(step: MacroStep): string {
     case 'text':
       return `types ${quote(step.text, 28)}`
     case 'tap':
-      return step.key ? keycodeTitle(step.key) : 'a key not picked yet'
+      return step.key ? keycodeShortName(step.key) : 'a key not picked yet'
     case 'down':
-      return `holds ${step.key ? keycodeTitle(step.key) : 'a key'}`
+      return `holds ${step.key ? keycodeShortName(step.key) : 'a key'}`
     case 'up':
-      return `lets go of ${step.key ? keycodeTitle(step.key) : 'a key'}`
+      return `lets go of ${step.key ? keycodeShortName(step.key) : 'a key'}`
     case 'wait':
       return `waits ${formatWait(step.ms)}`
   }
@@ -63,6 +63,8 @@ export interface KindInfo {
   one: string
   /** What QMK calls them: "Combos" */
   qmk: string
+  /** What QMK calls one of them, beside the one being edited: "Combo" */
+  qmkOne: string
   /** One sentence: what they are for. */
   what: string
   help: HelpTopicId
@@ -73,6 +75,7 @@ export const KINDS: Record<EntryKind, KindInfo> = {
     name: 'Multi-tap keys',
     one: 'Multi-tap key',
     qmk: 'Tap dance',
+    qmkOne: 'Tap dance',
     what: 'One key, different things for a tap, a hold, a double tap.',
     help: 'tap-dance',
   },
@@ -80,6 +83,7 @@ export const KINDS: Record<EntryKind, KindInfo> = {
     name: 'Key chords',
     one: 'Key chord',
     qmk: 'Combos',
+    qmkOne: 'Combo',
     what: 'Press keys together to get something else.',
     help: 'combos',
   },
@@ -87,6 +91,7 @@ export const KINDS: Record<EntryKind, KindInfo> = {
     name: 'Shortcut replacements',
     one: 'Shortcut replacement',
     qmk: 'Key overrides',
+    qmkOne: 'Key override',
     what: 'A key with modifiers held sends something else.',
     help: 'key-overrides',
   },
@@ -94,12 +99,14 @@ export const KINDS: Record<EntryKind, KindInfo> = {
     name: 'Repeat rules',
     one: 'Repeat rule',
     qmk: 'Alt repeat',
+    qmkOne: 'Alt repeat',
     what: 'What the alternate repeat key sends after a given key.',
     help: 'alt-repeat',
   },
 }
 
-const title = (code: number) => (code ? keycodeTitle(code) : '…')
+// Keys in a summary are named as the picture and the palette show them (device/keycodes.ts).
+const title = (code: number) => (code ? keycodeShortName(code) : '…')
 
 /** One entry in one line: "J + K together → Escape", "Shift + Backspace → Delete". */
 export function summarizeEntry(kind: EntryKind, entry: AnyEntry): string {

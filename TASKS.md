@@ -36,16 +36,9 @@ started, and `AGENTS.md` "Rules" says how agents must work (touched test files o
 loops or browsers left behind, the orchestrator checks for leftovers). One building agent at a time from here
 on, unless the user says otherwise.
 
-**In progress right now** (one agent at a time, in this order; each reports, the checks run once, one commit
-per round with this file riding along):
-
-1. `ses_e1debfc70ffey83TnPHv8IaaIG`: the Keys page's height (the two "Keys" bullets below, from the user's
-   screenshot), then the key-name search and the Shortcuts wording bullets.
-2. `ses_dfd4e15edffeI6UpU02bmDT4JA`: the accessibility bullet below.
-3. `ses_dfe287d45ffeph6OlbTU2Fsd01`: the odd knob numbers (a compatibility item: its own commit).
-
-Done in this round: the restore review follows the keyboard as it is now (an Undo while it is open) and gives the
-true reason for unlocking (`ses_dfe21a33cffeE72FiCdiqmXdSX`).
+**Nothing is running.** Next, one fresh agent at a time (the user, 2026-11-22: no session over 400K tokens is
+ever reused; `AGENTS.md` "A fresh agent by default"; the sessions that built the app are all past that and are
+retired): the accessibility bullet below, then the odd knob numbers (a compatibility item: its own commit).
 
 The user (2026-11-22): "stop asking about release things. we're just fixing stuff now."
 So: no more questions about the release; work the lists below ("Small things from review") and the user's bug
@@ -155,11 +148,12 @@ Left open:
 
 ## Waiting on the user
 - **Publishing, once on GitHub** (after the documents round): make the repo public (Settings → General → Danger
-  Zone); Settings → Pages → Build and deployment → Source: "GitHub Actions"; at Porkbun, a DNS record for
-  `tybyfy.com`: type `CNAME`, host `layerworks`, answer `phazei.github.io`; Settings → Pages → Custom domain:
+  Zone); Settings → Pages → Build and deployment → Source: "GitHub Actions"; Settings → Pages → Custom domain:
   `layerworks.tybyfy.com`, and tick "Enforce HTTPS" once the certificate is issued; push `main` (or run "Publish
   to GitHub Pages" from the Actions tab). If the first run fails at install, `node-hid` (a dev dependency with a
-  native part) is the likely cause.
+  native part) is the likely cause. The DNS record is in place at Porkbun (`CNAME` `layerworks` →
+  `phazei.github.io`, answering on public DNS); until GitHub has the custom domain, the address shows GitHub's
+  "There isn't a GitHub Pages site here" page.
 - The user is testing page by page and reports bugs as found; the dev server (`pnpm dev`) is open while agents
   edit, so the user sees work in progress.
 - **To try on the real keyboard** (take a backup first):
@@ -213,8 +207,7 @@ sized for one delegated agent; one runs at a time.
 
 ### Small things from review
 
-- Shortcuts: no test for "edits made while a save is running are kept". Editor headers show QMK's plural
-  ("Combos") beside a single item. Summaries use the key tables' names ("Escape", "` and ~").
+- Shortcuts: no test for "edits made while a save is running are kept".
 - Help: no "?" on the stage's resize handle.
 - `src/ui/KeyboardPicture.tsx` imports the layer names from `src/shell/layer-names.ts`, the one place `ui`
   reaches into the shell; move the names store down (`src/device` or `src/ui`) when it is next touched.
@@ -222,13 +215,10 @@ sized for one delegated agent; one runs at a time.
 - Lighting: a zone slot's play time can't be set while it is the zone's only effect (harmless). Read back while
   the lights are off, the keyboard can report the saved colour rather than the last one sent; turning the lights
   on sends the values the page shows.
-- Keys, useless scrolling (the user's screenshot, a wide window of about 1830 × 1125 with a tall stage): the
-  editing area under the stage is about 240 px high in a 510 px space, the rest is empty, and the page still
-  scrolls well past it.
-- Keys in a short window: the palette is too short. The user: its least height should be the height of the
-  visible area under the stage minus the search box, so that scrolled into place it fills what can be seen.
-- Key names by layout: a US letter in the palette search can find two tiles (on German, "y" finds the tile shown
-  as Z and the one shown as Y); "!" still finds "Shift + 1" through its US name, wrong on French.
+- For the user to look at: the Keys page with More options open (it scrolled into empty space; fixed), the key
+  list in a short window (under 22rem of page area it takes the visible height, so the page scrolls a little to
+  bring it into place), and shortcut summaries, which now use the picture's short names ("Esc", "Bksp",
+  "LShift" in a macro's steps).
 - `readFirmware` lives in `src/pages/device/firmware.ts` and Home imports it from there; move it to `src/device`
   when something else needs it.
 - `src/pages/test/useMatrix.ts` only re-exports `src/device/useMatrix.ts`; the Test page can import the device one.

@@ -4,7 +4,7 @@
 // they do (shortcut-keys.ts), so the Shortcuts page's pickers get them too. Groups marked `more` wait under a
 // closed "More keys" fold at the end, except while searching, which looks everywhere.
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { PaletteGroup, PaletteKey } from '../../device'
 import type { HelpTopicId } from '../../help/topics'
 import { SearchField } from '../../ui/controls'
@@ -28,16 +28,17 @@ const oneLine = (label: string) => label.replace(/\n/g, ' ')
 export const keyName = (key: PaletteKey): string => key.description ?? oneLine(key.label)
 
 /**
- * Whether a key matches the search. Every word must appear in its label, description or QMK names. A single
- * character only matches a label exactly, so "a" finds A rather than every key with an "a" in it.
+ * Whether a key matches the search. Every word must appear in what is shown for it (its label and its words, both
+ * following the computer's layout for key names) or its QMK names; never in the US legend of a key shown otherwise, so
+ * on German "y" finds only the key shown as Y. A single character only matches a label exactly, so "a" finds A
+ * rather than every key with an "a" in it.
  */
 export function matchesSearch(key: PaletteKey, query: string): boolean {
   const q = query.trim().toLowerCase()
   if (!q) return true
-  // On another computer layout a key has its layout legend and its US one (usLabel): either finds it.
-  const labels = [key.label, key.usLabel ?? ''].flatMap((label) => label.toLowerCase().split('\n'))
+  const labels = key.label.toLowerCase().split('\n')
   if ([...q].length === 1) return labels.includes(q)
-  const text = [oneLine(key.label), oneLine(key.usLabel ?? ''), key.description ?? '', key.id, ...(key.aliases ?? [])].join(' ').toLowerCase()
+  const text = [oneLine(key.label), key.description ?? '', key.id, ...(key.aliases ?? [])].join(' ').toLowerCase()
   return q.split(/\s+/).every((word) => text.includes(word))
 }
 
@@ -58,15 +59,29 @@ interface Props {
   note?: ReactNode
   /** Said after "No key matches …" when a search finds nothing: where else to look, if this page has somewhere. */
   noMatch?: string
+  /**
+   * The height that can be seen under the stage in a short window (Keys page): the key list is at least that minus
+   * what sits above it here (the search row, a note), so once the search box is scrolled to the top the list
+   * reaches the bottom. Without it, the list takes what is left, at least min-h-36.
+   */
+  fill?: number
 }
 
 /** `?key-search=magic` in the URL: the palette opens with that search, for screenshots. */
 const searchFromUrl = (): string => (typeof location === 'undefined' ? '' : (new URLSearchParams(location.search).get('key-search') ?? ''))
 
-export function KeyPalette({ groups, current, picked, onPick, hint, label, tools, note, noMatch }: Props) {
+export function KeyPalette({ groups, current, picked, onPick, hint, label, tools, note, noMatch, fill }: Props) {
   const [query, setQuery] = useState(searchFromUrl)
   const [pointed, setPointed] = useState<PaletteKey | null>(null)
   const box = useRef<HTMLDivElement>(null)
+  const root = useRef<HTMLDivElement>(null)
+  // What sits above the list in the palette, for `fill`.
+  const [above, setAbove] = useState(0)
+  useLayoutEffect(() => {
+    if (fill === undefined || !root.current || !box.current) return
+    const next = box.current.getBoundingClientRect().top - root.current.getBoundingClientRect().top
+    setAbove((old) => (old === next ? old : next))
+  })
   // Macros and multi-tap keys by their names and what they do, wherever the palette is used.
   const shortcutKey = useShortcutKeys()
   const named = useMemo(() => nameShortcutGroups(groups, shortcutKey), [groups, shortcutKey])
@@ -126,7 +141,7 @@ export function KeyPalette({ groups, current, picked, onPick, hint, label, tools
   )
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <div ref={root} className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex items-center gap-3">
         <SearchField aria-label="Search keys" placeholder="Search keys" value={query} onChange={setQuery} className="w-52 min-w-36 shrink" />
         {tools}
@@ -153,6 +168,7 @@ export function KeyPalette({ groups, current, picked, onPick, hint, label, tools
         onMouseLeave={() => setPointed(null)}
         // A zero basis, so the tiles never decide the height: the box takes what is left, at least min-h.
         className="relative min-h-36 shrink grow basis-0 overflow-y-auto rounded-control border border-edge px-3 pb-3"
+        style={fill === undefined ? undefined : { minHeight: `max(9rem, ${fill - above}px)` }}
       >
         {shown.length === 0 && (
           <p className="pt-3 text-[13px] text-muted">

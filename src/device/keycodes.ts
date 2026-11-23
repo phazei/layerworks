@@ -143,8 +143,6 @@ export interface PaletteKey {
   aliases?: string[]
   /** A macro or multi-tap key with nothing set up yet: still offered, but drawn as empty. */
   empty?: boolean
-  /** The US legend, where the computer's layout gives the key another one ("Y" for the key that types z): for search. */
-  usLabel?: string
 }
 
 /** Plain words for keys the tables leave undescribed or describe in jargon. */
@@ -472,7 +470,7 @@ function entries(list: readonly tables.Keycode[]): PaletteKey[] {
     const code = deserialize(keycode.qmkId)
     const label = FRIENDLY[keycode.qmkId]?.label ?? keycode.label
     const description = plainDescription(keycode)
-    // On another layout, the legend it types there; the US one stays findable.
+    // On another layout, the legend it types there, in place of the US one (also for the search).
     const legend = legendOf(code)
     out.push({
       code,
@@ -480,9 +478,8 @@ function entries(list: readonly tables.Keycode[]): PaletteKey[] {
       id: serialize(code),
       label: legend?.label ?? label,
       description: legend?.description ?? description,
-      // The table's own name too, when it differs from the one shown (KC_LSPO for SC_LSPO …).
-      aliases: [...(keycode.alias ?? []), ...(keycode.cExportId ? [keycode.cExportId] : []), ...(legend && description ? [description] : [])],
-      ...(legend ? { usLabel: label } : {}),
+      // QMK's other names (KC_LSPO for SC_LSPO …), for the search; never the US legend of a key shown otherwise.
+      aliases: [...(keycode.alias ?? []), ...(keycode.cExportId ? [keycode.cExportId] : [])],
     })
   }
   return out
@@ -749,6 +746,34 @@ export const isKnownKeycode = (code: number): boolean => findKeycode(serialize(c
 
 /** True for a key a shortcut can be built on: a typing key, not media, mouse or a modifier itself. */
 export const canTakeModifiers = (code: number): boolean => isBasicKey(code) && code < 0xa5
+
+/**
+ * A key named in a line that sums something up (a shortcut's summary, a macro's steps): as the picture and the palette
+ * show it to this person, short and following the layout chosen for key names ("Esc", "`", "Bksp", "Z" on German),
+ * with modifiers in words ("Ctrl + C"). A key with two legends gives the one typed without Shift ("1", not "! 1"); a
+ * layer key, which the picture names by the user's layer names, is said as a short sentence ("While held, use
+ * layer 3").
+ */
+export function keycodeShortName(code: number): string {
+  if (code === KC_NOTHING) return 'Nothing'
+  if (code === KC_SAME_AS_BELOW) return 'Same as the layer below'
+  const layerKey = readLayerKey(code)
+  const action = layerKey && LAYER_ACTIONS.find((a) => a.op === layerKey.op)
+  if (layerKey && action) return layerActionSentence(action, `layer ${layerKey.layer}`)
+  if (readLayerMod(code)) return keycodeTitle(code)
+  const shortcut = readShortcut(code)
+  if (shortcut && shortcut.mods) {
+    // Under US legends, QMK's shifted symbols have their own tile ("~"); elsewhere they read "Shift + `".
+    const shifted = layoutActive() ? undefined : tables.KEYCODES_SHIFTED.find((k) => deserialize(k.qmkId) === code)
+    if (shifted) return shifted.label.replace(/\n/g, ' ')
+    const mods = MODIFIERS.filter((mod) => shortcut.mods & mod.bit).map((mod) => mod.name)
+    return [...mods, shortcut.key ? keycodeShortName(shortcut.key) : '…'].join(' + ')
+  }
+  const name = keycodeName(code)
+  // "! 1", "~ `": shifted above, plain below, as on the cap; in a line, the plain one.
+  const two = /^(\S) (\S)$/u.exec(name)
+  return two ? two[2] : name
+}
 
 /** What a keycode does, in plain words: "Volume Up", "Left Ctrl", "1 and !", "Ctrl + C". */
 export function keycodeTitle(code: number): string {

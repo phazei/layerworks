@@ -80,6 +80,8 @@ interface Props {
   base: number
   /** A shortcut just put on this key from its editor ("Put it on a key…"), and what the key held before. */
   justPut?: { name: string; before: number }
+  /** In a short window, the height that can be seen under the stage: the key list reaches down to it (visible-height.ts). */
+  paletteFill?: number
 }
 
 /** Where the slot is, and whether it has its own assignment or falls through to a layer below. */
@@ -102,7 +104,7 @@ function Whereabouts({ keyboard, slot, names, base }: Props) {
   )
 }
 
-export function Inspector({ keyboard, slot, names, base, justPut }: Props) {
+export function Inspector({ keyboard, slot, names, base, justPut, paletteFill }: Props) {
   const current = slotKeycode(keyboard, slot)
   // The tables behind the palette describe the connected keyboard; rebuild them when it changes. The extra groups
   // leave out switches for features the keyboard reports no room for.
@@ -173,8 +175,9 @@ export function Inspector({ keyboard, slot, names, base, justPut }: Props) {
           '@3xl:grid-cols-[18.5rem_1fr]',
         )}
       >
-        {/* Wide: one column that scrolls by itself. Narrow: not a box at all, so its parts take their own rows. */}
-        <div className="contents @2xl:-m-1 @2xl:flex @2xl:min-h-0 @2xl:flex-col @2xl:overflow-y-auto @2xl:p-1 @2xl:[grid-area:left]">
+        {/* Wide: one column that scrolls by itself (relative, so anything placed absolutely inside it is clipped
+            with it and can't make the page taller). Narrow: not a box at all, so its parts take their own rows. */}
+        <div className="contents @2xl:relative @2xl:-m-1 @2xl:flex @2xl:min-h-0 @2xl:flex-col @2xl:overflow-y-auto @2xl:p-1 @2xl:[grid-area:left]">
           <header className="mb-4 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 [grid-area:head]">
             <div className="min-w-0 flex-1 basis-64">
               <h2 className="text-[15px] font-semibold">
@@ -232,11 +235,12 @@ export function Inspector({ keyboard, slot, names, base, justPut }: Props) {
         </div>
 
         {/* -m-1 p-1: room for focus rings inside the scrolling columns. */}
-        <div className="flex min-w-0 flex-col [grid-area:body] @2xl:-m-1 @2xl:min-h-0 @2xl:overflow-y-auto @2xl:p-1">
+        <div className="flex min-w-0 flex-col [grid-area:body] @2xl:relative @2xl:-m-1 @2xl:min-h-0 @2xl:overflow-y-auto @2xl:p-1">
           {choice === 'key' && (
             <KeyPalette
               groups={palette}
               current={current}
+              fill={paletteFill}
               onPick={(key) => assign(key.code)}
               hint="Point at a key to see what it does; click it to use it."
               label="Keys"

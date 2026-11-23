@@ -257,7 +257,9 @@ interface CheckboxProps {
 
 export function Checkbox({ checked, onChange, label, disabled }: CheckboxProps) {
   return (
-    <label className={cx('inline-flex items-center gap-2 select-none', disabled ? 'opacity-50' : 'cursor-pointer')}>
+    // relative: the hidden input is placed absolutely (sr-only) and must stay inside its label. Otherwise, in a box
+    // that scrolls by itself, it sits outside the box's clipping and makes the page around it taller.
+    <label className={cx('relative inline-flex items-center gap-2 select-none', disabled ? 'opacity-50' : 'cursor-pointer')}>
       <input
         type="checkbox"
         checked={checked}

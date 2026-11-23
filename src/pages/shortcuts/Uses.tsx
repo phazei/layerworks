@@ -3,7 +3,7 @@
 // that key on the Keys page, and "Put it on a key…", which opens the Keys page waiting for the key that should run it.
 
 import { Keyboard } from 'lucide-react'
-import { keycodeName, keycodeUses, useDevice, type Slot } from '../../device'
+import { keycodeShortName, keycodeUses, useDevice, type Slot } from '../../device'
 import { useConnectedLayerNames } from '../../shell/layer-names'
 import { navigate } from '../../shell/router'
 import { stage } from '../../shell/stage-store'
@@ -50,9 +50,11 @@ export function Uses({ code, howTo, name, hint }: Props) {
     armKey({ code, name, hint }, layer?.active)
     navigate('/keys')
   }
+  // The key by what it shows on the base layer, as in the picture.
+  const baseName = (code: number) => (code > 1 ? keycodeShortName(code) : 'unlabelled')
   const where = (slot: Slot) =>
     slot.kind === 'key'
-      ? `the ${keycodeName(kb.keymap[`${base},${slot.row},${slot.col}`] ?? 0) || 'unlabelled'} key`
+      ? `the ${baseName(kb.keymap[`${base},${slot.row},${slot.col}`] ?? 0)} key`
       : `the knob turned ${slot.direction === 0 ? 'left' : 'right'}`
 
   return (

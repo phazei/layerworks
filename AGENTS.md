@@ -33,9 +33,16 @@ a delegated agent (`general_opus`), and reviews what comes back. It does not bui
   and a change to `TASKS.md` rides with the next code commit, never a commit of its own.
 - **Background and follow-ups.** Agents are launched in the background, so the orchestrator can answer the user
   meanwhile and is told when each finishes; `TASKS.md` "In progress right now" lists the running sessions, their
-  files and what to do when they report. Follow-up work on a page goes to the session that built it (it knows
-  the code); a review goes to a fresh one. An agent stopped by the account's rate limit is resumed in the same
+  files and what to do when they report. An agent stopped by the account's rate limit is resumed in the same
   session.
+- **A fresh agent by default; never a session over 400K tokens** (the user's rule: every step of a long session
+  re-reads all of it, which eats the token limit, and a model works badly past 400K). A new package goes to a
+  new agent with a brief that stands alone (the files, the relevant README sections by name, what was decided).
+  A session is reused only for a direct follow-up to what it just did, and only after its size has been checked:
+  `opencode api get /api/session/<id>/context`, the last message's `tokens` (`input` + `cache.read` +
+  `cache.write`) is what its next step would read. Under 250K: reuse. 250K to 400K: compact it first
+  (`opencode api post /api/session/<id>/compact --data '{}'`), or start fresh. Over 400K: never; start fresh.
+  A review always goes to a fresh one.
 - **The user's feedback** comes in batches while agents run. Decided items go to an agent as they are; items the
   user marks as open get a recommendation and go under "Waiting on the user", unbuilt. An agent's claim about
   the firmware is checked against the source (`../vial_qmk`) before it is written into these documents.

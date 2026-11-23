@@ -118,7 +118,7 @@ export function EntryFrame<K extends EntryKind>({ kind, index, draft, intro, exa
               {info.one} {slotNumber(kind, index)}
               <HelpButton topic={info.help} />
             </h2>
-            <span className="text-[13px] text-muted">{info.qmk}</span>
+            <span className="text-[13px] text-muted">{info.qmkOne}</span>
             <SaveState
               dirty={dirty}
               justSaved={result === 'saved'}

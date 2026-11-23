@@ -48,9 +48,9 @@ describe('the list', () => {
     await show()
 
     expect(section('Key chords')).toHaveTextContent('Combos · 3 of 16 used')
-    expect(section('Key chords')).toHaveTextContent('J + K together → Escape')
-    expect(section('Shortcut replacements')).toHaveTextContent('Shift + Backspace → Delete')
-    expect(section('Multi-tap keys')).toHaveTextContent('Tap: Escape · Double tap: Caps Lock')
+    expect(section('Key chords')).toHaveTextContent('J + K together → Esc')
+    expect(section('Shortcut replacements')).toHaveTextContent('Shift + Bksp → Del')
+    expect(section('Multi-tap keys')).toHaveTextContent('Tap: Esc · Double tap: Caps Lock')
     expect(section('Multi-tap keys')).toHaveTextContent('on 1 key')
     expect(section('Repeat rules')).toHaveTextContent('After Ctrl + Z → Ctrl + Y')
     expect(within(section('Key chords')).getAllByRole('link')).toHaveLength(3)
@@ -108,7 +108,7 @@ describe('what the pickers offer', () => {
     expect(groups()).toEqual(expect.arrayContaining(['Typing helpers', 'Swapped and disabled keys', 'International keys']))
     expect(groups()).not.toContain('Multi-tap keys')
     await click('Capitals for one word (Caps Word)')
-    expect(within(section('Key chords')).getAllByRole('link')[0]).toHaveTextContent('J + K together → Capitals for one word (Caps Word)')
+    expect(within(section('Key chords')).getAllByRole('link')[0]).toHaveTextContent('J + K together → Caps Word')
     await click('Save to keyboard')
     expect(entries().combo[0].output).toBe(0x7c73)
   })
@@ -146,7 +146,7 @@ describe('shortcut replacements', () => {
     await click('Save to keyboard')
 
     expect(entries().keyOverride[1]).toMatchObject({ triggerMods: 0x33, triggerKey: 0x29, replacementKey: 0x35 })
-    expect(section('Shortcut replacements')).toHaveTextContent('Ctrl + Shift + Escape → ` and ~')
+    expect(section('Shortcut replacements')).toHaveTextContent('Ctrl + Shift + Esc → `')
   })
 })
 

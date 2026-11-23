@@ -9,13 +9,14 @@ import type { PageDef } from '../plugins/api'
 import { useConnectedLayerNames } from '../shell/layer-names'
 import { screenshotOption } from '../shell/session'
 import { shownLayer, stage as stageStore, toSlot, useStage, type Selection } from '../shell/stage-store'
-import { Button } from '../ui/controls'
+import { Button, cx } from '../ui/controls'
 import { Card, HelpButton, Notice } from '../ui/layout'
 import { armedDone, armingState, armKey, disarm, forgetJustPut, useArming, type Armed } from './keys/arming'
 import { Inspector } from './keys/Inspector'
 import { layerName } from './keys/describe'
 import { LayoutCard } from './keys/LayoutCard'
 import { useShortcutKeys } from './keys/shortcut-keys'
+import { editingHeight, useVisibleHeight } from './keys/visible-height'
 
 /** The card before a key is picked; `knob` mentions the knob only on a keyboard that has one. */
 export function NothingSelected({ knob }: { knob: boolean }) {
@@ -72,6 +73,9 @@ function KeysPage() {
   const names = useConnectedLayerNames()
   const { armed, justPut } = useArming()
   const selection = stage.selection
+  // In a short window the editing area takes the visible height under the stage (keys/visible-height.ts).
+  const { ref: area, visible, rem } = useVisibleHeight()
+  const height = editingHeight(visible, rem)
   const layer = keyboard ? shownLayer(stage, live, keyboard.layers) : 0
 
   // Armed, a click selects a key: that key gets the shortcut, through the store's normal assign (one undo step),
@@ -146,10 +150,17 @@ function KeysPage() {
   const put = justPut && justPut.where === here ? { name: justPut.name, before: justPut.before } : undefined
   return (
     // Wide enough for the inspector's two columns, it fills exactly the space under the stage (placed absolutely,
-    // so what is inside can't make the page taller), but not below 15rem in a short window. Narrower, it is as
-    // tall as its contents and the page scrolls.
-    <div data-tour="keys-page" className="@container/keys relative flex min-h-60 flex-1 flex-col">
+    // so what is inside can't make the page taller). In a short window (keys/visible-height.ts) it is at least the
+    // visible height under the stage plus the card's padding, so the key list, scrolled into place, reaches the
+    // bottom. Narrower, it is as tall as its contents and the page scrolls.
+    <div
+      ref={area}
+      data-tour="keys-page"
+      className={cx('@container/keys relative flex flex-1 flex-col', height.min === null && 'min-h-60')}
+      style={height.min === null ? undefined : { minHeight: height.min }}
+    >
       <Inspector
+        paletteFill={height.visible ?? undefined}
         // A new key or layer starts the inspector afresh, on the choice that matches it.
         key={`${layer} ${where}`}
         keyboard={keyboard}

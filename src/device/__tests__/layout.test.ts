@@ -94,18 +94,32 @@ describe('legends from a layout map', () => {
     expect(keycodeName(KC_SCOLON)).toBe('M')
   })
 
-  it('names the palette’s tiles that way, with the US legend still found by search', () => {
+  it('names the palette’s tiles that way', () => {
     use(GERMAN)
     const letters = keyPalette().find((group) => group.id === 'letters')!.keys
-    const y = letters.find((key) => key.id === 'KC_Y')!
-    const z = letters.find((key) => key.id === 'KC_Z')!
-    expect(y).toMatchObject({ label: 'Z', description: 'Z', usLabel: 'Y' })
-    expect(matchesSearch(y, 'y')).toBe(true) // its US legend
-    expect(matchesSearch(z, 'y')).toBe(true) // what it types here
-    expect(matchesSearch(y, 'kc_y')).toBe(true)
+    expect(letters.find((key) => key.id === 'KC_Y')).toMatchObject({ label: 'Z', description: 'Z' })
     const shifted = keyPalette().find((group) => group.id === 'shifted')!.keys.find((key) => key.id === 'LSFT(KC_1)')!
     expect(shifted.label).toBe('Shift\n1')
-    expect(matchesSearch(shifted, '!')).toBe(true)
+  })
+
+  it('German: "y" finds only the key shown as Y, not the one shown as Z through its US name', () => {
+    use(GERMAN)
+    const letters = keyPalette().find((group) => group.id === 'letters')!.keys
+    const found = letters.filter((key) => matchesSearch(key, 'y')).map((key) => key.id)
+    expect(found).toEqual(['KC_Z'])
+    expect(letters.filter((key) => matchesSearch(key, 'z')).map((key) => key.id)).toEqual(['KC_Y'])
+    // The QMK name stays findable by whoever types it.
+    expect(letters.filter((key) => matchesSearch(key, 'kc_y')).map((key) => key.id)).toEqual(['KC_Y'])
+  })
+
+  it('French: "!" doesn’t find "Shift + 1", which isn’t ! there', () => {
+    use(FRENCH)
+    const all = keyPalette().flatMap((group) => group.keys)
+    // The key that types ! there, and Shift + it (shown "Shift !"); not the US "!" (Shift + 1).
+    expect(all.filter((key) => matchesSearch(key, '!')).map((key) => key.id)).toEqual(['KC_SLASH', 'LSFT(KC_SLASH)'])
+    // US: "!" finds the shifted 1, as before.
+    setLayoutLegends(null)
+    expect(keyPalette().flatMap((group) => group.keys).filter((key) => matchesSearch(key, '!')).map((key) => key.id)).toContain('LSFT(KC_1)')
   })
 
   it('draws the picture’s keys that way, the tap of a tap-or-hold key too', () => {
