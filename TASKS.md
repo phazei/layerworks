@@ -36,10 +36,23 @@ started, and `AGENTS.md` "Rules" says how agents must work (touched test files o
 loops or browsers left behind, the orchestrator checks for leftovers). One building agent at a time from here
 on, unless the user says otherwise.
 
-**Nothing is running.** Next is item 6, the documents round, which waits for the user's answers (is the firmware
-project public; how many screenshots; do `TASKS.md` and `AGENTS.md` belong in the public repo). The flaky
-`Device.test.tsx` backup test is fixed (the test checked the "Saved …" text without waiting for the render; no
-product race: the button is disabled until everything is loaded).
+**In progress right now** (one agent at a time, in this order; each reports, the checks run once, one commit
+per round with this file riding along):
+
+1. `ses_e1debfc70ffey83TnPHv8IaaIG`: the Keys page's height (the two "Keys" bullets below, from the user's
+   screenshot), then the key-name search and the Shortcuts wording bullets.
+2. `ses_dfd4e15edffeI6UpU02bmDT4JA`: the accessibility bullet below.
+3. `ses_dfe287d45ffeph6OlbTU2Fsd01`: the odd knob numbers (a compatibility item: its own commit).
+
+Done in this round: the restore review follows the keyboard as it is now (an Undo while it is open) and gives the
+true reason for unlocking (`ses_dfe21a33cffeE72FiCdiqmXdSX`).
+
+The user (2026-11-22): "stop asking about release things. we're just fixing stuff now."
+So: no more questions about the release; work the lists below ("Small things from review") and the user's bug
+reports. The README is rewritten in a new session and the other documents later, both steered by the user; the
+parent project (`Alice-Keyboard`) stays private, so the README links to no firmware of ours. **Fewer commits**
+(the user): changes to this file ride with the next code commit, never a commit of their own; related small
+fixes go together. A compatibility item still gets its own commit.
 
 - **The sidebar and the narrow pages are done** (`6acf624`, then `dce80cf` to `d21df00`, by
   `ses_dfd15b6c7ffeHrjHNi3Zt3VgJE`; README "The screen"): icons only under 1024 px or by the button beside the
@@ -196,42 +209,36 @@ Left open:
 
 Every page in the spec's section 7 is built, and the help guide and tour of phase 7. What is left is the small
 things below, the user's bug reports as they come, and the optional extras under "Later". Each item below is
-sized for one delegated agent; two at most run at a time (`AGENTS.md`).
-
-### Left from the spec
-
-What `../docs/spec/layerworks.md` describes and the app doesn't have, apart from phase 8 and the firmware
-extensions (under "Later"):
-
-- **Layout options** (spec section 7, Keys): the picture and the Test page's key count use the definition's
-  default layout; `ui/KeyboardPicture.tsx` passes no `layoutOptions` to the widget (which takes them) and
-  `device/matrix.ts` `matrixKeys` uses an empty map. Make both follow the keyboard's layout options (read at load,
-  `KeyboardData.layoutOptions`). A control to change them comes once a keyboard that has them is tried (the K15 Max
-  has none).
+sized for one delegated agent; one runs at a time.
 
 ### Small things from review
 
-- Device: the restore plan is worked out when the file is opened; an Undo or Redo before pressing Restore isn't
-  reflected in it. "Unlock first…" always gives macros as the reason, also when it is the bootloader key.
 - Shortcuts: no test for "edits made while a save is running are kept". Editor headers show QMK's plural
-  ("Combos") beside a single item. Summaries use the key tables' names ("Escape", "` and ~"). The chord picture is
-  small at 1000×700.
+  ("Combos") beside a single item. Summaries use the key tables' names ("Escape", "` and ~").
 - Help: no "?" on the stage's resize handle.
 - `src/ui/KeyboardPicture.tsx` imports the layer names from `src/shell/layer-names.ts`, the one place `ui`
   reaches into the shell; move the names store down (`src/device` or `src/ui`) when it is next touched.
-- The picture: "Hold" over a long layer name ("Windows Fn") takes three lines on a 1u key; tight but legible.
 - Typing feel: clicking a group in the side list scrolls to it but doesn't move keyboard focus there.
-- Lighting: a zone slot's play time can't be set while it is the zone's only effect (harmless). The picture in
-  the key colours editor is small at 1000×700. Read back while the lights are off, the keyboard can report the
-  saved colour rather than the last one sent; turning the lights on sends the values the page shows.
-- Keys in a short window: the palette shows five columns and feels crowded. The palette's group titles are small
-  muted text, the weak-header pattern the Shortcuts list had.
+- Lighting: a zone slot's play time can't be set while it is the zone's only effect (harmless). Read back while
+  the lights are off, the keyboard can report the saved colour rather than the last one sent; turning the lights
+  on sends the values the page shows.
+- Keys, useless scrolling (the user's screenshot, a wide window of about 1830 × 1125 with a tall stage): the
+  editing area under the stage is about 240 px high in a 510 px space, the rest is empty, and the page still
+  scrolls well past it.
+- Keys in a short window: the palette is too short. The user: its least height should be the height of the
+  visible area under the stage minus the search box, so that scrolled into place it fills what can be seen.
 - Key names by layout: a US letter in the palette search can find two tiles (on German, "y" finds the tile shown
   as Z and the one shown as Y); "!" still finds "Shift + 1" through its US name, wrong on French.
-- Device card: the quiet "Unlock…" and "Lock" buttons read as plain text; give them a slightly stronger style.
 - `readFirmware` lives in `src/pages/device/firmware.ts` and Home imports it from there; move it to `src/device`
   when something else needs it.
 - `src/pages/test/useMatrix.ts` only re-exports `src/device/useMatrix.ts`; the Test page can import the device one.
+- A knob whose definition gives it a number other than 0, 1, 2 … (adelais rev3, ishi 80: a mistake in those
+  definitions) would be mislabelled or skipped.
+- Accessibility polish left from the audit (`accessibility-audit.md`): a skip link past the sidebar; a focus ring
+  on text fields; no Ctrl + Z for Undo, and no warning when Tab, Enter or Esc leave the base layer of the
+  keyboard being used to navigate; heading order; a quieter status line for screen readers. Not wanted (the
+  user): 200 % zoom and Windows high-contrast themes. Never checked: a real screen reader, Firefox, touch.
+- Backlight and underglow keyboards get their lighting keys but no Lighting page (VIA's lighting commands).
 - The build warns that the main chunk is over 500 kB; split the vendored keycode tables or the pages when it
   matters.
 

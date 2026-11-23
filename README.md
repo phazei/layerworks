@@ -1112,6 +1112,13 @@ there, before anything is written (keycodes 16-bit, lighting speed and colour by
   more, a layer turned on and left on with no key to leave it), and "Show the changes (n)", a `Disclosure` listing
   every key, knob turn, macro (its steps in a line) and entry that changes (`planItems`). The Keys inspector asks
   with the same `keymapRisks` before a single change that would cause one of them.
+- The review keeps the file, not a plan: the plan is worked out from the store's state on every render (`usePlan`),
+  so an Undo or Redo while it is open (or the restore's own undo step) shows at once, and a plan that becomes empty
+  closes the confirmation and reads "already matches". When Restore is confirmed, the page waits for changes asked
+  for before it, reads the lighting again and works the plan out once more; it runs only if that is what the
+  confirmation listed, otherwise the review says the keyboard changed meanwhile. What needs unlocking is named as it
+  is (`unlockWhat`): the macros, the firmware update key (on keys, knob turns or shortcuts), or both, in the notice,
+  in the unlock dialog's reason and in the report's "left out" line.
 - `DeviceStore.restore` writes the plan through the store's change queue, part by part. Every write is tried; one
   that fails is reported (in plain words, the technical message under "Details") and the rest go on (each write
   stands alone, and restoring again retries only what still differs). If the keyboard goes away it stops and says

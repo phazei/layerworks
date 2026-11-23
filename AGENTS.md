@@ -29,7 +29,8 @@ a delegated agent (`general_opus`), and reviews what comes back. It does not bui
   diff for the rules below, and looks at the screenshots. Problems go back to the same agent (its session ID).
 - **Commit.** After review, the orchestrator commits that package (the user has allowed staging and committing
   in this repo, section by section; never push, never rewrite history), then updates `TASKS.md`: the finished
-  package is deleted, anything learned goes to its durable home.
+  package is deleted, anything learned goes to its durable home. Few commits: related small fixes go together,
+  and a change to `TASKS.md` rides with the next code commit, never a commit of its own.
 - **Background and follow-ups.** Agents are launched in the background, so the orchestrator can answer the user
   meanwhile and is told when each finishes; `TASKS.md` "In progress right now" lists the running sessions, their
   files and what to do when they report. Follow-up work on a page goes to the session that built it (it knows

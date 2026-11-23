@@ -4,16 +4,19 @@
 // once, so it says exactly what before anything happens.
 
 import { KeysAndKnobs } from './knob-words'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CircleAlert, CircleCheck, FileUp, Lock, TriangleAlert } from 'lucide-react'
 import {
   BACKUP_EXTENSION,
   backupText,
+  bootKeycode,
   checkFit,
   createBackup,
   countOf,
   describePlan,
   deviceStore,
+  ENTRY_KINDS,
+  entryNeedsUnlock,
   parseKeycode,
   planItems,
   planRestore,
@@ -22,6 +25,7 @@ import {
   unlockNeeded,
   useDevice,
   VIL_EXTENSION,
+  type DeviceState,
   type KeyboardFile,
   type RestorePart,
   type RestorePlan,
@@ -33,6 +37,7 @@ import {
   storedLayerNames,
   storedMacroNames,
   useConnectedLayerNames,
+  useStoredMacroNames,
 } from '../../shell/layer-names'
 import { describeRecord, setRestoreRecord, useRestoreRecord } from '../../shell/restore-record'
 import { screenshotOption } from '../../shell/session'
@@ -42,16 +47,86 @@ import { FileButton, readText } from '../../ui/files'
 import { Dialog, Disclosure, Notice } from '../../ui/layout'
 import { ProgressBar } from '../../ui/ProgressBar'
 
+/**
+ * The review holds the file, not a plan: the plan is worked out from the keyboard as it is now on every render
+ * (`usePlan`), so an Undo or Redo while the review is open shows in the list and in what Restore writes.
+ * `changed`: the keyboard changed between the confirmation and the restore, so it didn't run.
+ */
 type Step =
   | { kind: 'idle' }
   | { kind: 'error'; fileName: string; message: string }
-  | { kind: 'review'; fileName: string; file: KeyboardFile; warnings: string[]; plan: RestorePlan }
+  | { kind: 'review'; fileName: string; file: KeyboardFile; warnings: string[]; changed?: boolean }
   | { kind: 'running'; fileName: string; done: number; total: number }
   | { kind: 'done'; fileName: string; file: KeyboardFile; report: RestoreReport; names: Partial<Record<RestorePart, number>> }
 
-const UNLOCK_REASON = 'Restoring macros needs it.'
-
 const ICON = 15
+
+/** What a restore plan writes, worked out from the keyboard as the store holds it now. */
+function planFor(file: KeyboardFile, state: DeviceState): RestorePlan {
+  const uid = state.keyboard?.uid ?? ''
+  return planRestore(file.contents, state, storedLayerNames(uid), storedMacroNames(uid))
+}
+
+/** The plan for the file, worked out again whenever the keyboard's state or the stored names change. */
+function usePlan(file: KeyboardFile): RestorePlan {
+  const state = useDevice((s) => s)
+  // Both read the names stored in this browser and re-render when they change; planFor reads them too.
+  const names = useConnectedLayerNames()
+  const macroNames = useStoredMacroNames()
+  return useMemo(() => planFor(file, state), [file, state, names, macroNames])
+}
+
+/** What needs the keyboard unlocked, counted: the macro memory, and QK_BOOT on keys, knob turns or in entries. */
+interface UnlockCounts {
+  macros: boolean
+  keys: number
+  knob: number
+  entries: number
+}
+
+function planUnlockCounts(plan: RestorePlan): UnlockCounts {
+  const boot = bootKeycode()
+  const isBoot = (kind: 'key' | 'knob') => plan.keys.filter((k) => k.slot.kind === kind && boot !== null && k.to === boot).length
+  const entries = ENTRY_KINDS.reduce(
+    (n, kind) => n + (plan[kind] as { entry: object }[]).filter((c) => entryNeedsUnlock(kind, c.entry, boot)).length,
+    0,
+  )
+  return { macros: plan.macros !== null, keys: isBoot('key'), knob: isBoot('knob'), entries }
+}
+
+function skippedUnlockCounts(skipped: RestoreReport['skipped']): UnlockCounts {
+  const count = (test: (part: RestorePart) => boolean) => skipped.filter((s) => test(s.part)).length
+  return {
+    macros: count((p) => p === 'macros') > 0,
+    keys: count((p) => p === 'keys'),
+    knob: count((p) => p === 'knob'),
+    entries: count((p) => (ENTRY_KINDS as readonly string[]).includes(p)),
+  }
+}
+
+const listWords = (words: string[]) => (words.length <= 1 ? words.join('') : `${words.slice(0, -1).join(', ')} and ${words.at(-1)}`)
+
+/**
+ * Why unlocking is needed, in words: "the macros", "the firmware update key (on 2 keys and a knob turn)", or both.
+ * null when nothing needs it.
+ */
+function unlockWhat(counts: UnlockCounts): string | null {
+  const several = (n: number, one: string, many: string) => (n === 1 ? one : `${n} ${many}`)
+  const where = [
+    counts.keys > 0 && several(counts.keys, 'a key', 'keys'),
+    counts.knob > 0 && several(counts.knob, 'a knob turn', 'knob turns'),
+    counts.entries > 0 && several(counts.entries, 'a multi-tap key or other shortcut', 'multi-tap keys or other shortcuts'),
+  ].filter((w): w is string => !!w)
+  const parts = [counts.macros && 'the macros', where.length > 0 && `the firmware update key (on ${listWords(where)})`].filter(
+    (w): w is string => !!w,
+  )
+  return parts.length > 0 ? listWords(parts) : null
+}
+
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
+
+/** The unlock dialog's reason: "Restoring the macros needs it." */
+const unlockReason = (what: string) => `Restoring ${what} needs it.`
 
 function savedWhen(file: KeyboardFile): string {
   const kind = file.kind === 'vil' ? 'A Vial file' : 'A Layerworks backup'
@@ -73,9 +148,10 @@ function listParts(counts: Partial<Record<RestorePart, number>>): string {
 
 interface ReviewProps {
   step: Extract<Step, { kind: 'review' }>
-  onRestore: () => void
+  /** Runs the restore; `shown` is the plan the confirmation listed. */
+  onRestore: (shown: RestorePlan) => void
   onCancel: () => void
-  /** The keyboard was unlocked from here: work the plan out again (the restore itself still waits for Restore…). */
+  /** The keyboard was unlocked from here: check the file again (the restore itself still waits for Restore…). */
   onUnlocked: () => void
 }
 
@@ -83,15 +159,23 @@ function Review({ step, onRestore, onCancel, onUnlocked }: ReviewProps) {
   const names = useConnectedLayerNames()
   const unlocked = useDevice((s) => s.unlock?.unlocked === true)
   const name = useDevice((s) => s.keyboard?.name ?? 'the keyboard')
+  const state = useDevice((s) => s)
   const [confirming, setConfirming] = useState(false)
-  const { plan, file, warnings } = step
+  const { file, warnings } = step
+  const plan = usePlan(file)
   const lines = describePlan(plan, names)
   const locked = unlockNeeded(plan)
+  const needs = unlockWhat(planUnlockCounts(plan))
   const layerName = (layer: number) => names[layer] ?? `Layer ${layer}`
-  const state = deviceStore.getState()
   const items = planItems(plan, state, layerName)
   const risks = planRisks(plan, state, layerName)
   const itemCount = items.reduce((n, part) => n + part.items.length, 0)
+  // An Undo or Redo can empty the plan while the confirmation is open: it closes, and the review says there is
+  // nothing to restore.
+  const asking = confirming && lines.length > 0
+  useEffect(() => {
+    if (confirming && lines.length === 0) setConfirming(false)
+  }, [confirming, lines.length])
 
   return (
     <section aria-label="Restore" className="flex flex-col gap-4 rounded-control border border-edge p-4">
@@ -107,6 +191,12 @@ function Review({ step, onRestore, onCancel, onUnlocked }: ReviewProps) {
           </span>
         </Notice>
       ))}
+      {step.changed && (
+        <Notice>
+          The keyboard changed while you were confirming, so nothing was written. Below is what restoring would change
+          now.
+        </Notice>
+      )}
       {lines.length === 0 ? (
         <p className="flex items-center gap-2">
           <CircleCheck size={ICON} aria-hidden className="text-success" />
@@ -166,15 +256,14 @@ function Review({ step, onRestore, onCancel, onUnlocked }: ReviewProps) {
           </div>
         </Disclosure>
       )}
-      {locked > 0 && !unlocked && (
+      {locked > 0 && !unlocked && needs && (
         <Notice>
           <span className="flex flex-col items-start gap-2">
             <span>
-              {plan.macros ? 'Macros' : 'The firmware-update key'}
-              {locked > 1 && ' and a few other changes'} can only be written while the keyboard is unlocked. Unlock
-              it first, or restore without {locked === 1 ? 'it' : 'them'}.
+              {capital(needs)} can only be written while the keyboard is unlocked. Unlock it first, or restore
+              without {locked === 1 ? 'it' : 'them'}.
             </span>
-            <Button size="sm" icon={<Lock size={13} aria-hidden />} onClick={() => void openUnlock(UNLOCK_REASON).then((ok) => ok && onUnlocked())}>
+            <Button size="sm" icon={<Lock size={13} aria-hidden />} onClick={() => void openUnlock(unlockReason(needs)).then((ok) => ok && onUnlocked())}>
               Unlock first…
             </Button>
           </span>
@@ -201,14 +290,14 @@ function Review({ step, onRestore, onCancel, onUnlocked }: ReviewProps) {
         </Button>
       </div>
       <Dialog
-        open={confirming}
+        open={asking}
         title="Overwrite the keyboard with this file?"
         confirmLabel="Restore"
         danger
         onCancel={() => setConfirming(false)}
         onConfirm={() => {
           setConfirming(false)
-          onRestore()
+          onRestore(plan)
         }}
       >
         <p>This replaces, on {name}:</p>
@@ -236,6 +325,7 @@ function failedLines(failed: RestoreReport['failed']): string[] {
 /** After the restore: what was written, failed and left out. Unlocking from here goes back to the review of the same file. */
 function Report({ step, onDone, onUnlocked }: { step: Extract<Step, { kind: 'done' }>; onDone: () => void; onUnlocked: () => void }) {
   const { report } = step
+  const skippedWhat = unlockWhat(skippedUnlockCounts(report.skipped))
   const written = { ...report.written, ...step.names }
   const nothing = Object.keys(written).length === 0
   return (
@@ -281,10 +371,15 @@ function Report({ step, onDone, onUnlocked }: { step: Extract<Step, { kind: 'don
         <Notice>
           <span className="flex flex-col items-start gap-2">
             <span>
-              Left out because the keyboard is locked: {report.skipped.map((s) => s.what).join(', ')}. Unlock it and
-              restore the file again to write {report.skipped.length === 1 ? 'it' : 'them'}.
+              Left out because the keyboard is locked{skippedWhat && ` (${skippedWhat} can only be written while it is unlocked)`}:{' '}
+              {report.skipped.map((s) => s.what).join(', ')}. Unlock it and restore the file again to write{' '}
+              {report.skipped.length === 1 ? 'it' : 'them'}.
             </span>
-            <Button size="sm" icon={<Lock size={13} aria-hidden />} onClick={() => void openUnlock(UNLOCK_REASON).then((ok) => ok && onUnlocked())}>
+            <Button
+              size="sm"
+              icon={<Lock size={13} aria-hidden />}
+              onClick={() => void openUnlock(unlockReason(skippedWhat ?? 'this')).then((ok) => ok && onUnlocked())}
+            >
               Unlock…
             </Button>
           </span>
@@ -360,8 +455,23 @@ export function Restore() {
       setStep({ kind: 'error', fileName, message: fit.reason })
       return
     }
-    const plan = planRestore(file.contents, state, storedLayerNames(kb.uid), storedMacroNames(kb.uid))
-    setStep({ kind: 'review', fileName, file, warnings: fit.warnings, plan })
+    setStep({ kind: 'review', fileName, file, warnings: fit.warnings })
+  }
+
+  /**
+   * Restore… confirmed with the plan the confirmation listed. Changes asked for before it (an Undo still on its way)
+   * finish first, and the lighting is read again; then the plan is worked out once more. Only if it is still what was
+   * listed does the restore run; otherwise the review shows the new list and says why nothing was written.
+   */
+  async function confirm(shown: RestorePlan, fileName: string, file: KeyboardFile, warnings: string[]) {
+    // Queued behind every change asked for before it (the store runs them in order).
+    await deviceStore.refreshLighting()
+    const now = planFor(file, deviceStore.getState())
+    if (JSON.stringify(now) !== JSON.stringify(shown)) {
+      setStep({ kind: 'review', fileName, file, warnings, changed: true })
+      return
+    }
+    await run(now, fileName, file)
   }
 
   async function run(plan: RestorePlan, fileName: string, file: KeyboardFile) {
@@ -417,7 +527,7 @@ export function Restore() {
         <Review
           step={step}
           onCancel={() => setStep({ kind: 'idle' })}
-          onRestore={() => void run(step.plan, step.fileName, step.file)}
+          onRestore={(shown) => void confirm(shown, step.fileName, step.file, step.warnings)}
           onUnlocked={() => void review(step.fileName, step.file)}
         />
       )}

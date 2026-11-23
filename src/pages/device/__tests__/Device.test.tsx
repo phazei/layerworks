@@ -5,7 +5,7 @@ import { clearPrefs } from '../../../ui/prefs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '../..'
-import { backupText, createBackup, deviceStore, parseBackup, type DeviceState } from '../../../device'
+import { backupText, bootKeycode, createBackup, deviceStore, parseBackup, type DeviceState } from '../../../device'
 import { connectDemo, demoKeyboard, disconnect } from '../../../shell/session'
 import { Shell } from '../../../shell/Shell'
 import { closeUnlock } from '../../../shell/unlock-dialog'
@@ -142,6 +142,72 @@ describe('Device page', () => {
     expect(done).toHaveTextContent('Restored 1 key.')
     expect(done).toHaveTextContent('Undo')
     expect(deviceStore.getState().keyboard!.keymap['2,3,2']).toBe(before)
+  })
+
+  it('works the review out from the keyboard as it is now: an Undo while it is open shows, and the restore writes it', async () => {
+    await showDevice()
+    const slot = { kind: 'key', layer: 2, row: 3, col: 2 } as const
+    const before = deviceStore.getState().keyboard!.keymap['2,3,2']
+    await act(() => deviceStore.assign(slot, 0x29))
+    // A backup of the keyboard with the change: opened now, there is nothing to restore.
+    const text = backupText(createBackup(deviceStore.getState(), []))
+    const input = card('Back up and restore').querySelector<HTMLInputElement>('input[type=file]')!
+    await act(async () => fireEvent.change(input, { target: { files: [new File([text], 'now.layerworks.json')] } }))
+    const review = await screen.findByRole('region', { name: 'Restore' })
+    expect(review).toHaveTextContent('already matches')
+
+    // Undo, in the bar at the bottom, takes the change back on the keyboard while the review is open.
+    await act(() => deviceStore.undo())
+    expect(deviceStore.getState().keyboard!.keymap['2,3,2']).toBe(before)
+    expect(within(review).getByRole('list', { name: 'What will change' })).toHaveTextContent('1 key on Windows')
+
+    fireEvent.click(within(review).getByRole('button', { name: 'Restore…' }))
+    await act(async () => fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Restore' })))
+    expect(await screen.findByRole('region', { name: 'Restore finished' })).toHaveTextContent('Restored 1 key.')
+    expect(deviceStore.getState().keyboard!.keymap['2,3,2']).toBe(0x29)
+  })
+
+  it('an Undo that empties the plan closes the confirmation and the review says there is nothing to restore', async () => {
+    await showDevice()
+    const text = backupText(createBackup(deviceStore.getState(), []))
+    await act(() => deviceStore.assign({ kind: 'key', layer: 2, row: 3, col: 2 }, 0x29))
+    const input = card('Back up and restore').querySelector<HTMLInputElement>('input[type=file]')!
+    await act(async () => fireEvent.change(input, { target: { files: [new File([text], 'old.layerworks.json')] } }))
+    const review = await screen.findByRole('region', { name: 'Restore' })
+    fireEvent.click(within(review).getByRole('button', { name: 'Restore…' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    await act(() => deviceStore.undo())
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(review).toHaveTextContent('already matches')
+  })
+
+  it('says why unlocking is needed: the firmware update key, the macros, or both', async () => {
+    await showDevice()
+    const boot = bootKeycode()!
+    const input = () => card('Back up and restore').querySelector<HTMLInputElement>('input[type=file]')!
+    const choose = (text: string) =>
+      act(async () => fireEvent.change(input(), { target: { files: [new File([text], 'f.layerworks.json')] } }))
+
+    const withBoot = createBackup(deviceStore.getState(), [])
+    withBoot.keymap[2][3][2] = boot
+    await choose(backupText(withBoot))
+    let review = await screen.findByRole('region', { name: 'Restore' })
+    expect(review).toHaveTextContent('The firmware update key (on a key) can only be written while the keyboard is unlocked.')
+    expect(review).not.toHaveTextContent(/macros can only/i)
+
+    withBoot.macros![0] = 0x61
+    await choose(backupText(withBoot))
+    review = await screen.findByRole('region', { name: 'Restore' })
+    await waitFor(() =>
+      expect(review).toHaveTextContent('The macros and the firmware update key (on a key) can only be written while the keyboard is unlocked.'),
+    )
+    await act(async () => fireEvent.click(within(review).getByRole('button', { name: 'Unlock first…' })))
+    expect(screen.getByRole('dialog', { name: /Unlock the keyboard/ })).toHaveTextContent(
+      'Restoring the macros and the firmware update key (on a key) needs it.',
+    )
+    act(() => closeUnlock())
   })
 
   it('says a file matches already, and refuses a file for another keyboard', async () => {
