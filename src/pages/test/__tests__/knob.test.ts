@@ -16,7 +16,7 @@ function keyboard(knobs: number): KeyboardData {
     knobMap[`1,${k},0`] = code('KC_WH_D')
     knobMap[`1,${k},1`] = code('KC_WH_U')
   }
-  return { rows: 1, cols: 1, layers: 2, keymap: { '0,0,0': code('MO(1)'), '1,0,0': 1 }, knobs: knobMap, knobCount: knobs } as unknown as KeyboardData
+  return { rows: 1, cols: 1, layers: 2, keymap: { '0,0,0': code('MO(1)'), '1,0,0': 1 }, knobs: knobMap, knobCount: knobs, knobIndices: Array.from({ length: knobs }, (_, i) => i) } as unknown as KeyboardData
 }
 
 // Connecting the demo keyboard sets up the keycode tables (Vial protocol 6).

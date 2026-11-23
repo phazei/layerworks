@@ -15,6 +15,7 @@ import { normalizeQmkSettingData } from '../vendor/pipette/shared/qmk-settings-n
 import { extractUidFromJson, isVialGuiFile, vialGuiToVil, vilToVialGuiJson } from '../vendor/pipette/shared/vil-compat'
 import type { VilFile } from '../vendor/pipette/shared/types/protocol'
 import { parseKeycode } from './keycodes'
+import { knobSlots } from './knob-map'
 import type { FileIdentity, KeyboardContents } from './restore'
 import type { DeviceState } from './store'
 
@@ -54,7 +55,8 @@ export function exportVil(state: DeviceState): string {
       rows: kb.rows,
       cols: kb.cols,
       layers: kb.layers,
-      encoderCount: kb.knobCount,
+      // Vial's encoder_layout runs from knob number 0 to the highest (./knob-map.ts, knobSlots).
+      encoderCount: knobSlots(kb.knobIndices),
       vialProtocol: kb.vialProtocol,
       viaProtocol: kb.viaProtocol,
       macroActions: macros.map((actions) => JSON.parse(macroActionsToJson(actions)) as unknown[]),

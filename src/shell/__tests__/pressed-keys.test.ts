@@ -79,7 +79,7 @@ describe('media keys and how keycodes are heard', () => {
   })
 
   it('finds what a knob direction sends, falling through to the base layer', () => {
-    const kb = { knobCount: 1, knobs: { '0,0,0': KC_A, '0,0,1': KC_B, '1,0,0': KC_SAME_AS_BELOW, '1,0,1': KC_ESC } } as unknown as KeyboardData
+    const kb = { knobCount: 1, knobIndices: [0], knobs: { '0,0,0': KC_A, '0,0,1': KC_B, '1,0,0': KC_SAME_AS_BELOW, '1,0,1': KC_ESC } } as unknown as KeyboardData
     expect(knobDirections(kb)).toEqual(['0,0', '0,1'])
     expect(knobKeycode(kb, layer(0, 1), '0,0')).toBe(KC_A)
     expect(knobKeycode(kb, layer(0, 1), '0,1')).toBe(KC_ESC)

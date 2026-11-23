@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, Lock, LockOpen, MousePointerClick, Pause, RotateCcw, RotateCw } from 'lucide-react'
-import { keycodeTitle, MATRIX_TOO_BIG, matrixKeys, matrixReadable, useDevice, type KeyboardData, type LayerState } from '../device'
+import { keycodeTitle, knobName, MATRIX_TOO_BIG, matrixKeys, matrixReadable, useDevice, type KeyboardData, type LayerState } from '../device'
 import { notSeenLine } from './test/not-seen'
 import type { PageDef } from '../plugins/api'
 import { useConnectedLayerNames } from '../shell/layer-names'
@@ -124,11 +124,11 @@ function ModeNote({
 
 const TEST_REASON = 'The key test needs it to see Fn and the layer keys, which never reach the browser.'
 
-/** "left", "right", or "knob 2 left" where there is more than one knob. */
-function turnName(position: string, knobCount: number): string {
+/** "left", "right", or "knob 2 left" where there is more than one knob (by place in order: device knobName). */
+function turnName(position: string, indices: readonly number[]): string {
   const [knob, direction] = position.split(',')
   const way = direction === '1' ? 'right' : 'left'
-  return knobCount > 1 ? `knob ${Number(knob) + 1} ${way}` : way
+  return indices.length > 1 ? `${knobName(indices, Number(knob)).toLowerCase()} ${way}` : way
 }
 
 const WHY: Record<Exclude<Visibility, 'seen'>, [string, string]> = {
@@ -138,12 +138,15 @@ const WHY: Record<Exclude<Visibility, 'seen'>, [string, string]> = {
 }
 
 /** "On Windows, turning it right sends Volume Up, which …", one sentence per kind of trouble. */
-function troubleSentences(plan: KnobPlan, layerName: string, knobCount: number): string[] {
+function troubleSentences(plan: KnobPlan, layerName: string): string[] {
   const kinds = ['kept', 'maybe', 'unseen'] as const
+  // The knobs' own numbers, in order (knobPlan lists both directions of each).
+  const indices = [...new Set(plan.here.map((d) => Number(d.position.split(',')[0])))]
+  const knobCount = indices.length
   return kinds.flatMap((kind) => {
     const these = plan.here.filter((d) => d.visibility === kind)
     if (these.length === 0) return []
-    const turns = these.map((d) => turnName(d.position, knobCount)).join(' or ')
+    const turns = these.map((d) => turnName(d.position, indices)).join(' or ')
     const sends = these.map((d) => keycodeTitle(d.code)).join(' and ')
     return [`On ${layerName}, turning ${knobCount > 1 ? '' : 'it '}${turns} sends ${sends}, ${WHY[kind][these.length > 1 ? 1 : 0]}.`]
   })
@@ -155,7 +158,7 @@ function KnobNote({ plan, layer }: { plan: KnobPlan; layer: LayerState }) {
   const name = (n: number) => names[n] ?? `layer ${n}`
   if (plan.here.length === 0) return null
   const knobs = plan.here.length / 2
-  const troubles = troubleSentences(plan, name(layer.active), knobs)
+  const troubles = troubleSentences(plan, name(layer.active))
   const there = plan.elsewhere
   return (
     <p className="flex gap-2.5">

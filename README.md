@@ -1091,7 +1091,8 @@ One JSON file, `<keyboard-name>-<date>.layerworks.json` (`device/backup.ts`):
   "layerNames": ["", "My Fn", ...],             one per layer, as stored in the browser ("" = default name)
   "macroNames": ["", "Sign-off", ...],          one per macro, likewise; missing in files saved before it existed
   "keymap": [[[keycode, ...] row] layer],        keymap[layer][row][col], every matrix position
-  "knobs": [[[left, right] knob] layer],         left = counter-clockwise (direction 0)
+  "knobs": [[[left, right] knob] layer],         left = counter-clockwise (direction 0); by the knob's firmware
+                                                 number, 0 to the highest ([0, 0] where no knob has it)
   "layoutOptions": 0,
   "macros": [byte, ...] | null,                  the macro buffer as the keyboard stores it
   "entries": { tapDance, combo, keyOverride, altRepeatKey } | null,
@@ -1332,6 +1333,17 @@ code) and the test that covers it. Keep this list complete: an adaptation withou
   picked, Keys and Device say why, and the `knob` capability's reason and help topic say so. Decided in
   `firmwareKeepsKnobs` (`device/knob-map.ts`), at the store's load. Test: `pages/__tests__/fixed-knob.test.tsx` (on
   the demo Cloud).
+
+- **Knobs numbered other than 0, 1, 2 …** (mechlovin/adelais/rgb_led/rev3 draws its only knob as 3,
+  argo_works/ishi/80/mk0_avr_extra as 8). Vial's knob commands carry the definition's number (vial.c, get / set
+  encoder), and the app sends it as written, as Vial does: `KeyboardData.knobIndices` lists the numbers, and the
+  picture, the Test page, undo, the read-back, backups and Vial files go by them, never by 0 … `knobCount` − 1. People
+  see knobs by place in order ("Knob" for the only one, "Knob 2" for the second). Backups and Vial files lay knobs out
+  by number, 0 to the highest, a number no knob has left at Nothing and passed over by a restore, so files from
+  keyboards numbered 0, 1, 2 … read as before. On those two keyboards the number is the definition's mistake (their
+  firmware has one knob, 0), so their knob reads Nothing and ignores writes, in Vial too. Decided in `knobIndices`,
+  `knobSlots` and `knobName` (`device/knob-map.ts`). Test: `device/__tests__/odd-knob-number.test.ts` ("a keyboard
+  whose only knob is numbered 1", "… numbered 0 and 2").
 
 - **Firmware that never locks** (built with `VIAL_INSECURE`; in vial-qmk, vipad). It starts unlocked, ignores Lock and
   names no unlock keys. The device card, Home and Device say "Never locks" (with why) and offer neither Lock nor

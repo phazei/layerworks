@@ -157,9 +157,9 @@ export function usePressedKeys(keyboard: KeyboardData | null, layer: LayerState 
 /** A knob direction as the keyboard picture names it: "knob,direction" (0 counter-clockwise, 1 clockwise). */
 export const knobPos = (knob: number, direction: 0 | 1): string => `${knob},${direction}`
 
-/** Every knob direction of the keyboard. */
+/** Every knob direction of the keyboard, by the knobs' own numbers (KeyboardData.knobIndices). */
 export function knobDirections(keyboard: KeyboardData): string[] {
-  return Array.from({ length: keyboard.knobCount }, (_, knob) => [knobPos(knob, 0), knobPos(knob, 1)]).flat()
+  return keyboard.knobIndices.flatMap((knob) => [knobPos(knob, 0), knobPos(knob, 1)])
 }
 
 /** What a knob direction ("knob,direction") sends with the layers as they are; nothing of its own falls to the base. */

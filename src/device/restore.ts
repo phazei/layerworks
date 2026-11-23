@@ -14,6 +14,7 @@ import type { DeviceState, Entries, Slot } from './store'
 import { formatDuration, timersProblem, type WirelessTimers } from './wireless'
 import { debounceMax, debounceType, snapClickProblem, type SnapClickEntry } from './keychron-typing'
 import { keycodeName, macroTitle, parseKeycode, readMacroKey, readTapDanceKey } from './keycodes'
+import { knobName, knobSlots } from './knob-map'
 import { layoutChangeWords } from './layout-options'
 import { readMacros } from './macros'
 import { keymapRisks, type Risk } from './risks'
@@ -321,7 +322,10 @@ export function planRestore(
     if (!at) continue
     const [layer, knob, direction] = at
     if (layer >= kb.layers) extraLayers.add(layer)
-    else if (knob >= kb.knobCount || direction > 1) outside++
+    // A number below this keyboard's highest that no knob has is a gap a file's knob list fills (./knob-map.ts,
+    // knobSlots), not a missing knob.
+    else if (!kb.knobIndices.includes(knob) && knob < knobSlots(kb.knobIndices) && direction <= 1) continue
+    else if (!kb.knobIndices.includes(knob) || direction > 1) outside++
     else if ((kb.knobs[key] ?? 0) !== to) {
       plan.keys.push({ slot: { kind: 'knob', layer, knob, direction: direction as 0 | 1 }, from: kb.knobs[key] ?? 0, to })
     }
@@ -581,7 +585,7 @@ export function planItems(plan: RestorePlan, state: DeviceState, layerName: (lay
       title: kb.knobCount === 1 ? 'Knob' : 'Knobs',
       items: knob.map(({ slot, from, to }) =>
         slot.kind === 'knob'
-          ? `${layerName(slot.layer)}, ${kb.knobCount === 1 ? 'knob' : `knob ${slot.knob + 1}`} turned ${slot.direction === 0 ? 'left' : 'right'}: ${change(from, to)}`
+          ? `${layerName(slot.layer)}, ${knobName(kb.knobIndices, slot.knob).toLowerCase()} turned ${slot.direction === 0 ? 'left' : 'right'}: ${change(from, to)}`
           : '',
       ),
     })

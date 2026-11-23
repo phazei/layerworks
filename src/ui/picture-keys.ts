@@ -3,7 +3,7 @@
 // middle of the key as drawn, rotation and the chosen layout options included), which one an arrow key moves to, and
 // what each is called for a screen reader.
 
-import { KC_NOTHING, KC_SAME_AS_BELOW, keycodeId, keycodeTitle, visibleLayoutKeys, type KeyboardData } from '../device/api'
+import { KC_NOTHING, KC_SAME_AS_BELOW, keycodeId, keycodeTitle, knobName, visibleLayoutKeys, type KeyboardData } from '../device/api'
 import { keyCenter } from '../vendor/pipette/renderer/components/keyboard/key-geometry'
 import { KEY_UNIT } from '../vendor/pipette/renderer/components/keyboard/constants'
 import type { PictureSelection } from './KeyboardPicture'
@@ -73,9 +73,9 @@ export function nextTarget(targets: readonly PictureTarget[], from: string, dire
   return best?.id ?? null
 }
 
-/** "turned left", with the knob's number where there is more than one. */
-function knobWords(knob: number, direction: 0 | 1, knobCount: number): string {
-  return `${knobCount > 1 ? `Knob ${knob + 1}` : 'Knob'} turned ${direction === 1 ? 'right' : 'left'}`
+/** "Knob turned left", with the knob's place in order where there is more than one (device knobName). */
+function knobWords(keyboard: KeyboardData, knob: number, direction: 0 | 1): string {
+  return `${knobName(keyboard.knobIndices, knob)} turned ${direction === 1 ? 'right' : 'left'}`
 }
 
 /**
@@ -95,6 +95,6 @@ export function targetName(keyboard: KeyboardData, layer: number, target: Pictur
   const name =
     s.kind === 'key'
       ? `${does(keyboard.keymap[`${layer},${s.row},${s.col}`])}, row ${s.row + 1}, column ${s.col + 1}`
-      : `${knobWords(s.knob, s.direction, keyboard.knobCount)}: ${does(keyboard.knobs[`${layer},${s.knob},${s.direction}`])}`
+      : `${knobWords(keyboard, s.knob, s.direction)}: ${does(keyboard.knobs[`${layer},${s.knob},${s.direction}`])}`
   return extra ? `${name}, ${extra}` : name
 }

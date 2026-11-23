@@ -6,6 +6,7 @@
 
 import type { KeychronState } from '../vendor/pipette/shared/types/keychron'
 import { keyboardIdentity, type Debounce, type FileIdentity, type KeyboardContents, type LightingValues } from './restore'
+import { knobSlots } from './knob-map'
 import type { DeviceState, Entries } from './store'
 import type { WirelessTimers } from './wireless'
 import type { SnapClickEntry } from './keychron-typing'
@@ -51,7 +52,10 @@ export interface Backup {
   macroNames?: string[]
   /** keymap[layer][row][col] = keycode */
   keymap: number[][][]
-  /** knobs[layer][knob] = [left (counter-clockwise), right (clockwise)] */
+  /**
+   * knobs[layer][knob] = [left (counter-clockwise), right (clockwise)], by the knob's number in the firmware's commands
+   * (0 to the highest; one the keyboard has no knob for holds [0, 0]).
+   */
   knobs: [number, number][][]
   layoutOptions: number
   /** The macro buffer as the keyboard stores it; null when it couldn't be read. */
@@ -121,8 +125,10 @@ export function createBackup(
     layerNames: range(kb.layers).map((i) => layerNames[i]?.trim() ?? ''),
     macroNames: range(kb.macroCount).map((i) => macroNames[i]?.trim() ?? ''),
     keymap: range(kb.layers).map((l) => range(kb.rows).map((r) => range(kb.cols).map((c) => kb.keymap[`${l},${r},${c}`] ?? 0))),
+    // By the knob's firmware number, 0 to the highest, as Vial's files lay them out (./knob-map.ts, knobSlots): a number
+    // no knob has stays at Nothing, and a restore passes over it.
     knobs: range(kb.layers).map((l) =>
-      range(kb.knobCount).map((k): [number, number] => [kb.knobs[`${l},${k},0`] ?? 0, kb.knobs[`${l},${k},1`] ?? 0]),
+      range(knobSlots(kb.knobIndices)).map((k): [number, number] => [kb.knobs[`${l},${k},0`] ?? 0, kb.knobs[`${l},${k},1`] ?? 0]),
     ),
     layoutOptions: kb.layoutOptions,
     macros: state.macros ? [...state.macros] : null,

@@ -33,7 +33,7 @@ import type {
 } from '../vendor/pipette/shared/types/protocol'
 import { answersVial, NOT_VIAL } from './vial-firmware'
 import { layoutChoices, layoutOptionList, withLayoutChoice } from './layout-options'
-import { firmwareKeepsKnobs } from './knob-map'
+import { firmwareKeepsKnobs, knobIndices } from './knob-map'
 import { keyboardName } from './keyboard-name'
 import { firmwareHasVialRgb, lightingKind } from './lighting-kind'
 import { buildCapabilities, type Capabilities, type LightingInfo } from './capabilities'
@@ -98,6 +98,11 @@ export interface KeyboardData {
   knobs: Record<string, number>
   /** Knobs the app can read and change; 0 where the firmware doesn't let apps change them (`fixedKnobs`). */
   knobCount: number
+  /**
+   * Their numbers in the firmware's knob commands, in order (`knobCount` of them): the definition's own, which aren't
+   * always 0, 1, 2 … (./knob-map.ts, knobIndices). Loop over these, never 0 … knobCount − 1.
+   */
+  knobIndices: number[]
   /**
    * Knobs the definition draws but the firmware doesn't let apps read or change (built without an encoder map,
    * ./knob-map.ts). They are in the picture, but not in `knobs`, `knobCount`, tests, undo or backups.
@@ -608,6 +613,7 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
     const parsed = parseDefinitionLayout(probe.definition)
     // Knobs the firmware doesn't let apps change read back as the request itself (./knob-map.ts): leave them out.
     const knobsKept = firmwareKeepsKnobs(probe.encoderLayout, probe.layers, parsed.encoderIdx)
+    const indices = knobIndices(parsed.encoderIdx)
     return {
       keyboard: {
         uid: probe.uid,
@@ -622,8 +628,9 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         cols: probe.cols,
         keymap: probe.keymap,
         knobs: knobsKept ? {} : probe.encoderLayout,
-        knobCount: knobsKept ? 0 : probe.encoderCount,
-        fixedKnobs: knobsKept ? probe.encoderCount : 0,
+        knobCount: knobsKept ? 0 : indices.length,
+        knobIndices: knobsKept ? [] : indices,
+        fixedKnobs: knobsKept ? indices.length : 0,
         // The keyboard ID reply's VialRGB flag (./lighting-kind.ts, firmwareHasVialRgb).
         firmwareVialRgb: firmwareHasVialRgb(idReply),
         layoutOptions: probe.layoutOptions,
@@ -1845,9 +1852,8 @@ export function createDeviceStore({ decompress }: DeviceStoreOptions): DeviceSto
         for (let col = 0; col < kb.cols; col++, i += 2) keymap[`${layer},${row},${col}`] = (bytes[i] << 8) | bytes[i + 1]
       }
     }
-    const knobIndices = [...new Set(Object.keys(kb.knobs).map((key) => Number(key.split(',')[1])))]
     const knobs: Record<string, number> = {}
-    for (const knob of knobIndices) {
+    for (const knob of kb.knobIndices) {
       for (let layer = 0; layer < kb.layers; layer++) {
         const [left, right] = await protocol.getEncoder(layer, knob)
         knobs[`${layer},${knob},0`] = left

@@ -176,7 +176,8 @@ export function KeyboardPicture({
     const map = new Map<string, [string, string]>()
     // The widget has no label override for knobs; it draws an unknown keycode as its text.
     const text = (code: number) => knobPictureText(code, names) ?? keycodeId(code)
-    for (let knob = 0; knob < keyboard.knobCount; knob++) {
+    // By the knobs' own numbers, which the widget matches to the definition's knob keys (device knobIndices).
+    for (const knob of keyboard.knobIndices) {
       map.set(String(knob), [text(keyboard.knobs[`${layer},${knob},0`] ?? 0), text(keyboard.knobs[`${layer},${knob},1`] ?? 0)])
     }
     // Knobs the firmware keeps to itself (KeyboardData.fixedKnobs): what they do isn't known, so they say so.

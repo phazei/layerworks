@@ -2,7 +2,7 @@
 // "Not seen yet: F5, Insert and Right Ctrl": the keys the Test page still waits for, by what they do, once most are
 // done. Named rather than only shown, so they can be found without telling the picture's colours apart, and read out.
 
-import { KC_NOTHING, KC_SAME_AS_BELOW, keycodeId, keycodeTitle, type KeyboardData } from '../../device'
+import { KC_NOTHING, KC_SAME_AS_BELOW, keycodeId, keycodeTitle, knobName, type KeyboardData } from '../../device'
 import { pictureLabel } from '../../ui/picture-labels'
 
 /** The list appears once no more than this share of the keys is left. */
@@ -30,11 +30,10 @@ function plainName(code: number, layerNames?: readonly string[]): string {
   return label && !label.masked ? label.outer.replace(/\s*\n\s*/g, ' ') : title
 }
 
-/** "turned left", or "knob 2 turned left" where there is more than one knob. */
-export function turnWords(position: string, knobCount: number): string {
+/** "Knob turned left", or "Knob 2 turned left" where there is more than one knob (by place in order: knobName). */
+export function turnWords(position: string, indices: readonly number[]): string {
   const [knob, direction] = position.split(',')
-  const way = direction === '1' ? 'right' : 'left'
-  return knobCount > 1 ? `Knob ${Number(knob) + 1} turned ${way}` : `Knob turned ${way}`
+  return `${knobName(indices, Number(knob))} turned ${direction === '1' ? 'right' : 'left'}`
 }
 
 /**
@@ -58,7 +57,7 @@ export function notSeenLine(
     const [row, col] = left[i].split(',').map(Number)
     return twice(name) ? `${name} (row ${row + 1}, column ${col + 1})` : name
   })
-  const names = [...placed, ...turns.map((turn) => turnWords(turn, keyboard.knobCount))]
+  const names = [...placed, ...turns.map((turn) => turnWords(turn, keyboard.knobIndices))]
   if (names.length === 0) return null
   const shown = names.slice(0, NOT_SEEN_NAMES)
   const more = names.length - shown.length
